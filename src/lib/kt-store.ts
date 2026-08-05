@@ -26,12 +26,14 @@ function write<T>(key: string, value: T) {
 
 export function useStore<T>(key: string, initial: T) {
   const [value, setValue] = useState<T>(initial);
+  const [hidratado, setHidratado] = useState(false);
   const ref = useRef<T>(initial);
 
   useEffect(() => {
     const current = read<T>(key, initial);
     ref.current = current;
     setValue(current);
+    setHidratado(true);
     const onChange = (e: Event) => {
       if ((e as CustomEvent).detail === key) {
         const next = read<T>(key, initial);
@@ -54,7 +56,7 @@ export function useStore<T>(key: string, initial: T) {
     [key],
   );
 
-  return [value, update] as const;
+  return [value, update, hidratado] as const;
 }
 
 
