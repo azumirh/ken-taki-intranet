@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { MURAL_SEED, NOTICIAS_SEED, type MuralItem, type Noticia } from "./kt-data";
 
 /**
