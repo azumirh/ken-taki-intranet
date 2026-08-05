@@ -32,7 +32,10 @@ export const Route = createFileRoute("/azumi")({
           "Área da Azumi RH: publicar mural e notícias em vídeo, abrir pesquisas de clima e acompanhar as unidades Ken Taki.",
       },
       { property: "og:title", content: "Área Azumi RH · Intranet Ken Taki" },
-      { property: "og:description", content: "Visão consolidada das unidades Cristo Rei e Champagnat." },
+      {
+        property: "og:description",
+        content: "Visão consolidada das unidades Cristo Rei e Champagnat.",
+      },
     ],
   }),
   component: AzumiPage,
@@ -60,11 +63,21 @@ function LoginAzumi({ onLogin }: { onLogin: (s: never) => void }) {
         <div className="mt-6 grid gap-4">
           <div className="grid gap-2">
             <Label htmlFor="email">E-mail</Label>
-            <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+            <Input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
           </div>
           <div className="grid gap-2">
             <Label htmlFor="senha">Senha</Label>
-            <Input id="senha" type="password" value={senha} onChange={(e) => setSenha(e.target.value)} />
+            <Input
+              id="senha"
+              type="password"
+              value={senha}
+              onChange={(e) => setSenha(e.target.value)}
+            />
           </div>
           {erro ? <p className="text-sm font-medium text-destructive">{erro}</p> : null}
           <Button
@@ -108,7 +121,9 @@ function PainelAzumi() {
       <div className="grid gap-5">
         <div>
           <h1 className="text-2xl font-extrabold sm:text-3xl">Área Azumi RH</h1>
-          <p className="text-sm text-muted-foreground">Visão consolidada de Cristo Rei e Champagnat.</p>
+          <p className="text-sm text-muted-foreground">
+            Visão consolidada de Cristo Rei e Champagnat.
+          </p>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-4">
@@ -125,7 +140,10 @@ function PainelAzumi() {
           ))}
         </div>
 
-        <Section titulo="Clima por unidade" intro="Distribuição dos check-ins de humor nas duas unidades.">
+        <Section
+          titulo="Clima por unidade"
+          intro="Distribuição dos check-ins de humor nas duas unidades."
+        >
           <div className="grid gap-4 md:grid-cols-2">
             {FILIAIS.map((f) => {
               const dados = checkins.filter((c) => c.filial === f.id);
@@ -137,7 +155,9 @@ function PainelAzumi() {
                     {HUMORES.map((h) => (
                       <div key={h.id} className="rounded-xl bg-muted py-2">
                         <span className="text-lg">{h.emoji}</span>
-                        <p className="text-sm font-bold">{dados.filter((c) => c.humor === h.id).length}</p>
+                        <p className="text-sm font-bold">
+                          {dados.filter((c) => c.humor === h.id).length}
+                        </p>
                       </div>
                     ))}
                   </div>
@@ -153,8 +173,17 @@ function PainelAzumi() {
           contagem={`${noticias.length} publicados`}
         >
           <div className="grid max-w-2xl gap-3">
-            <Input placeholder="Título" value={nTitulo} onChange={(e) => setNTitulo(e.target.value)} />
-            <Textarea rows={2} placeholder="Resumo" value={nResumo} onChange={(e) => setNResumo(e.target.value)} />
+            <Input
+              placeholder="Título"
+              value={nTitulo}
+              onChange={(e) => setNTitulo(e.target.value)}
+            />
+            <Textarea
+              rows={2}
+              placeholder="Resumo"
+              value={nResumo}
+              onChange={(e) => setNResumo(e.target.value)}
+            />
             <Input
               placeholder="Link do vídeo (YouTube)"
               value={nVideo}
@@ -162,7 +191,12 @@ function PainelAzumi() {
             />
             {nVideo && youtubeEmbed(nVideo) ? (
               <div className="aspect-video w-full overflow-hidden rounded-xl">
-                <iframe src={youtubeEmbed(nVideo)!} title="Prévia" className="h-full w-full" allowFullScreen />
+                <iframe
+                  src={youtubeEmbed(nVideo)!}
+                  title="Prévia"
+                  className="h-full w-full"
+                  allowFullScreen
+                />
               </div>
             ) : null}
             <div>
@@ -198,9 +232,22 @@ function PainelAzumi() {
           contagem={pesquisa?.ativa ? "Ativa" : "Nenhuma ativa"}
         >
           <div className="grid max-w-2xl gap-3">
-            <Input placeholder="Título da pesquisa" value={pTitulo} onChange={(e) => setPTitulo(e.target.value)} />
-            <Textarea rows={2} placeholder="Descrição" value={pDesc} onChange={(e) => setPDesc(e.target.value)} />
-            <Input placeholder="Link do formulário" value={pLink} onChange={(e) => setPLink(e.target.value)} />
+            <Input
+              placeholder="Título da pesquisa"
+              value={pTitulo}
+              onChange={(e) => setPTitulo(e.target.value)}
+            />
+            <Textarea
+              rows={2}
+              placeholder="Descrição"
+              value={pDesc}
+              onChange={(e) => setPDesc(e.target.value)}
+            />
+            <Input
+              placeholder="Link do formulário"
+              value={pLink}
+              onChange={(e) => setPLink(e.target.value)}
+            />
             <div className="flex flex-wrap gap-2">
               <Button
                 className="rounded-full"
@@ -220,7 +267,11 @@ function PainelAzumi() {
                 Publicar pesquisa
               </Button>
               {pesquisa?.ativa ? (
-                <Button variant="outline" className="rounded-full" onClick={() => setPesquisa(null)}>
+                <Button
+                  variant="outline"
+                  className="rounded-full"
+                  onClick={() => setPesquisa(null)}
+                >
                   Encerrar pesquisa
                 </Button>
               ) : null}
@@ -240,7 +291,10 @@ function PainelAzumi() {
           ) : (
             <div className="grid gap-3">
               {ajuda.map((a) => (
-                <div key={a.id} className="rounded-2xl border border-border bg-card px-4 py-3 text-sm">
+                <div
+                  key={a.id}
+                  className="rounded-2xl border border-border bg-card px-4 py-3 text-sm"
+                >
                   <strong>{a.nome}</strong> · {filialNome(a.filial)} · {fmtData(a.ts)}
                 </div>
               ))}
@@ -258,7 +312,10 @@ function PainelAzumi() {
           ) : (
             <div className="grid gap-3">
               {vagas.map((v) => (
-                <div key={v.id} className="rounded-2xl border border-border bg-card px-4 py-3 text-sm">
+                <div
+                  key={v.id}
+                  className="rounded-2xl border border-border bg-card px-4 py-3 text-sm"
+                >
                   <strong>{v.cargo}</strong> · {filialNome(v.filial)} · {fmtData(v.ts)}
                   {v.motivo ? <p className="text-muted-foreground">{v.motivo}</p> : null}
                 </div>

@@ -60,8 +60,8 @@ function Index() {
             Tudo do time <span className="text-union">em um lugar só</span>
           </h1>
           <p className="mt-4 max-w-xl text-base text-muted-foreground">
-            Políticas para ler e assinar, mural da equipe, aniversariantes, clima e canais de escuta —
-            simples no celular e completo no computador.
+            Políticas para ler e assinar, mural da equipe, aniversariantes, clima e canais de escuta
+            — simples no celular e completo no computador.
           </p>
         </div>
         <div className="surface overflow-hidden">
@@ -95,7 +95,8 @@ function Index() {
               <p className="mt-1 flex-1 text-sm text-muted-foreground">{e.desc}</p>
               <p className="mt-3 text-xs text-muted-foreground">{e.acesso}</p>
               <span className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-kt">
-                Entrar <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                Entrar{" "}
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
               </span>
             </div>
           </Link>

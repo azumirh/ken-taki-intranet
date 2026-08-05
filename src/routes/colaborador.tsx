@@ -14,10 +14,14 @@ export const Route = createFileRoute("/colaborador")({
       { title: "Entrar como colaborador · Intranet Ken Taki" },
       {
         name: "description",
-        content: "Acesse a intranet do Ken Taki com seu nome, sua filial e os 3 últimos dígitos do CPF.",
+        content:
+          "Acesse a intranet do Ken Taki com seu nome, sua filial e os 3 últimos dígitos do CPF.",
       },
       { property: "og:title", content: "Entrar como colaborador · Intranet Ken Taki" },
-      { property: "og:description", content: "Acesso rápido do colaborador à intranet do Ken Taki." },
+      {
+        property: "og:description",
+        content: "Acesso rápido do colaborador à intranet do Ken Taki.",
+      },
     ],
   }),
   component: ColaboradorLogin,
@@ -76,13 +80,18 @@ function ColaboradorLogin() {
           <div className="surface p-6 sm:p-8">
             <h1 className="text-2xl font-extrabold">Só pra te identificar</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Unidade {FILIAIS.find((f) => f.id === filial)?.nome}. Nada disso vira senha — é só pra sua
-              liderança saber quem respondeu.
+              Unidade {FILIAIS.find((f) => f.id === filial)?.nome}. Nada disso vira senha — é só pra
+              sua liderança saber quem respondeu.
             </p>
             <div className="mt-6 grid gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="nome">Seu nome completo</Label>
-                <Input id="nome" value={nome} onChange={(e) => setNome(e.target.value)} maxLength={80} />
+                <Input
+                  id="nome"
+                  value={nome}
+                  onChange={(e) => setNome(e.target.value)}
+                  maxLength={80}
+                />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="cpf">Últimos 3 dígitos do CPF</Label>
@@ -102,8 +111,8 @@ function ColaboradorLogin() {
                   className="mt-0.5"
                 />
                 <span className="text-muted-foreground">
-                  Confirmo que sou eu e que meus registros ficam visíveis para a liderança da unidade e para
-                  a Azumi RH.
+                  Confirmo que sou eu e que meus registros ficam visíveis para a liderança da
+                  unidade e para a Azumi RH.
                 </span>
               </label>
               {erro ? <p className="text-sm font-medium text-destructive">{erro}</p> : null}

@@ -88,8 +88,18 @@
   --input: oklch(0.92 0.012 315);
   --ring: oklch(0.58 0.17 268);
 
-  --gradient-union: linear-gradient(100deg, oklch(0.44 0.16 340) 0%, oklch(0.42 0.12 310) 45%, oklch(0.58 0.17 268) 100%);
-  --gradient-veil: linear-gradient(160deg, oklch(0.985 0.02 340) 0%, oklch(0.99 0.008 320) 45%, oklch(0.98 0.02 268) 100%);
+  --gradient-union: linear-gradient(
+    100deg,
+    oklch(0.44 0.16 340) 0%,
+    oklch(0.42 0.12 310) 45%,
+    oklch(0.58 0.17 268) 100%
+  );
+  --gradient-veil: linear-gradient(
+    160deg,
+    oklch(0.985 0.02 340) 0%,
+    oklch(0.99 0.008 320) 45%,
+    oklch(0.98 0.02 268) 100%
+  );
   --shadow-soft: 0 1px 2px oklch(0.3 0.06 315 / 0.04), 0 8px 24px -12px oklch(0.3 0.06 315 / 0.18);
   --shadow-lift: 0 2px 4px oklch(0.3 0.06 315 / 0.05), 0 18px 40px -18px oklch(0.3 0.06 315 / 0.28);
 

@@ -17,7 +17,8 @@ export function Politicas({ session }: { session: Extract<Session, { tipo: "cola
   const [assinaturas, setAssinaturas] = useAssinaturas();
   const [aberta, setAberta] = useState<Politica | null>(null);
 
-  const assinada = (id: string) => assinaturas.some((a) => a.politica === id && a.nome === session.nome);
+  const assinada = (id: string) =>
+    assinaturas.some((a) => a.politica === id && a.nome === session.nome);
   const total = assinaturas.filter((a) => a.nome === session.nome).length;
 
   return (
@@ -31,7 +32,10 @@ export function Politicas({ session }: { session: Extract<Session, { tipo: "cola
         {POLITICAS.map((p) => {
           const ok = assinada(p.id);
           return (
-            <article key={p.id} className="flex flex-col overflow-hidden rounded-2xl border border-border bg-card">
+            <article
+              key={p.id}
+              className="flex flex-col overflow-hidden rounded-2xl border border-border bg-card"
+            >
               <div className="relative">
                 <img
                   src={p.capa}
@@ -50,7 +54,9 @@ export function Politicas({ session }: { session: Extract<Session, { tipo: "cola
               <div className="flex flex-1 flex-col p-4">
                 <h3 className="text-sm font-bold">{p.titulo}</h3>
                 <p className="mt-1 flex-1 text-sm text-muted-foreground">{p.resumo}</p>
-                <p className="mt-2 text-xs text-muted-foreground">{p.paginas} páginas · leitura rápida</p>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  {p.paginas} páginas · leitura rápida
+                </p>
                 <Button
                   variant={ok ? "outline" : "default"}
                   className="mt-3 w-full rounded-full"

@@ -59,7 +59,6 @@ export function useStore<T>(key: string, initial: T) {
   return [value, update, hidratado] as const;
 }
 
-
 export type Session =
   | { tipo: "colaborador"; nome: string; cpf3: string; filial: string }
   | { tipo: "gestor"; nome: string; email: string; filial: string }
@@ -70,9 +69,22 @@ export function useSession() {
   return useStore<Session>("session", null);
 }
 
-export type CheckIn = { id: string; nome: string; filial: string; humor: string; ts: number; recado?: string | undefined };
+export type CheckIn = {
+  id: string;
+  nome: string;
+  filial: string;
+  humor: string;
+  ts: number;
+  recado?: string | undefined;
+};
 export type Assinatura = { politica: string; nome: string; filial: string; ts: number };
-export type Sugestao = { id: string; categoria: string; mensagem: string; filial: string; ts: number };
+export type Sugestao = {
+  id: string;
+  categoria: string;
+  mensagem: string;
+  filial: string;
+  ts: number;
+};
 export type Feedback = {
   id: string;
   tipo: string;
@@ -83,7 +95,14 @@ export type Feedback = {
   ts: number;
 };
 export type Vaga = { id: string; cargo: string; filial: string; motivo: string; ts: number };
-export type Pesquisa = { id: string; titulo: string; descricao: string; link: string; ativa: boolean; ts: number } | null;
+export type Pesquisa = {
+  id: string;
+  titulo: string;
+  descricao: string;
+  link: string;
+  ativa: boolean;
+  ts: number;
+} | null;
 export type AjudaClick = { id: string; nome: string; filial: string; assunto: string; ts: number };
 
 export const useMural = () => useStore<MuralItem[]>("mural", MURAL_SEED);

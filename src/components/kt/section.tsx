@@ -37,7 +37,15 @@ export function Section({
   );
 }
 
-export function Avatar({ nome, foto, size = 48 }: { nome: string; foto?: string | undefined; size?: number | undefined }) {
+export function Avatar({
+  nome,
+  foto,
+  size = 48,
+}: {
+  nome: string;
+  foto?: string | undefined;
+  size?: number | undefined;
+}) {
   return foto ? (
     <img
       src={foto}

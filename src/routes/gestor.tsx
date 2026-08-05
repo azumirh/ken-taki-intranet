@@ -32,7 +32,10 @@ export const Route = createFileRoute("/gestor")({
           "Área do gestor Ken Taki: clima da equipe, assinaturas de políticas, feedbacks, sugestões e solicitação de vaga.",
       },
       { property: "og:title", content: "Painel do gestor · Intranet Ken Taki" },
-      { property: "og:description", content: "Clima, políticas e equipe da sua unidade em um só lugar." },
+      {
+        property: "og:description",
+        content: "Clima, políticas e equipe da sua unidade em um só lugar.",
+      },
     ],
   }),
   component: GestorPage,
@@ -62,16 +65,27 @@ function LoginGestor({ onLogin }: { onLogin: (s: never) => void }) {
       <div className="mx-auto w-full max-w-md surface p-6 sm:p-8">
         <h1 className="text-2xl font-extrabold">Área do gestor</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Acesso com login e senha. Demonstração: <strong>gestor@kentaki.com</strong> / <strong>123456</strong>
+          Acesso com login e senha. Demonstração: <strong>gestor@kentaki.com</strong> /{" "}
+          <strong>123456</strong>
         </p>
         <div className="mt-6 grid gap-4">
           <div className="grid gap-2">
             <Label htmlFor="email">E-mail</Label>
-            <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+            <Input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
           </div>
           <div className="grid gap-2">
             <Label htmlFor="senha">Senha</Label>
-            <Input id="senha" type="password" value={senha} onChange={(e) => setSenha(e.target.value)} />
+            <Input
+              id="senha"
+              type="password"
+              value={senha}
+              onChange={(e) => setSenha(e.target.value)}
+            />
           </div>
           <div className="grid gap-2">
             <Label>Unidade</Label>
@@ -120,7 +134,8 @@ function PainelGestor({ session }: { session: { nome: string; filial: string } }
   const [cargo, setCargo] = useState("");
   const [motivo, setMotivo] = useState("");
 
-  const daUnidade = <T extends { filial: string }>(arr: T[]) => arr.filter((i) => i.filial === session.filial);
+  const daUnidade = <T extends { filial: string }>(arr: T[]) =>
+    arr.filter((i) => i.filial === session.filial);
   const meusCheckins = daUnidade(checkins);
   const equipe = COLABORADORES.filter((c) => c.filial === session.filial);
 
@@ -156,7 +171,10 @@ function PainelGestor({ session }: { session: { nome: string; filial: string } }
             {HUMORES.map((h) => {
               const n = meusCheckins.filter((c) => c.humor === h.id).length;
               return (
-                <div key={h.id} className="rounded-2xl border border-border bg-card p-4 text-center">
+                <div
+                  key={h.id}
+                  className="rounded-2xl border border-border bg-card p-4 text-center"
+                >
                   <span className="text-2xl">{h.emoji}</span>
                   <p className="mt-1 text-lg font-bold">{n}</p>
                   <p className="text-xs text-muted-foreground">{h.label}</p>
@@ -175,7 +193,10 @@ function PainelGestor({ session }: { session: { nome: string; filial: string } }
             {POLITICAS.map((p) => {
               const n = daUnidade(assinaturas).filter((a) => a.politica === p.id).length;
               return (
-                <div key={p.id} className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-card px-4 py-3">
+                <div
+                  key={p.id}
+                  className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-card px-4 py-3"
+                >
                   <span className="min-w-0 truncate text-sm font-medium">{p.titulo}</span>
                   <span className="shrink-0 rounded-full bg-accent px-3 py-1 text-xs font-semibold text-accent-foreground">
                     {n} assinaturas
@@ -198,7 +219,9 @@ function PainelGestor({ session }: { session: { nome: string; filial: string } }
               {daUnidade(feedbacks).map((f) => (
                 <div key={f.id} className="rounded-2xl border border-border bg-card p-4">
                   <div className="flex flex-wrap items-center gap-2 text-xs">
-                    <span className="rounded-full bg-kt-soft px-2.5 py-1 font-semibold text-kt">{f.tipo}</span>
+                    <span className="rounded-full bg-kt-soft px-2.5 py-1 font-semibold text-kt">
+                      {f.tipo}
+                    </span>
                     <span className="text-muted-foreground">
                       {f.autor} · {fmtData(f.ts)}
                     </span>
@@ -222,7 +245,9 @@ function PainelGestor({ session }: { session: { nome: string; filial: string } }
               {daUnidade(sugestoes).map((s) => (
                 <div key={s.id} className="rounded-2xl border border-border bg-card p-4">
                   <div className="flex flex-wrap items-center gap-2 text-xs">
-                    <span className="rounded-full bg-az-soft px-2.5 py-1 font-semibold text-az">{s.categoria}</span>
+                    <span className="rounded-full bg-az-soft px-2.5 py-1 font-semibold text-az">
+                      {s.categoria}
+                    </span>
                     <span className="text-muted-foreground">{fmtData(s.ts)}</span>
                   </div>
                   <p className="mt-2 text-sm text-muted-foreground">{s.mensagem}</p>
@@ -256,13 +281,17 @@ function PainelGestor({ session }: { session: { nome: string; filial: string } }
         >
           <div className="grid gap-3 md:grid-cols-2">
             {equipe.map((c) => (
-              <div key={c.id} className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-4 rounded-2xl border border-border bg-card p-4">
+              <div
+                key={c.id}
+                className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-4 rounded-2xl border border-border bg-card p-4"
+              >
                 <Avatar nome={c.nome} foto={c.foto} size={48} />
                 <div className="min-w-0">
                   <p className="truncate font-semibold">{c.nome}</p>
                   <p className="truncate text-sm text-muted-foreground">{c.cargo}</p>
                   <p className="truncate text-xs text-muted-foreground">
-                    {idade(c.nascimento)} anos · na casa desde {new Date(c.admissao + "T00:00:00").getFullYear()}
+                    {idade(c.nascimento)} anos · na casa desde{" "}
+                    {new Date(c.admissao + "T00:00:00").getFullYear()}
                   </p>
                 </div>
               </div>
@@ -276,7 +305,11 @@ function PainelGestor({ session }: { session: { nome: string; filial: string } }
           contagem={`${daUnidade(vagas).length} abertas`}
         >
           <div className="grid max-w-2xl gap-3">
-            <Input placeholder="Cargo desejado" value={cargo} onChange={(e) => setCargo(e.target.value)} />
+            <Input
+              placeholder="Cargo desejado"
+              value={cargo}
+              onChange={(e) => setCargo(e.target.value)}
+            />
             <Textarea
               rows={3}
               placeholder="Motivo da solicitação (substituição, aumento de quadro, sazonalidade...)"
@@ -289,7 +322,13 @@ function PainelGestor({ session }: { session: { nome: string; filial: string } }
                 disabled={!cargo.trim()}
                 onClick={() => {
                   setVagas([
-                    { id: uid(), cargo: cargo.trim(), motivo: motivo.trim(), filial: session.filial, ts: Date.now() },
+                    {
+                      id: uid(),
+                      cargo: cargo.trim(),
+                      motivo: motivo.trim(),
+                      filial: session.filial,
+                      ts: Date.now(),
+                    },
                     ...vagas,
                   ]);
                   setCargo("");
@@ -309,7 +348,10 @@ function PainelGestor({ session }: { session: { nome: string; filial: string } }
           </div>
         </Section>
 
-        <Section titulo="Documentos e processos" intro="Atalhos para as pastas e materiais da unidade.">
+        <Section
+          titulo="Documentos e processos"
+          intro="Atalhos para as pastas e materiais da unidade."
+        >
           <div className="grid gap-3 sm:grid-cols-3">
             {LINKS_GESTOR.map((l) => (
               <a

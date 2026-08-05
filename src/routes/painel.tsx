@@ -40,7 +40,10 @@ export const Route = createFileRoute("/painel")({
           "Check-in do dia, políticas, mural da equipe, aniversariantes, sugestões e feedback ao gestor em uma única página.",
       },
       { property: "og:title", content: "Meu painel · Intranet Ken Taki" },
-      { property: "og:description", content: "Tudo do seu dia a dia no Ken Taki em uma página só." },
+      {
+        property: "og:description",
+        content: "Tudo do seu dia a dia no Ken Taki em uma página só.",
+      },
     ],
   }),
   component: Painel,
@@ -176,7 +179,10 @@ function Painel() {
               {noticias.map((n) => {
                 const embed = n.videoUrl ? youtubeEmbed(n.videoUrl) : null;
                 return (
-                  <article key={n.id} className="overflow-hidden rounded-2xl border border-border bg-card">
+                  <article
+                    key={n.id}
+                    className="overflow-hidden rounded-2xl border border-border bg-card"
+                  >
                     {embed ? (
                       <div className="aspect-video w-full">
                         <iframe
@@ -222,7 +228,13 @@ function Painel() {
                 disabled={!sugMsg.trim()}
                 onClick={() => {
                   setSugestoes([
-                    { id: uid(), categoria: sugCat, mensagem: sugMsg.trim(), filial: session.filial, ts: Date.now() },
+                    {
+                      id: uid(),
+                      categoria: sugCat,
+                      mensagem: sugMsg.trim(),
+                      filial: session.filial,
+                      ts: Date.now(),
+                    },
                     ...sugestoes,
                   ]);
                   setSugMsg("");

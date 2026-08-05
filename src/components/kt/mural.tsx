@@ -118,7 +118,9 @@ export function Mural({
                         id: uid(),
                         tipo: "recado",
                         titulo: titulo.trim(),
-                        mensagem: para.trim() ? `Para ${para.trim()}: ${mensagem.trim()}` : mensagem.trim(),
+                        mensagem: para.trim()
+                          ? `Para ${para.trim()}: ${mensagem.trim()}`
+                          : mensagem.trim(),
                         autor: autorPadrao,
                         data: new Date().toISOString().slice(0, 10),
                         filial: filial as never,
@@ -142,11 +144,16 @@ export function Mural({
       }
     >
       {itens.length === 0 ? (
-        <EmptyState>O mural ainda está vazio. Seja a primeira pessoa a deixar um recado.</EmptyState>
+        <EmptyState>
+          O mural ainda está vazio. Seja a primeira pessoa a deixar um recado.
+        </EmptyState>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {itens.map((m) => (
-            <article key={m.id} className="flex flex-col rounded-2xl border border-border bg-card p-4">
+            <article
+              key={m.id}
+              className="flex flex-col rounded-2xl border border-border bg-card p-4"
+            >
               <span
                 className={`inline-flex w-fit items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide ${TIPO_ESTILO[m.tipo]}`}
               >
