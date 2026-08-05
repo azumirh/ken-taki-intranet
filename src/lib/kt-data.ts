@@ -106,6 +106,7 @@ export const POLITICAS: Politica[] = [
 export type Colaborador = {
   id: string;
   nome: string;
+  cpf3: string;
   cargo: string;
   filial: FilialId;
   nascimento: string; // yyyy-mm-dd
@@ -117,6 +118,7 @@ export const COLABORADORES: Colaborador[] = [
   {
     id: "c1",
     nome: "Ana Beatriz Ramos",
+    cpf3: "123",
     cargo: "Supervisora de Salão",
     filial: "cristo-rei",
     nascimento: "1994-04-05",
@@ -125,6 +127,7 @@ export const COLABORADORES: Colaborador[] = [
   {
     id: "c2",
     nome: "Carlos Eduardo Lima",
+    cpf3: "456",
     cargo: "Sushiman",
     filial: "cristo-rei",
     nascimento: "1990-04-18",
@@ -133,6 +136,7 @@ export const COLABORADORES: Colaborador[] = [
   {
     id: "c3",
     nome: "Juliana Prado",
+    cpf3: "789",
     cargo: "Atendente",
     filial: "champagnat",
     nascimento: "1999-04-27",
@@ -141,6 +145,7 @@ export const COLABORADORES: Colaborador[] = [
   {
     id: "c4",
     nome: "Marcos Tanaka",
+    cpf3: "321",
     cargo: "Gerente de Unidade",
     filial: "champagnat",
     nascimento: "1986-09-02",
@@ -149,6 +154,7 @@ export const COLABORADORES: Colaborador[] = [
   {
     id: "c5",
     nome: "Rafaela Souza",
+    cpf3: "654",
     cargo: "Auxiliar de Cozinha",
     filial: "cristo-rei",
     nascimento: "2001-07-21",

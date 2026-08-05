@@ -1,5 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { MURAL_SEED, NOTICIAS_SEED, type MuralItem, type Noticia } from "./kt-data";
+import {
+  COLABORADORES,
+  MURAL_SEED,
+  NOTICIAS_SEED,
+  type Colaborador,
+  type MuralItem,
+  type Noticia,
+} from "./kt-data";
 
 /**
  * Estado 100% no navegador (localStorage) — sem back-end.
@@ -105,6 +112,7 @@ export type Pesquisa = {
 } | null;
 export type AjudaClick = { id: string; nome: string; filial: string; assunto: string; ts: number };
 
+export const useColaboradores = () => useStore<Colaborador[]>("colaboradores", COLABORADORES);
 export const useMural = () => useStore<MuralItem[]>("mural", MURAL_SEED);
 export const useNoticias = () => useStore<Noticia[]>("noticias", NOTICIAS_SEED);
 export const useCheckins = () => useStore<CheckIn[]>("checkins", []);

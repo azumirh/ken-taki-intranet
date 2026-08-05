@@ -9,12 +9,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { COLABORADORES, FILIAIS, HUMORES, POLITICAS, filialNome, idade } from "@/lib/kt-data";
+import { FILIAIS, HUMORES, POLITICAS, filialNome, idade, type FilialId } from "@/lib/kt-data";
 import {
   fmtData,
   uid,
   useAssinaturas,
   useCheckins,
+  useColaboradores,
   useFeedbacks,
   usePesquisa,
   useSugestoes,
@@ -302,15 +303,23 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
   const [feedbacks] = useFeedbacks();
   const [pesquisa] = usePesquisa();
   const [vagas, setVagas] = useVagas();
+  const [colaboradores, setColaboradores] = useColaboradores();
 
   const [cargo, setCargo] = useState("");
   const [motivo, setMotivo] = useState("");
+
+  const [nomeCol, setNomeCol] = useState("");
+  const [cpf3Col, setCpf3Col] = useState("");
+  const [cargoCol, setCargoCol] = useState("");
+  const [nascimentoCol, setNascimentoCol] = useState("");
+  const [admissaoCol, setAdmissaoCol] = useState("");
+  const [erroCol, setErroCol] = useState("");
 
   const session = { nome: perfil.nome, filial: perfil.filial! };
   const daUnidade = <T extends { filial: string }>(arr: T[]) =>
     arr.filter((i) => i.filial === session.filial);
   const meusCheckins = daUnidade(checkins);
-  const equipe = COLABORADORES.filter((c) => c.filial === session.filial);
+  const equipe = colaboradores.filter((c) => c.filial === session.filial);
 
   return (
     <AppShell onLogout={onLogout}>
@@ -469,6 +478,101 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
                 </div>
               </div>
             ))}
+          </div>
+        </Section>
+
+        <Section
+          titulo="Cadastrar colaborador"
+          intro="Adicione um novo colaborador a esta unidade. Ele poderá entrar na intranet com os dados abaixo."
+          contagem={`${equipe.length} cadastrados`}
+        >
+          <div className="grid max-w-2xl gap-3">
+            <div className="grid gap-2">
+              <Label htmlFor="col-nome">Nome completo</Label>
+              <Input
+                id="col-nome"
+                value={nomeCol}
+                onChange={(e) => setNomeCol(e.target.value)}
+                maxLength={80}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="col-cpf3">Últimos 3 dígitos do CPF</Label>
+              <Input
+                id="col-cpf3"
+                inputMode="numeric"
+                maxLength={3}
+                value={cpf3Col}
+                onChange={(e) => setCpf3Col(e.target.value.replace(/\D/g, ""))}
+                className="w-28 tracking-[0.4em]"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="col-cargo">Cargo</Label>
+              <Input
+                id="col-cargo"
+                value={cargoCol}
+                onChange={(e) => setCargoCol(e.target.value)}
+                maxLength={60}
+              />
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <div className="grid gap-2">
+                <Label htmlFor="col-nasc">Data de nascimento</Label>
+                <Input
+                  id="col-nasc"
+                  type="date"
+                  value={nascimentoCol}
+                  onChange={(e) => setNascimentoCol(e.target.value)}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="col-adm">Data de admissão</Label>
+                <Input
+                  id="col-adm"
+                  type="date"
+                  value={admissaoCol}
+                  onChange={(e) => setAdmissaoCol(e.target.value)}
+                />
+              </div>
+            </div>
+            {erroCol ? <p className="text-sm font-medium text-destructive">{erroCol}</p> : null}
+            <div>
+              <Button
+                className="rounded-full"
+                disabled={!nomeCol.trim() || cpf3Col.length !== 3 || !cargoCol.trim()}
+                onClick={() => {
+                  const duplicado = colaboradores.find(
+                    (c) => c.filial === session.filial && c.cpf3 === cpf3Col,
+                  );
+                  if (duplicado) {
+                    setErroCol(`CPF ${cpf3Col} já cadastrado nesta unidade (${duplicado.nome}).`);
+                    return;
+                  }
+                  setErroCol("");
+                  setColaboradores([
+                    ...colaboradores,
+                    {
+                      id: uid(),
+                      nome: nomeCol.trim(),
+                      cpf3: cpf3Col,
+                      cargo: cargoCol.trim(),
+                      filial: session.filial as FilialId,
+                      nascimento: nascimentoCol || "2000-01-01",
+                      admissao: admissaoCol || new Date().toISOString().slice(0, 10),
+                    },
+                  ]);
+                  setNomeCol("");
+                  setCpf3Col("");
+                  setCargoCol("");
+                  setNascimentoCol("");
+                  setAdmissaoCol("");
+                  toast.success("Colaborador cadastrado com sucesso!");
+                }}
+              >
+                Cadastrar colaborador
+              </Button>
+            </div>
           </div>
         </Section>
 

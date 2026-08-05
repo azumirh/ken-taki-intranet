@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { FILIAIS } from "@/lib/kt-data";
-import { useSession } from "@/lib/kt-store";
+import { useColaboradores, useSession } from "@/lib/kt-store";
 
 export const Route = createFileRoute("/colaborador")({
   head: () => ({
@@ -30,6 +30,7 @@ export const Route = createFileRoute("/colaborador")({
 function ColaboradorLogin() {
   const navigate = useNavigate();
   const [, setSession] = useSession();
+  const [colaboradores] = useColaboradores();
   const [etapa, setEtapa] = useState<0 | 1>(0);
   const [filial, setFilial] = useState<string>("");
   const [nome, setNome] = useState("");
@@ -41,7 +42,12 @@ function ColaboradorLogin() {
     if (nome.trim().length < 3) return setErro("Escreva seu nome completo.");
     if (!/^\d{3}$/.test(cpf3)) return setErro("Informe os 3 últimos dígitos do seu CPF.");
     if (!ciente) return setErro("Confirme que é você mesmo para continuar.");
-    setSession({ tipo: "colaborador", nome: nome.trim(), cpf3, filial });
+    const nomeNorm = nome.trim().toLowerCase();
+    const match = colaboradores.find(
+      (c) => c.filial === filial && c.cpf3 === cpf3 && c.nome.toLowerCase().startsWith(nomeNorm),
+    );
+    if (!match) return setErro("Nome ou CPF não encontrados nesta unidade.");
+    setSession({ tipo: "colaborador", nome: match.nome, cpf3, filial });
     navigate({ to: "/painel" });
   };
 
