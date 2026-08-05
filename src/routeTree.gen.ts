@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ColaboradorRouteImport } from './routes/colaborador'
+import { Route as GestorRouteImport } from './routes/gestor'
 import { Route as PainelRouteImport } from './routes/painel'
 
 const IndexRoute = IndexRouteImport.update({
@@ -23,6 +24,11 @@ const ColaboradorRoute = ColaboradorRouteImport.update({
   path: '/colaborador',
   getParentRoute: () => rootRouteImport,
 } as any)
+const GestorRoute = GestorRouteImport.update({
+  id: '/gestor',
+  path: '/gestor',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PainelRoute = PainelRouteImport.update({
   id: '/painel',
   path: '/painel',
@@ -32,30 +38,34 @@ const PainelRoute = PainelRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/colaborador': typeof ColaboradorRoute
+  '/gestor': typeof GestorRoute
   '/painel': typeof PainelRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/colaborador': typeof ColaboradorRoute
+  '/gestor': typeof GestorRoute
   '/painel': typeof PainelRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/colaborador': typeof ColaboradorRoute
+  '/gestor': typeof GestorRoute
   '/painel': typeof PainelRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/colaborador' | '/painel'
+  fullPaths: '/' | '/colaborador' | '/gestor' | '/painel'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/colaborador' | '/painel'
-  id: '__root__' | '/' | '/colaborador' | '/painel'
+  to: '/' | '/colaborador' | '/gestor' | '/painel'
+  id: '__root__' | '/' | '/colaborador' | '/gestor' | '/painel'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ColaboradorRoute: typeof ColaboradorRoute
+  GestorRoute: typeof GestorRoute
   PainelRoute: typeof PainelRoute
 }
 
@@ -75,6 +85,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ColaboradorRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/gestor': {
+      id: '/gestor'
+      path: '/gestor'
+      fullPath: '/gestor'
+      preLoaderRoute: typeof GestorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/painel': {
       id: '/painel'
       path: '/painel'
@@ -88,6 +105,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ColaboradorRoute: ColaboradorRoute,
+  GestorRoute: GestorRoute,
   PainelRoute: PainelRoute,
 }
 export const routeTree = rootRouteImport
