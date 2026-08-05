@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AzumiRouteImport } from './routes/azumi'
 import { Route as ColaboradorRouteImport } from './routes/colaborador'
 import { Route as GestorRouteImport } from './routes/gestor'
 import { Route as PainelRouteImport } from './routes/painel'
@@ -17,6 +18,11 @@ import { Route as PainelRouteImport } from './routes/painel'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AzumiRoute = AzumiRouteImport.update({
+  id: '/azumi',
+  path: '/azumi',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ColaboradorRoute = ColaboradorRouteImport.update({
@@ -37,12 +43,14 @@ const PainelRoute = PainelRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/azumi': typeof AzumiRoute
   '/colaborador': typeof ColaboradorRoute
   '/gestor': typeof GestorRoute
   '/painel': typeof PainelRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/azumi': typeof AzumiRoute
   '/colaborador': typeof ColaboradorRoute
   '/gestor': typeof GestorRoute
   '/painel': typeof PainelRoute
@@ -50,20 +58,22 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/azumi': typeof AzumiRoute
   '/colaborador': typeof ColaboradorRoute
   '/gestor': typeof GestorRoute
   '/painel': typeof PainelRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/colaborador' | '/gestor' | '/painel'
+  fullPaths: '/' | '/azumi' | '/colaborador' | '/gestor' | '/painel'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/colaborador' | '/gestor' | '/painel'
-  id: '__root__' | '/' | '/colaborador' | '/gestor' | '/painel'
+  to: '/' | '/azumi' | '/colaborador' | '/gestor' | '/painel'
+  id: '__root__' | '/' | '/azumi' | '/colaborador' | '/gestor' | '/painel'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AzumiRoute: typeof AzumiRoute
   ColaboradorRoute: typeof ColaboradorRoute
   GestorRoute: typeof GestorRoute
   PainelRoute: typeof PainelRoute
@@ -76,6 +86,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/azumi': {
+      id: '/azumi'
+      path: '/azumi'
+      fullPath: '/azumi'
+      preLoaderRoute: typeof AzumiRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/colaborador': {
@@ -104,6 +121,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AzumiRoute: AzumiRoute,
   ColaboradorRoute: ColaboradorRoute,
   GestorRoute: GestorRoute,
   PainelRoute: PainelRoute,
@@ -111,3 +129,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
