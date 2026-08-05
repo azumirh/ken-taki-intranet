@@ -8,13 +8,13 @@ import entryAzumi from "@/assets/entry-azumi.jpg";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Intranet Ken Taki × Azumi RH" },
+      { title: "Intranet Ken Taki | Portal Azumi RH" },
       {
         name: "description",
         content:
           "Entre na intranet do Ken Taki: colaborador, gestor ou equipe Azumi RH. Políticas, mural, clima e escuta em um só lugar.",
       },
-      { property: "og:title", content: "Intranet Ken Taki × Azumi RH" },
+      { property: "og:title", content: "Intranet Ken Taki | Portal Azumi RH" },
       {
         property: "og:description",
         content: "Políticas, mural da equipe, clima e canais de escuta do Ken Taki.",

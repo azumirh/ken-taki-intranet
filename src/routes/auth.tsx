@@ -8,7 +8,7 @@ import { supabase } from "@/lib/supabase";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
-    meta: [{ title: "Criar nova senha · Intranet Ken Taki" }],
+    meta: [{ title: "Criar nova senha · Portal Azumi RH" }],
   }),
   component: AuthPage,
 });

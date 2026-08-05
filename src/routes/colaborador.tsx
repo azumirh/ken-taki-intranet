@@ -11,13 +11,13 @@ import { useColaboradores, useSession } from "@/lib/kt-store";
 export const Route = createFileRoute("/colaborador")({
   head: () => ({
     meta: [
-      { title: "Entrar como colaborador · Intranet Ken Taki" },
+      { title: "Entrar como colaborador · Portal Azumi RH" },
       {
         name: "description",
         content:
           "Acesse a intranet do Ken Taki com seu nome, sua filial e os 3 últimos dígitos do CPF.",
       },
-      { property: "og:title", content: "Entrar como colaborador · Intranet Ken Taki" },
+      { property: "og:title", content: "Entrar como colaborador · Portal Azumi RH" },
       {
         property: "og:description",
         content: "Acesso rápido do colaborador à intranet do Ken Taki.",

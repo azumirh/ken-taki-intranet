@@ -78,13 +78,13 @@ function rowParaColaborador(row: Record<string, string>): Colaborador | null {
 export const Route = createFileRoute("/azumi")({
   head: () => ({
     meta: [
-      { title: "Área Azumi RH · Intranet Ken Taki" },
+      { title: "Área Azumi RH · Portal Azumi RH" },
       {
         name: "description",
         content:
           "Área da Azumi RH: publicar mural e notícias em vídeo, abrir pesquisas de clima e acompanhar as unidades Ken Taki.",
       },
-      { property: "og:title", content: "Área Azumi RH · Intranet Ken Taki" },
+      { property: "og:title", content: "Área Azumi RH · Portal Azumi RH" },
       {
         property: "og:description",
         content: "Visão consolidada das unidades Cristo Rei e Champagnat.",

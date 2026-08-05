@@ -33,13 +33,13 @@ import {
 export const Route = createFileRoute("/painel")({
   head: () => ({
     meta: [
-      { title: "Meu painel · Intranet Ken Taki" },
+      { title: "Meu painel · Portal Azumi RH" },
       {
         name: "description",
         content:
           "Check-in do dia, políticas, mural da equipe, aniversariantes, sugestões e feedback ao gestor em uma única página.",
       },
-      { property: "og:title", content: "Meu painel · Intranet Ken Taki" },
+      { property: "og:title", content: "Meu painel · Portal Azumi RH" },
       {
         property: "og:description",
         content: "Tudo do seu dia a dia no Ken Taki em uma página só.",

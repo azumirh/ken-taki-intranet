@@ -26,13 +26,13 @@ import { type KtPerfil, useKtAuth } from "@/lib/kt-auth";
 export const Route = createFileRoute("/gestor")({
   head: () => ({
     meta: [
-      { title: "Painel do gestor · Intranet Ken Taki" },
+      { title: "Painel do gestor · Portal Azumi RH" },
       {
         name: "description",
         content:
           "Área do gestor Ken Taki: clima da equipe, assinaturas de políticas, feedbacks, sugestões e solicitação de vaga.",
       },
-      { property: "og:title", content: "Painel do gestor · Intranet Ken Taki" },
+      { property: "og:title", content: "Painel do gestor · Portal Azumi RH" },
       {
         property: "og:description",
         content: "Clima, políticas e equipe da sua unidade em um só lugar.",
