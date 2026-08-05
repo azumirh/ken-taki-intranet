@@ -74,7 +74,7 @@ function Chips({
 
 function Painel() {
   const navigate = useNavigate();
-  const [session] = useSession();
+  const [session, , sessaoPronta] = useSession();
   const [sugestoes, setSugestoes] = useSugestoes();
   const [feedbacks, setFeedbacks] = useFeedbacks();
   const [pesquisa] = usePesquisa();
@@ -88,8 +88,8 @@ function Painel() {
   const [fbMsg, setFbMsg] = useState("");
 
   useEffect(() => {
-    if (session === null) navigate({ to: "/colaborador" });
-  }, [session, navigate]);
+    if (sessaoPronta && session === null) navigate({ to: "/colaborador" });
+  }, [sessaoPronta, session, navigate]);
 
   if (!session || session.tipo !== "colaborador") return null;
 
