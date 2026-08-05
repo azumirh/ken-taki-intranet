@@ -5,8 +5,8 @@ import coverReconhecimento from "@/assets/cover-reconhecimento.jpg";
 import coverSeguranca from "@/assets/cover-seguranca.jpg";
 
 export const AZUMI_CONTACT = {
-  whatsapp: "5541999999999",
-  whatsappLabel: "(41) 99999-9999",
+  whatsapp: "5541988350743",
+  whatsappLabel: "(41) 98835-0743",
   email: "contato@azumirh.com.br",
 };
 
@@ -49,7 +49,8 @@ export const POLITICAS: Politica[] = [
     id: "atendimento",
     titulo: "Postura e Atendimento",
     resumo: "Como recebemos e cuidamos de cada cliente.",
-    intro: "O padrão de atendimento Ken Taki: acolher, ouvir e resolver — do primeiro oi até a despedida.",
+    intro:
+      "O padrão de atendimento Ken Taki: acolher, ouvir e resolver — do primeiro oi até a despedida.",
     capa: coverAtendimento,
     paginas: 4,
     conteudo: [
@@ -76,7 +77,8 @@ export const POLITICAS: Politica[] = [
     id: "reconhecimento",
     titulo: "Reconhecimento e Elogios",
     resumo: "Como o bom trabalho é reconhecido por aqui.",
-    intro: "Reconhecer faz parte da rotina: veja como elogios viram registro e evolução de carreira.",
+    intro:
+      "Reconhecer faz parte da rotina: veja como elogios viram registro e evolução de carreira.",
     capa: coverReconhecimento,
     paginas: 3,
     conteudo: [
@@ -112,11 +114,46 @@ export type Colaborador = {
 };
 
 export const COLABORADORES: Colaborador[] = [
-  { id: "c1", nome: "Ana Beatriz Ramos", cargo: "Supervisora de Salão", filial: "cristo-rei", nascimento: "1994-04-05", admissao: "2021-02-01" },
-  { id: "c2", nome: "Carlos Eduardo Lima", cargo: "Sushiman", filial: "cristo-rei", nascimento: "1990-04-18", admissao: "2019-08-12" },
-  { id: "c3", nome: "Juliana Prado", cargo: "Atendente", filial: "champagnat", nascimento: "1999-04-27", admissao: "2023-03-06" },
-  { id: "c4", nome: "Marcos Tanaka", cargo: "Gerente de Unidade", filial: "champagnat", nascimento: "1986-09-02", admissao: "2018-01-15" },
-  { id: "c5", nome: "Rafaela Souza", cargo: "Auxiliar de Cozinha", filial: "cristo-rei", nascimento: "2001-07-21", admissao: "2024-05-20" },
+  {
+    id: "c1",
+    nome: "Ana Beatriz Ramos",
+    cargo: "Supervisora de Salão",
+    filial: "cristo-rei",
+    nascimento: "1994-04-05",
+    admissao: "2021-02-01",
+  },
+  {
+    id: "c2",
+    nome: "Carlos Eduardo Lima",
+    cargo: "Sushiman",
+    filial: "cristo-rei",
+    nascimento: "1990-04-18",
+    admissao: "2019-08-12",
+  },
+  {
+    id: "c3",
+    nome: "Juliana Prado",
+    cargo: "Atendente",
+    filial: "champagnat",
+    nascimento: "1999-04-27",
+    admissao: "2023-03-06",
+  },
+  {
+    id: "c4",
+    nome: "Marcos Tanaka",
+    cargo: "Gerente de Unidade",
+    filial: "champagnat",
+    nascimento: "1986-09-02",
+    admissao: "2018-01-15",
+  },
+  {
+    id: "c5",
+    nome: "Rafaela Souza",
+    cargo: "Auxiliar de Cozinha",
+    filial: "cristo-rei",
+    nascimento: "2001-07-21",
+    admissao: "2024-05-20",
+  },
 ];
 
 export type MuralTipo = "recado" | "novidade" | "data" | "aniversario";
@@ -144,7 +181,8 @@ export const MURAL_SEED: MuralItem[] = [
     id: "m1",
     tipo: "novidade",
     titulo: "Ken Taki × Azumi RH",
-    mensagem: "Começamos a parceria com a Azumi RH. Novidades de gente e gestão passam a chegar por aqui.",
+    mensagem:
+      "Começamos a parceria com a Azumi RH. Novidades de gente e gestão passam a chegar por aqui.",
     autor: "Equipe Azumi RH",
     data: "2025-09-01",
     filial: "todas",
@@ -154,7 +192,8 @@ export const MURAL_SEED: MuralItem[] = [
     id: "m2",
     tipo: "data",
     titulo: "Setembro Amarelo",
-    mensagem: "Mês de cuidado com a saúde mental. Conversas de apoio disponíveis com a Azumi, sem julgamento.",
+    mensagem:
+      "Mês de cuidado com a saúde mental. Conversas de apoio disponíveis com a Azumi, sem julgamento.",
     autor: "Azumi RH",
     data: "2025-09-01",
     filial: "todas",
@@ -184,7 +223,8 @@ export const NOTICIAS_SEED: Noticia[] = [
   {
     id: "n1",
     titulo: "Vamos nos conhecer: quem é a Azumi RH",
-    resumo: "Em 3 minutos, o time da Azumi conta como vai apoiar o dia a dia das unidades Ken Taki.",
+    resumo:
+      "Em 3 minutos, o time da Azumi conta como vai apoiar o dia a dia das unidades Ken Taki.",
     videoUrl: "https://www.youtube.com/watch?v=aqz-KE-bpKQ",
     data: "2025-09-02",
   },
@@ -193,14 +233,19 @@ export const NOTICIAS_SEED: Noticia[] = [
 export const EMOJIS = ["🎉", "👏", "💜", "🍣", "☀️", "🔥", "🙏", "😄", "💪", "✨"];
 
 export const HUMORES = [
-  { id: "otimo", label: "Ótimo", emoji: "😄" },
-  { id: "bem", label: "Bem", emoji: "🙂" },
-  { id: "neutro", label: "Neutro", emoji: "😐" },
-  { id: "dificil", label: "Difícil", emoji: "😕" },
-  { id: "muito-dificil", label: "Muito difícil", emoji: "😞" },
+  { id: "otimo", label: "Ótimo", emoji: "😄", categoria: "positiva" },
+  { id: "bem", label: "Bem", emoji: "🙂", categoria: "positiva" },
+  { id: "neutro", label: "Neutro", emoji: "😐", categoria: "neutra" },
+  { id: "dificil", label: "Difícil", emoji: "😕", categoria: "negativa" },
+  { id: "muito-dificil", label: "Muito difícil", emoji: "😞", categoria: "negativa" },
 ] as const;
 
-export const SUGESTAO_CATEGORIAS = ["Gestão", "Operação", "Colaboradores / time", "Equipe Azumi RH"];
+export const SUGESTAO_CATEGORIAS = [
+  "Gestão",
+  "Operação",
+  "Colaboradores / time",
+  "Equipe Azumi RH",
+];
 export const FEEDBACK_TIPOS = ["Elogio", "Crítica", "Dúvida", "Situação urgente"];
 
 export function idade(nascimento: string, ref = new Date()) {
