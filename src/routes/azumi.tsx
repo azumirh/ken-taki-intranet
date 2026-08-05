@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { AppShell, BackLink } from "@/components/kt/app-shell";
 import { EmptyState, Section } from "@/components/kt/section";
@@ -8,19 +8,72 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { FILIAIS, HUMORES, filialNome, youtubeEmbed } from "@/lib/kt-data";
+import {
+  FILIAIS,
+  HUMORES,
+  filialNome,
+  youtubeEmbed,
+  type Colaborador,
+  type FilialId,
+} from "@/lib/kt-data";
 import {
   fmtData,
   uid,
   useAjuda,
   useAssinaturas,
   useCheckins,
+  useColaboradores,
   useNoticias,
   usePesquisa,
   useSugestoes,
   useVagas,
 } from "@/lib/kt-store";
 import { type KtPerfil, useKtAuth } from "@/lib/kt-auth";
+
+// ─── Helpers de importação CSV ───────────────────────────────────────────────
+
+function normalizarFilial(txt: string): FilialId | null {
+  const t = txt.toLowerCase().trim();
+  if (t.includes("cristo")) return "cristo-rei";
+  if (t.includes("champagnat")) return "champagnat";
+  return null;
+}
+
+function parsearCsv(texto: string): Array<Record<string, string>> {
+  const linhas = texto.trim().split(/\r?\n/).filter(Boolean);
+  if (linhas.length < 2) return [];
+  const cabs = linhas[0].split(",").map((h) => h.trim().toLowerCase().replace(/\s+/g, "_"));
+  return linhas.slice(1).map((linha) => {
+    const campos: string[] = [];
+    let atual = "";
+    let aspas = false;
+    for (const ch of linha) {
+      if (ch === '"') {
+        aspas = !aspas;
+      } else if (ch === "," && !aspas) {
+        campos.push(atual.trim());
+        atual = "";
+      } else {
+        atual += ch;
+      }
+    }
+    campos.push(atual.trim());
+    return Object.fromEntries(cabs.map((h, i) => [h, campos[i] ?? ""]));
+  });
+}
+
+function rowParaColaborador(row: Record<string, string>): Colaborador | null {
+  const nome = row["nome_completo"]?.trim();
+  const cpf3 = row["ultimos_3_digitos_cpf"]?.replace(/\D/g, "").slice(-3);
+  const cargo = row["cargo"]?.trim();
+  const filial = normalizarFilial(row["filial"] ?? "");
+  const nascimento = row["data_nascimento"]?.trim() || "2000-01-01";
+  const admissao = row["data_admissao"]?.trim() || new Date().toISOString().slice(0, 10);
+  if (!nome || !cpf3 || cpf3.length !== 3 || !cargo || !filial) return null;
+  return { id: uid(), nome, cpf3, cargo, filial, nascimento, admissao };
+}
+
+// ─── Rota ────────────────────────────────────────────────────────────────────
 
 export const Route = createFileRoute("/azumi")({
   head: () => ({
@@ -280,6 +333,7 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
   const [ajuda] = useAjuda();
   const [pesquisa, setPesquisa] = usePesquisa();
   const [noticias, setNoticias] = useNoticias();
+  const [colaboradores, setColaboradores] = useColaboradores();
 
   const [pTitulo, setPTitulo] = useState("");
   const [pDesc, setPDesc] = useState("");
@@ -288,6 +342,49 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
   const [nTitulo, setNTitulo] = useState("");
   const [nResumo, setNResumo] = useState("");
   const [nVideo, setNVideo] = useState("");
+
+  const csvInputRef = useRef<HTMLInputElement>(null);
+  const [csvPreview, setCsvPreview] = useState<{
+    adicionar: Colaborador[];
+    atualizar: Colaborador[];
+  } | null>(null);
+  const [csvErro, setCsvErro] = useState("");
+
+  function processarCsv(arquivo: File) {
+    setCsvErro("");
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const texto = e.target?.result as string;
+      const linhas = parsearCsv(texto);
+      if (linhas.length === 0) {
+        setCsvErro("Arquivo vazio ou formato inválido.");
+        return;
+      }
+      const adicionar: Colaborador[] = [];
+      const atualizar: Colaborador[] = [];
+      for (const row of linhas) {
+        const novo = rowParaColaborador(row);
+        if (!novo) continue;
+        const existente = colaboradores.find(
+          (c) =>
+            c.nome.toLowerCase() === novo.nome.toLowerCase() &&
+            c.cpf3 === novo.cpf3 &&
+            c.filial === novo.filial,
+        );
+        if (existente) {
+          atualizar.push({ ...novo, id: existente.id });
+        } else {
+          adicionar.push(novo);
+        }
+      }
+      if (adicionar.length === 0 && atualizar.length === 0) {
+        setCsvErro("Nenhum colaborador válido encontrado. Verifique os cabeçalhos do CSV.");
+        return;
+      }
+      setCsvPreview({ adicionar, atualizar });
+    };
+    reader.readAsText(arquivo, "utf-8");
+  }
 
   return (
     <AppShell onLogout={onLogout}>
@@ -494,6 +591,80 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
                   {v.motivo ? <p className="text-muted-foreground">{v.motivo}</p> : null}
                 </div>
               ))}
+            </div>
+          )}
+        </Section>
+
+        <Section
+          titulo="Importar colaboradores (CSV)"
+          intro="Importe a planilha com os colaboradores das unidades. Cabeçalhos esperados: nome_completo, ultimos_3_digitos_cpf, cargo, filial, data_nascimento, data_admissao."
+          contagem={`${colaboradores.length} cadastrados`}
+        >
+          <input
+            ref={csvInputRef}
+            type="file"
+            accept=".csv"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) processarCsv(file);
+              e.target.value = "";
+            }}
+          />
+          {csvErro ? <p className="mb-3 text-sm font-medium text-destructive">{csvErro}</p> : null}
+          {!csvPreview ? (
+            <Button className="rounded-full" onClick={() => csvInputRef.current?.click()}>
+              Selecionar arquivo CSV
+            </Button>
+          ) : (
+            <div className="grid max-w-2xl gap-4">
+              <div className="rounded-2xl bg-muted px-4 py-4 text-sm">
+                <p className="font-semibold">Prévia da importação</p>
+                <p className="mt-1 text-muted-foreground">
+                  {csvPreview.adicionar.length > 0
+                    ? `${csvPreview.adicionar.length} colaborador${csvPreview.adicionar.length > 1 ? "es" : ""} serão adicionados`
+                    : "Nenhum novo colaborador"}
+                  {csvPreview.atualizar.length > 0
+                    ? ` · ${csvPreview.atualizar.length} serão atualizados`
+                    : ""}
+                  .
+                </p>
+                {csvPreview.adicionar.length > 0 ? (
+                  <ul className="mt-2 grid gap-0.5 text-xs text-muted-foreground">
+                    {csvPreview.adicionar.slice(0, 6).map((c) => (
+                      <li key={c.id}>
+                        + {c.nome} · {filialNome(c.filial)}
+                      </li>
+                    ))}
+                    {csvPreview.adicionar.length > 6 ? (
+                      <li>…e mais {csvPreview.adicionar.length - 6}</li>
+                    ) : null}
+                  </ul>
+                ) : null}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  className="rounded-full"
+                  onClick={() => {
+                    const idsAtualizar = new Set(csvPreview.atualizar.map((c) => c.id));
+                    const base = colaboradores.filter((c) => !idsAtualizar.has(c.id));
+                    setColaboradores([...base, ...csvPreview.atualizar, ...csvPreview.adicionar]);
+                    toast.success(
+                      `${csvPreview.adicionar.length} adicionados, ${csvPreview.atualizar.length} atualizados.`,
+                    );
+                    setCsvPreview(null);
+                  }}
+                >
+                  Confirmar importação
+                </Button>
+                <Button
+                  variant="outline"
+                  className="rounded-full"
+                  onClick={() => setCsvPreview(null)}
+                >
+                  Cancelar
+                </Button>
+              </div>
             </div>
           )}
         </Section>
