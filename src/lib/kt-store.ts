@@ -26,11 +26,18 @@ function write<T>(key: string, value: T) {
 
 export function useStore<T>(key: string, initial: T) {
   const [value, setValue] = useState<T>(initial);
+  const ref = useRef<T>(initial);
 
   useEffect(() => {
-    setValue(read<T>(key, initial));
+    const current = read<T>(key, initial);
+    ref.current = current;
+    setValue(current);
     const onChange = (e: Event) => {
-      if ((e as CustomEvent).detail === key) setValue(read<T>(key, initial));
+      if ((e as CustomEvent).detail === key) {
+        const next = read<T>(key, initial);
+        ref.current = next;
+        setValue(next);
+      }
     };
     window.addEventListener("kentaki:store", onChange);
     return () => window.removeEventListener("kentaki:store", onChange);
@@ -39,17 +46,17 @@ export function useStore<T>(key: string, initial: T) {
 
   const update = useCallback(
     (next: T | ((prev: T) => T)) => {
-      setValue((prev) => {
-        const resolved = typeof next === "function" ? (next as (p: T) => T)(prev) : next;
-        write(key, resolved);
-        return resolved;
-      });
+      const resolved = typeof next === "function" ? (next as (p: T) => T)(ref.current) : next;
+      ref.current = resolved;
+      setValue(resolved);
+      write(key, resolved);
     },
     [key],
   );
 
   return [value, update] as const;
 }
+
 
 export type Session =
   | { tipo: "colaborador"; nome: string; cpf3: string; filial: string }
