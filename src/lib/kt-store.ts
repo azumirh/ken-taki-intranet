@@ -61,7 +61,7 @@ export function useSession() {
   return useStore<Session>("session", null);
 }
 
-export type CheckIn = { id: string; nome: string; filial: string; humor: string; ts: number; recado?: string };
+export type CheckIn = { id: string; nome: string; filial: string; humor: string; ts: number; recado?: string | undefined };
 export type Assinatura = { politica: string; nome: string; filial: string; ts: number };
 export type Sugestao = { id: string; categoria: string; mensagem: string; filial: string; ts: number };
 export type Feedback = {
