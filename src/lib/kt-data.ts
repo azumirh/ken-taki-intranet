@@ -108,7 +108,7 @@ export type Colaborador = {
   filial: FilialId;
   nascimento: string; // yyyy-mm-dd
   admissao: string;
-  foto?: string; // base64 / url
+  foto?: string | undefined; // base64 / url
 };
 
 export const COLABORADORES: Colaborador[] = [
@@ -135,8 +135,8 @@ export type MuralItem = {
   mensagem: string;
   autor: string;
   data: string;
-  filial?: FilialId | "todas";
-  emoji?: string;
+  filial?: FilialId | "todas" | undefined;
+  emoji?: string | undefined;
 };
 
 export const MURAL_SEED: MuralItem[] = [
@@ -176,7 +176,7 @@ export type Noticia = {
   id: string;
   titulo: string;
   resumo: string;
-  videoUrl?: string;
+  videoUrl?: string | undefined;
   data: string;
 };
 
