@@ -17,10 +17,10 @@ import {
   useCheckins,
   useNoticias,
   usePesquisa,
-  useSession,
   useSugestoes,
   useVagas,
 } from "@/lib/kt-store";
+import { type KtPerfil, useKtAuth } from "@/lib/kt-auth";
 
 export const Route = createFileRoute("/azumi")({
   head: () => ({
@@ -42,23 +42,107 @@ export const Route = createFileRoute("/azumi")({
 });
 
 function AzumiPage() {
-  const [session, setSession] = useSession();
-  if (!session || session.tipo !== "azumi") return <LoginAzumi onLogin={setSession} />;
-  return <PainelAzumi />;
+  const { state, login, logout, esqueceuSenha, trocarSenha } = useKtAuth();
+
+  if (state.status === "loading") {
+    return (
+      <AppShell>
+        <div className="flex items-center justify-center py-20">
+          <p className="text-sm text-muted-foreground">Carregando...</p>
+        </div>
+      </AppShell>
+    );
+  }
+
+  if (state.status === "anon" || state.perfil.tipo !== "azumi") {
+    return <LoginAzumi onLogin={login} onEsqueceu={esqueceuSenha} />;
+  }
+
+  if (state.perfil.precisa_trocar_senha) {
+    return <TrocarSenhaObrigatoria onTrocar={trocarSenha} onSair={logout} />;
+  }
+
+  return <PainelAzumi perfil={state.perfil} onLogout={logout} />;
 }
 
-function LoginAzumi({ onLogin }: { onLogin: (s: never) => void }) {
+// ─── Login ────────────────────────────────────────────────────────────────────
+
+function LoginAzumi({
+  onLogin,
+  onEsqueceu,
+}: {
+  onLogin: (email: string, senha: string) => Promise<void>;
+  onEsqueceu: (email: string) => Promise<void>;
+}) {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [erro, setErro] = useState("");
+  const [carregando, setCarregando] = useState(false);
+  const [mostraEsqueceu, setMostraEsqueceu] = useState(false);
+  const [emailEnviado, setEmailEnviado] = useState(false);
+
+  if (mostraEsqueceu) {
+    return (
+      <AppShell
+        back={<BackLink onClick={() => setMostraEsqueceu(false)}>voltar ao login</BackLink>}
+      >
+        <div className="surface mx-auto w-full max-w-md p-6 sm:p-8">
+          <h1 className="text-2xl font-extrabold">Recuperar senha</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Digite seu e-mail e enviaremos um link para criar uma nova senha.
+          </p>
+          {emailEnviado ? (
+            <div className="mt-6 rounded-2xl bg-success-soft px-4 py-4">
+              <p className="font-semibold">E-mail enviado!</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Verifique sua caixa de entrada (e a pasta de spam) e clique no link.
+              </p>
+            </div>
+          ) : (
+            <div className="mt-6 grid gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="email-rec">Seu e-mail</Label>
+                <Input
+                  id="email-rec"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+              {erro ? <p className="text-sm font-medium text-destructive">{erro}</p> : null}
+              <Button
+                size="lg"
+                className="w-full rounded-full"
+                disabled={!email.trim() || carregando}
+                onClick={async () => {
+                  setCarregando(true);
+                  setErro("");
+                  try {
+                    await onEsqueceu(email);
+                    setEmailEnviado(true);
+                  } catch (e) {
+                    setErro((e as Error).message);
+                  } finally {
+                    setCarregando(false);
+                  }
+                }}
+              >
+                {carregando ? "Enviando..." : "Enviar link de recuperação"}
+              </Button>
+            </div>
+          )}
+        </div>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell back={<BackLink onClick={() => navigate({ to: "/" })}>voltar ao início</BackLink>}>
-      <div className="mx-auto w-full max-w-md surface p-6 sm:p-8">
+      <div className="surface mx-auto w-full max-w-md p-6 sm:p-8">
         <h1 className="text-2xl font-extrabold">Área Azumi RH</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Demonstração: <strong>rh@azumirh.com.br</strong> / <strong>123456</strong>
+          Acesse com seu e-mail e senha da equipe Azumi.
         </p>
         <div className="mt-6 grid gap-4">
           <div className="grid gap-2">
@@ -68,12 +152,13 @@ function LoginAzumi({ onLogin }: { onLogin: (s: never) => void }) {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && document.getElementById("senha-az")?.focus()}
             />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="senha">Senha</Label>
+            <Label htmlFor="senha-az">Senha</Label>
             <Input
-              id="senha"
+              id="senha-az"
               type="password"
               value={senha}
               onChange={(e) => setSenha(e.target.value)}
@@ -83,15 +168,101 @@ function LoginAzumi({ onLogin }: { onLogin: (s: never) => void }) {
           <Button
             size="lg"
             className="w-full rounded-full"
-            onClick={() => {
-              if (email.trim() === "rh@azumirh.com.br" && senha === "123456") {
-                onLogin({ tipo: "azumi", nome: "Equipe Azumi RH", email } as never);
-              } else {
+            disabled={!email.trim() || !senha || carregando}
+            onClick={async () => {
+              setCarregando(true);
+              setErro("");
+              try {
+                await onLogin(email, senha);
+              } catch {
                 setErro("E-mail ou senha inválidos.");
+              } finally {
+                setCarregando(false);
               }
             }}
           >
-            Entrar
+            {carregando ? "Entrando..." : "Entrar"}
+          </Button>
+          <button
+            className="text-center text-sm text-muted-foreground underline-offset-4 hover:underline"
+            onClick={() => {
+              setMostraEsqueceu(true);
+              setEmailEnviado(false);
+              setErro("");
+            }}
+          >
+            Esqueci minha senha
+          </button>
+        </div>
+      </div>
+    </AppShell>
+  );
+}
+
+// ─── Troca de senha obrigatória ───────────────────────────────────────────────
+
+function TrocarSenhaObrigatoria({
+  onTrocar,
+  onSair,
+}: {
+  onTrocar: (senha: string) => Promise<void>;
+  onSair: () => void;
+}) {
+  const [senha, setSenha] = useState("");
+  const [confirmar, setConfirmar] = useState("");
+  const [erro, setErro] = useState("");
+  const [carregando, setCarregando] = useState(false);
+
+  return (
+    <AppShell onLogout={onSair}>
+      <div className="surface mx-auto max-w-md p-6 sm:p-8">
+        <h1 className="text-2xl font-extrabold">Crie sua senha pessoal</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Este é seu primeiro acesso. Por segurança, crie uma senha própria antes de continuar.
+        </p>
+        <div className="mt-6 grid gap-4">
+          <div className="grid gap-2">
+            <Label htmlFor="ns">Nova senha</Label>
+            <Input
+              id="ns"
+              type="password"
+              value={senha}
+              placeholder="Mínimo 8 caracteres"
+              onChange={(e) => setSenha(e.target.value)}
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="cs">Confirmar senha</Label>
+            <Input
+              id="cs"
+              type="password"
+              value={confirmar}
+              onChange={(e) => setConfirmar(e.target.value)}
+            />
+          </div>
+          {erro ? <p className="text-sm font-medium text-destructive">{erro}</p> : null}
+          <Button
+            size="lg"
+            className="w-full rounded-full"
+            disabled={senha.length < 8 || carregando}
+            onClick={async () => {
+              if (senha !== confirmar) {
+                setErro("As senhas não coincidem.");
+                return;
+              }
+              setCarregando(true);
+              setErro("");
+              try {
+                await onTrocar(senha);
+                toast.success("Senha criada com sucesso!");
+              } catch (e) {
+                setErro((e as Error).message);
+              } finally {
+                setCarregando(false);
+              }
+            }}
+          >
+            {carregando ? "Salvando..." : "Criar senha e acessar"}
           </Button>
         </div>
       </div>
@@ -99,7 +270,9 @@ function LoginAzumi({ onLogin }: { onLogin: (s: never) => void }) {
   );
 }
 
-function PainelAzumi() {
+// ─── Painel Azumi ─────────────────────────────────────────────────────────────
+
+function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => void }) {
   const [checkins] = useCheckins();
   const [assinaturas] = useAssinaturas();
   const [sugestoes] = useSugestoes();
@@ -117,12 +290,12 @@ function PainelAzumi() {
   const [nVideo, setNVideo] = useState("");
 
   return (
-    <AppShell>
+    <AppShell onLogout={onLogout}>
       <div className="grid gap-5">
         <div>
           <h1 className="text-2xl font-extrabold sm:text-3xl">Área Azumi RH</h1>
           <p className="text-sm text-muted-foreground">
-            Visão consolidada de Cristo Rei e Champagnat.
+            Olá, {perfil.nome}! Visão consolidada de Cristo Rei e Champagnat.
           </p>
         </div>
 
@@ -296,6 +469,7 @@ function PainelAzumi() {
                   className="rounded-2xl border border-border bg-card px-4 py-3 text-sm"
                 >
                   <strong>{a.nome}</strong> · {filialNome(a.filial)} · {fmtData(a.ts)}
+                  {a.assunto ? <p className="text-muted-foreground">{a.assunto}</p> : null}
                 </div>
               ))}
             </div>

@@ -28,12 +28,16 @@ export function AppShell({
   children,
   back,
   onExit,
+  onLogout,
 }: {
   children: ReactNode;
   back?: ReactNode;
   onExit?: boolean;
+  onLogout?: () => void;
 }) {
   const [session, setSession] = useSession();
+  const handleSair = onLogout ?? (() => setSession(null));
+  const podeSair = (session || onLogout) && onExit !== false;
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -57,12 +61,12 @@ export function AppShell({
             >
               <Mail className="h-3.5 w-3.5" /> {AZUMI_CONTACT.email}
             </a>
-            {session && onExit !== false ? (
+            {podeSair ? (
               <Button
                 variant="ghost"
                 size="sm"
                 className="text-muted-foreground"
-                onClick={() => setSession(null)}
+                onClick={handleSair}
               >
                 <LogOut className="h-4 w-4" /> Sair
               </Button>
