@@ -1,8 +1,4 @@
-import coverEtica from "@/assets/cover-etica.jpg";
-import coverAtendimento from "@/assets/cover-atendimento.svg";
-import coverComunicacao from "@/assets/cover-comunicacao.jpg";
-import coverReconhecimento from "@/assets/cover-reconhecimento.jpg";
-import coverSeguranca from "@/assets/cover-seguranca.jpg";
+import capaPadrao from "@/assets/capa-padrao-politicas.jpg";
 
 export const AZUMI_CONTACT = {
   whatsapp: "5541988350743",
@@ -36,7 +32,7 @@ export const POLITICAS: Politica[] = [
     resumo: "Os valores que guiam como a gente trabalha junto.",
     intro:
       "Nossa base de convivência: respeito, honestidade e cuidado com o outro. Leia com calma antes de assinar.",
-    capa: coverEtica,
+    capa: capaPadrao,
     paginas: 6,
     conteudo: [
       "Tratamos colegas, clientes e fornecedores com respeito, sem exceção. Qualquer forma de discriminação ou assédio é inaceitável.",
@@ -51,7 +47,7 @@ export const POLITICAS: Politica[] = [
     resumo: "Como recebemos e cuidamos de cada cliente.",
     intro:
       "O padrão de atendimento Ken Taki: acolher, ouvir e resolver — do primeiro oi até a despedida.",
-    capa: coverAtendimento,
+    capa: capaPadrao,
     paginas: 4,
     conteudo: [
       "Cumprimente o cliente em até 30 segundos após a chegada, sempre com contato visual.",
@@ -65,7 +61,7 @@ export const POLITICAS: Politica[] = [
     titulo: "Comunicação Interna",
     resumo: "Onde falar cada coisa, e com quem.",
     intro: "Combinados simples pra informação não se perder entre turnos e unidades.",
-    capa: coverComunicacao,
+    capa: capaPadrao,
     paginas: 3,
     conteudo: [
       "Avisos oficiais saem sempre pela intranet e pelo mural da equipe.",
@@ -79,7 +75,7 @@ export const POLITICAS: Politica[] = [
     resumo: "Como o bom trabalho é reconhecido por aqui.",
     intro:
       "Reconhecer faz parte da rotina: veja como elogios viram registro e evolução de carreira.",
-    capa: coverReconhecimento,
+    capa: capaPadrao,
     paginas: 3,
     conteudo: [
       "Elogios de clientes são registrados na ficha do colaborador.",
@@ -92,7 +88,7 @@ export const POLITICAS: Politica[] = [
     titulo: "Segurança, Saúde e Bem-estar",
     resumo: "Prevenção de riscos e cuidado com a equipe.",
     intro: "Regras de segurança da cozinha e do salão, além dos canais de apoio à saúde mental.",
-    capa: coverSeguranca,
+    capa: capaPadrao,
     paginas: 5,
     conteudo: [
       "Uso obrigatório de EPI nas áreas de cocção e higienização.",
