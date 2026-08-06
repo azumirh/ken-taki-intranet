@@ -30,7 +30,6 @@ import {
   useNoticias,
   usePesquisa,
   useSugestoes,
-  useVagas,
 } from "@/lib/kt-store";
 import { type KtPerfil, useKtAuth } from "@/lib/kt-auth";
 import { supabase } from "@/lib/supabase";
@@ -330,13 +329,25 @@ function TrocarSenhaObrigatoria({
 
 // ─── Painel Azumi ─────────────────────────────────────────────────────────────
 
+function diasRestantes(prazo: string): number {
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  return Math.ceil((new Date(prazo + "T00:00:00").getTime() - hoje.getTime()) / 86400000);
+}
+
+function labelAssunto(assunto: string): string {
+  if (assunto === "suporte-checkin") return "Apoio via check-in";
+  if (assunto === "crise-checkin") return "Situação crítica";
+  if (assunto === "whatsapp-gestor") return "Contato do gestor";
+  return assunto;
+}
+
 function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => void }) {
   const [checkins] = useCheckins();
   const [assinaturas] = useAssinaturas();
   const [leituras] = useLeituras();
   const [sugestoes] = useSugestoes();
-  const [vagas] = useVagas();
-  const [ajuda] = useAjuda();
+  const [ajuda, setAjuda] = useAjuda();
   const [pesquisa, setPesquisa] = usePesquisa();
   const [noticias, setNoticias] = useNoticias();
   const [colaboradores, setColaboradores] = useColaboradores();
@@ -354,10 +365,14 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
   const [pTitulo, setPTitulo] = useState("");
   const [pDesc, setPDesc] = useState("");
   const [pLink, setPLink] = useState("");
+  const [pPrazo, setPPrazo] = useState("");
 
   const [nTitulo, setNTitulo] = useState("");
   const [nResumo, setNResumo] = useState("");
   const [nVideo, setNVideo] = useState("");
+  const [nData, setNData] = useState("");
+
+  const [filtroAjuda, setFiltroAjuda] = useState<string>("Todas");
 
   const csvInputRef = useRef<HTMLInputElement>(null);
   const [csvPreview, setCsvPreview] = useState<{
@@ -452,12 +467,11 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
           </p>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-3">
           {[
             { label: "Check-ins", valor: checkins.length },
             { label: "Assinaturas", valor: assinaturas.length },
-            { label: "Sugestões", valor: sugestoes.length },
-            { label: "Vagas solicitadas", valor: vagas.length },
+            { label: "Pedidos de apoio", valor: ajuda.length },
           ].map((k) => (
             <div key={k.label} className="surface p-5">
               <p className="text-3xl font-extrabold text-union">{k.valor}</p>
@@ -515,6 +529,15 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
               value={nVideo}
               onChange={(e) => setNVideo(e.target.value)}
             />
+            <div className="grid gap-2">
+              <Label htmlFor="n-data">Data de publicação</Label>
+              <Input
+                id="n-data"
+                type="date"
+                value={nData}
+                onChange={(e) => setNData(e.target.value)}
+              />
+            </div>
             {nVideo && youtubeEmbed(nVideo) ? (
               <div className="aspect-video w-full overflow-hidden rounded-xl">
                 <iframe
@@ -536,13 +559,14 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
                       titulo: nTitulo.trim(),
                       resumo: nResumo.trim(),
                       videoUrl: nVideo.trim() || undefined,
-                      data: new Date().toISOString().slice(0, 10),
+                      data: nData || new Date().toISOString().slice(0, 10),
                     },
                     ...noticias,
                   ]);
                   setNTitulo("");
                   setNResumo("");
                   setNVideo("");
+                  setNData("");
                   toast.success("Notícia publicada para todas as unidades.");
                 }}
               >
@@ -558,73 +582,178 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
           contagem={pesquisa?.ativa ? "Ativa" : "Nenhuma ativa"}
         >
           <div className="grid max-w-2xl gap-3">
-            <Input
-              placeholder="Título da pesquisa"
-              value={pTitulo}
-              onChange={(e) => setPTitulo(e.target.value)}
-            />
-            <Textarea
-              rows={2}
-              placeholder="Descrição"
-              value={pDesc}
-              onChange={(e) => setPDesc(e.target.value)}
-            />
-            <Input
-              placeholder="Link do formulário"
-              value={pLink}
-              onChange={(e) => setPLink(e.target.value)}
-            />
-            <div className="flex flex-wrap gap-2">
-              <Button
-                className="rounded-full"
-                disabled={!pTitulo.trim()}
-                onClick={() => {
-                  setPesquisa({
-                    id: uid(),
-                    titulo: pTitulo.trim(),
-                    descricao: pDesc.trim(),
-                    link: pLink.trim(),
-                    ativa: true,
-                    ts: Date.now(),
-                  });
-                  toast.success("Pesquisa publicada.");
-                }}
-              >
-                Publicar pesquisa
-              </Button>
-              {pesquisa?.ativa ? (
+            {pesquisa?.ativa && (
+              <div className="rounded-2xl border border-az bg-az-soft p-4">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div>
+                    <p className="font-bold">{pesquisa.titulo}</p>
+                    {pesquisa.descricao && (
+                      <p className="mt-0.5 text-sm text-muted-foreground">{pesquisa.descricao}</p>
+                    )}
+                  </div>
+                  {pesquisa.prazo && (
+                    <span
+                      className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-bold ${
+                        diasRestantes(pesquisa.prazo) <= 2
+                          ? "bg-destructive/10 text-destructive"
+                          : diasRestantes(pesquisa.prazo) <= 5
+                            ? "bg-warn-soft text-warn"
+                            : "bg-success-soft text-success"
+                      }`}
+                    >
+                      {diasRestantes(pesquisa.prazo) > 0
+                        ? `${diasRestantes(pesquisa.prazo)} dias restantes`
+                        : "Prazo encerrado"}
+                    </span>
+                  )}
+                </div>
+                {pesquisa.link && (
+                  <a
+                    href={pesquisa.link}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-2 inline-flex items-center gap-1 text-xs text-az underline underline-offset-2"
+                  >
+                    Ver formulário <ExternalLink className="h-3 w-3" />
+                  </a>
+                )}
                 <Button
                   variant="outline"
-                  className="rounded-full"
+                  size="sm"
+                  className="mt-3 rounded-full"
                   onClick={() => setPesquisa(null)}
                 >
                   Encerrar pesquisa
                 </Button>
-              ) : null}
-            </div>
+              </div>
+            )}
+            {!pesquisa?.ativa && (
+              <>
+                <Input
+                  placeholder="Título da pesquisa"
+                  value={pTitulo}
+                  onChange={(e) => setPTitulo(e.target.value)}
+                />
+                <Textarea
+                  rows={2}
+                  placeholder="Descrição"
+                  value={pDesc}
+                  onChange={(e) => setPDesc(e.target.value)}
+                />
+                <Input
+                  placeholder="Link do formulário"
+                  value={pLink}
+                  onChange={(e) => setPLink(e.target.value)}
+                />
+                <div className="grid gap-2">
+                  <Label htmlFor="p-prazo">Prazo de resposta (opcional)</Label>
+                  <Input
+                    id="p-prazo"
+                    type="date"
+                    value={pPrazo}
+                    onChange={(e) => setPPrazo(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Button
+                    className="rounded-full"
+                    disabled={!pTitulo.trim()}
+                    onClick={() => {
+                      setPesquisa({
+                        id: uid(),
+                        titulo: pTitulo.trim(),
+                        descricao: pDesc.trim(),
+                        link: pLink.trim(),
+                        ativa: true,
+                        ts: Date.now(),
+                        prazo: pPrazo || undefined,
+                      });
+                      setPTitulo("");
+                      setPDesc("");
+                      setPLink("");
+                      setPPrazo("");
+                      toast.success("Pesquisa publicada.");
+                    }}
+                  >
+                    Publicar pesquisa
+                  </Button>
+                </div>
+              </>
+            )}
           </div>
         </Section>
 
         <Mural filial="todas" autorPadrao="Equipe Azumi RH" />
 
         <Section
-          titulo="Pedidos de apoio pelo WhatsApp"
-          intro="Registro de quem acionou a Azumi RH direto pela intranet."
+          titulo="Pedidos de apoio"
+          intro="Histórico de acionamentos da Azumi RH via intranet. Adicione notas internas em cada registro."
           contagem={`${ajuda.length} registros`}
         >
           {ajuda.length === 0 ? (
             <EmptyState>Nenhum pedido de apoio registrado ainda.</EmptyState>
           ) : (
-            <div className="grid gap-3">
-              {ajuda.map((a) => (
-                <div
-                  key={a.id}
-                  className="rounded-2xl border border-border bg-card px-4 py-3 text-sm"
-                >
-                  <strong>{a.nome}</strong> · {filialNome(a.filial)} · {fmtData(a.ts)}
-                  {a.assunto ? <p className="text-muted-foreground">{a.assunto}</p> : null}
-                </div>
-              ))}
+            <div className="grid gap-4">
+              <div className="flex flex-wrap gap-2">
+                {["Todas", ...FILIAIS.map((f) => f.nome)].map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => setFiltroAjuda(f)}
+                    className={`rounded-full border px-3 py-1 text-sm font-medium transition-colors ${
+                      filtroAjuda === f
+                        ? "border-kt bg-kt-soft text-kt"
+                        : "border-border text-muted-foreground hover:border-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {f}
+                  </button>
+                ))}
+              </div>
+              <div className="grid gap-3">
+                {ajuda
+                  .filter((a) => filtroAjuda === "Todas" || filialNome(a.filial) === filtroAjuda)
+                  .map((a) => (
+                    <div
+                      key={a.id}
+                      className="rounded-2xl border border-border bg-card p-4 text-sm"
+                    >
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span
+                          className={`rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide ${
+                            a.assunto === "crise-checkin"
+                              ? "bg-destructive/10 text-destructive"
+                              : a.assunto === "suporte-checkin"
+                                ? "bg-warn-soft text-warn"
+                                : "bg-az-soft text-az"
+                          }`}
+                        >
+                          {labelAssunto(a.assunto)}
+                        </span>
+                        <span className="text-muted-foreground">
+                          {a.nome} · {filialNome(a.filial)}
+                        </span>
+                        <span className="ml-auto text-xs text-muted-foreground">
+                          {new Date(a.ts).toLocaleString("pt-BR", {
+                            day: "2-digit",
+                            month: "short",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                      </div>
+                      <Textarea
+                        className="mt-3 text-xs"
+                        rows={2}
+                        placeholder="Nota interna (visível só para a Azumi RH)..."
+                        value={a.nota ?? ""}
+                        onChange={(e) => {
+                          const nota = e.target.value;
+                          setAjuda((prev) => prev.map((x) => (x.id === a.id ? { ...x, nota } : x)));
+                        }}
+                      />
+                    </div>
+                  ))}
+              </div>
             </div>
           )}
         </Section>
@@ -778,28 +907,6 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
                   </div>
                 );
               })}
-            </div>
-          )}
-        </Section>
-
-        <Section
-          titulo="Vagas solicitadas pelos gestores"
-          intro="Solicitações abertas pelas unidades."
-          contagem={`${vagas.length} solicitações`}
-        >
-          {vagas.length === 0 ? (
-            <EmptyState>Nenhuma vaga solicitada ainda.</EmptyState>
-          ) : (
-            <div className="grid gap-3">
-              {vagas.map((v) => (
-                <div
-                  key={v.id}
-                  className="rounded-2xl border border-border bg-card px-4 py-3 text-sm"
-                >
-                  <strong>{v.cargo}</strong> · {filialNome(v.filial)} · {fmtData(v.ts)}
-                  {v.motivo ? <p className="text-muted-foreground">{v.motivo}</p> : null}
-                </div>
-              ))}
             </div>
           )}
         </Section>

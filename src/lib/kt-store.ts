@@ -111,8 +111,16 @@ export type Pesquisa = {
   link: string;
   ativa: boolean;
   ts: number;
+  prazo?: string | undefined; // yyyy-mm-dd
 } | null;
-export type AjudaClick = { id: string; nome: string; filial: string; assunto: string; ts: number };
+export type AjudaClick = {
+  id: string;
+  nome: string;
+  filial: string;
+  assunto: string;
+  ts: number;
+  nota?: string | undefined;
+};
 export type Leitura = { documentoId: string; nome: string; filial: string; ts: number };
 
 export const useColaboradores = () => useStore<Colaborador[]>("colaboradores", COLABORADORES);

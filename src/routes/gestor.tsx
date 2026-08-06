@@ -647,9 +647,42 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
           contagem={pesquisa?.ativa ? "1 ativa" : "Nenhuma ativa"}
         >
           {pesquisa?.ativa ? (
-            <div className="rounded-2xl border border-border bg-az-soft p-5">
-              <h3 className="font-bold">{pesquisa.titulo}</h3>
+            <div className="rounded-2xl border border-az bg-az-soft p-5">
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <h3 className="font-bold">{pesquisa.titulo}</h3>
+                {pesquisa.prazo &&
+                  (() => {
+                    const dias = Math.ceil(
+                      (new Date(pesquisa.prazo + "T00:00:00").getTime() -
+                        new Date().setHours(0, 0, 0, 0)) /
+                        86400000,
+                    );
+                    return (
+                      <span
+                        className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-bold ${
+                          dias <= 2
+                            ? "bg-destructive/10 text-destructive"
+                            : dias <= 5
+                              ? "bg-warn-soft text-warn"
+                              : "bg-success-soft text-success"
+                        }`}
+                      >
+                        {dias > 0 ? `${dias} dias restantes` : "Prazo encerrado"}
+                      </span>
+                    );
+                  })()}
+              </div>
               <p className="mt-1 text-sm text-muted-foreground">{pesquisa.descricao}</p>
+              {pesquisa.link && (
+                <a
+                  href={pesquisa.link}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-3 inline-flex items-center gap-1 rounded-full bg-az px-3 py-1.5 text-xs font-semibold text-primary-foreground"
+                >
+                  Responder pesquisa <ExternalLink className="h-3 w-3" />
+                </a>
+              )}
             </div>
           ) : (
             <EmptyState>Nenhuma pesquisa ativa no momento.</EmptyState>
