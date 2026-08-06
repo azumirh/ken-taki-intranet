@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Check, ExternalLink } from "lucide-react";
+import { Check, ExternalLink, MessageCircle, UserPlus, Briefcase } from "lucide-react";
 import capaPadrao from "@/assets/capa-padrao-politicas.jpg";
 import { AppShell, BackLink } from "@/components/kt/app-shell";
 import { Avatar, EmptyState, Section } from "@/components/kt/section";
@@ -10,10 +10,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { FILIAIS, HUMORES, filialNome, idade, type FilialId } from "@/lib/kt-data";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { AZUMI_CONTACT, FILIAIS, HUMORES, filialNome, idade, type FilialId } from "@/lib/kt-data";
 import {
   fmtData,
   uid,
+  useAjuda,
   useAssinaturas,
   useCheckins,
   useColaboradores,
@@ -309,10 +318,14 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
   const [vagas, setVagas] = useVagas();
   const [colaboradores, setColaboradores] = useColaboradores();
   const [documentos] = useDocumentos();
+  const [ajuda, setAjuda] = useAjuda();
 
+  const [vagaOpen, setVagaOpen] = useState(false);
   const [cargo, setCargo] = useState("");
   const [motivo, setMotivo] = useState("");
 
+  const [cadastrarOpen, setCadastrarOpen] = useState(false);
+  const [filtroCargoEquipe, setFiltroCargoEquipe] = useState("Todos");
   const [nomeCol, setNomeCol] = useState("");
   const [cpf3Col, setCpf3Col] = useState("");
   const [cargoCol, setCargoCol] = useState("");
@@ -325,6 +338,9 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
     arr.filter((i) => i.filial === session.filial);
   const meusCheckins = daUnidade(checkins);
   const equipe = colaboradores.filter((c) => c.filial === session.filial);
+  const cargosUnicos = ["Todos", ...Array.from(new Set(equipe.map((c) => c.cargo))).sort()];
+  const equipeFiltrada =
+    filtroCargoEquipe === "Todos" ? equipe : equipe.filter((c) => c.cargo === filtroCargoEquipe);
 
   return (
     <AppShell onLogout={onLogout}>
@@ -347,6 +363,125 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
               <p className="mt-1 text-sm text-muted-foreground">{k.label}</p>
             </div>
           ))}
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Dialog
+            open={vagaOpen}
+            onOpenChange={(o) => {
+              setVagaOpen(o);
+              if (!o) {
+                setCargo("");
+                setMotivo("");
+              }
+            }}
+          >
+            <DialogTrigger asChild>
+              <Button
+                size="lg"
+                className="w-full justify-start gap-3 rounded-2xl px-5 py-4 text-left h-auto"
+              >
+                <Briefcase className="h-5 w-5 shrink-0" />
+                <div>
+                  <p className="font-bold">Solicitar vaga</p>
+                  <p className="text-xs font-normal opacity-80">
+                    Abra uma solicitação com a Azumi RH
+                  </p>
+                </div>
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Solicitar vaga</DialogTitle>
+                <DialogDescription>
+                  Precisa de reforço? A Azumi RH receberá o pedido e entrará em contato.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-3">
+                <div className="grid gap-2">
+                  <Label htmlFor="vaga-cargo">Cargo desejado</Label>
+                  <Input
+                    id="vaga-cargo"
+                    placeholder="Ex.: Atendente"
+                    value={cargo}
+                    onChange={(e) => setCargo(e.target.value)}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="vaga-motivo">Motivo (opcional)</Label>
+                  <Textarea
+                    id="vaga-motivo"
+                    rows={3}
+                    placeholder="Substituição, aumento de quadro, sazonalidade..."
+                    value={motivo}
+                    onChange={(e) => setMotivo(e.target.value)}
+                  />
+                </div>
+                {daUnidade(vagas).length > 0 && (
+                  <div className="grid gap-2">
+                    <p className="text-xs font-semibold text-muted-foreground">
+                      Solicitações anteriores
+                    </p>
+                    {daUnidade(vagas).map((v) => (
+                      <div key={v.id} className="rounded-xl bg-muted px-3 py-2 text-sm">
+                        <strong>{v.cargo}</strong> · {fmtData(v.ts)}
+                        {v.motivo ? <p className="text-muted-foreground">{v.motivo}</p> : null}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <Button
+                  className="w-full rounded-full"
+                  disabled={!cargo.trim()}
+                  onClick={() => {
+                    setVagas([
+                      {
+                        id: uid(),
+                        cargo: cargo.trim(),
+                        motivo: motivo.trim(),
+                        filial: session.filial,
+                        ts: Date.now(),
+                      },
+                      ...vagas,
+                    ]);
+                    setCargo("");
+                    setMotivo("");
+                    setVagaOpen(false);
+                    toast.success("Solicitação enviada à Azumi RH.");
+                  }}
+                >
+                  Enviar solicitação
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          <a
+            href={`https://wa.me/${AZUMI_CONTACT.whatsapp}?text=${encodeURIComponent(`Olá, sou ${session.nome}, gestor(a) da unidade ${filialNome(session.filial)}. Gostaria de falar com o consultor Azumi RH.`)}`}
+            target="_blank"
+            rel="noreferrer"
+            onClick={() =>
+              setAjuda([
+                ...ajuda,
+                {
+                  id: uid(),
+                  nome: session.nome,
+                  filial: session.filial,
+                  assunto: "whatsapp-gestor",
+                  ts: Date.now(),
+                },
+              ])
+            }
+            className="flex items-center gap-3 rounded-2xl border border-border bg-card px-5 py-4 text-sm transition-colors hover:bg-muted"
+          >
+            <MessageCircle className="h-5 w-5 shrink-0 text-success" />
+            <div>
+              <p className="font-bold">Fale com o consultor Azumi</p>
+              <p className="text-xs text-muted-foreground">
+                {AZUMI_CONTACT.whatsappLabel} · WhatsApp
+              </p>
+            </div>
+          </a>
         </div>
 
         <Section
@@ -525,171 +660,184 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
 
         <Section
           titulo="Equipe da unidade"
-          intro="Time cadastrado nesta unidade, com cargo, aniversário e tempo de casa."
+          intro="Time cadastrado nesta unidade."
           contagem={`${equipe.length} pessoas`}
-        >
-          <div className="grid gap-3 md:grid-cols-2">
-            {equipe.map((c) => (
-              <div
-                key={c.id}
-                className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-4 rounded-2xl border border-border bg-card p-4"
-              >
-                <Avatar nome={c.nome} foto={c.foto} size={48} />
-                <div className="min-w-0">
-                  <p className="truncate font-semibold">{c.nome}</p>
-                  <p className="truncate text-sm text-muted-foreground">{c.cargo}</p>
-                  <p className="truncate text-xs text-muted-foreground">
-                    {idade(c.nascimento)} anos · na casa desde{" "}
-                    {new Date(c.admissao + "T00:00:00").getFullYear()}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Section>
-
-        <Section
-          titulo="Cadastrar colaborador"
-          intro="Adicione um novo colaborador a esta unidade. Ele poderá entrar na intranet com os dados abaixo."
-          contagem={`${equipe.length} cadastrados`}
-        >
-          <div className="grid max-w-2xl gap-3">
-            <div className="grid gap-2">
-              <Label htmlFor="col-nome">Nome completo</Label>
-              <Input
-                id="col-nome"
-                value={nomeCol}
-                onChange={(e) => setNomeCol(e.target.value)}
-                maxLength={80}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="col-cpf3">Últimos 3 dígitos do CPF</Label>
-              <Input
-                id="col-cpf3"
-                inputMode="numeric"
-                maxLength={3}
-                value={cpf3Col}
-                onChange={(e) => setCpf3Col(e.target.value.replace(/\D/g, ""))}
-                className="w-28 tracking-[0.4em]"
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="col-cargo">Cargo</Label>
-              <Input
-                id="col-cargo"
-                value={cargoCol}
-                onChange={(e) => setCargoCol(e.target.value)}
-                maxLength={60}
-              />
-            </div>
-            <div className="grid gap-2 sm:grid-cols-2">
-              <div className="grid gap-2">
-                <Label htmlFor="col-nasc">Data de nascimento</Label>
-                <Input
-                  id="col-nasc"
-                  type="date"
-                  value={nascimentoCol}
-                  onChange={(e) => setNascimentoCol(e.target.value)}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="col-adm">Data de admissão</Label>
-                <Input
-                  id="col-adm"
-                  type="date"
-                  value={admissaoCol}
-                  onChange={(e) => setAdmissaoCol(e.target.value)}
-                />
-              </div>
-            </div>
-            {erroCol ? <p className="text-sm font-medium text-destructive">{erroCol}</p> : null}
-            <div>
-              <Button
-                className="rounded-full"
-                disabled={!nomeCol.trim() || cpf3Col.length !== 3 || !cargoCol.trim()}
-                onClick={() => {
-                  const duplicado = colaboradores.find(
-                    (c) => c.filial === session.filial && c.cpf3 === cpf3Col,
-                  );
-                  if (duplicado) {
-                    setErroCol(`CPF ${cpf3Col} já cadastrado nesta unidade (${duplicado.nome}).`);
-                    return;
-                  }
-                  setErroCol("");
-                  setColaboradores([
-                    ...colaboradores,
-                    {
-                      id: uid(),
-                      nome: nomeCol.trim(),
-                      cpf3: cpf3Col,
-                      cargo: cargoCol.trim(),
-                      filial: session.filial as FilialId,
-                      nascimento: nascimentoCol || "2000-01-01",
-                      admissao: admissaoCol || new Date().toISOString().slice(0, 10),
-                    },
-                  ]);
+          acao={
+            <Dialog
+              open={cadastrarOpen}
+              onOpenChange={(o) => {
+                setCadastrarOpen(o);
+                if (!o) {
                   setNomeCol("");
                   setCpf3Col("");
                   setCargoCol("");
                   setNascimentoCol("");
                   setAdmissaoCol("");
-                  toast.success("Colaborador cadastrado com sucesso!");
-                }}
-              >
-                Cadastrar colaborador
-              </Button>
-            </div>
-          </div>
-        </Section>
-
-        <Section
-          titulo="Solicitar vaga"
-          intro="Precisa de reforço na equipe? Abra uma solicitação direto com a Azumi RH."
-          contagem={`${daUnidade(vagas).length} abertas`}
+                  setErroCol("");
+                }
+              }}
+            >
+              <DialogTrigger asChild>
+                <Button size="sm" className="rounded-full">
+                  <UserPlus className="h-3.5 w-3.5" /> Cadastrar colaborador
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Cadastrar colaborador</DialogTitle>
+                  <DialogDescription>
+                    Adicione um novo membro à unidade {filialNome(session.filial)}.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-3">
+                  <div className="grid gap-2">
+                    <Label htmlFor="col-nome">Nome completo</Label>
+                    <Input
+                      id="col-nome"
+                      value={nomeCol}
+                      onChange={(e) => setNomeCol(e.target.value)}
+                      maxLength={80}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="col-cpf3">Últimos 3 dígitos do CPF</Label>
+                    <Input
+                      id="col-cpf3"
+                      inputMode="numeric"
+                      maxLength={3}
+                      value={cpf3Col}
+                      onChange={(e) => setCpf3Col(e.target.value.replace(/\D/g, ""))}
+                      className="w-28 tracking-[0.4em]"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="col-cargo">Cargo</Label>
+                    <Input
+                      id="col-cargo"
+                      value={cargoCol}
+                      onChange={(e) => setCargoCol(e.target.value)}
+                      maxLength={60}
+                    />
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <div className="grid gap-2">
+                      <Label htmlFor="col-nasc">Data de nascimento</Label>
+                      <Input
+                        id="col-nasc"
+                        type="date"
+                        value={nascimentoCol}
+                        onChange={(e) => setNascimentoCol(e.target.value)}
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="col-adm">Data de admissão</Label>
+                      <Input
+                        id="col-adm"
+                        type="date"
+                        value={admissaoCol}
+                        onChange={(e) => setAdmissaoCol(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  {erroCol ? (
+                    <p className="text-sm font-medium text-destructive">{erroCol}</p>
+                  ) : null}
+                  <Button
+                    className="w-full rounded-full"
+                    disabled={!nomeCol.trim() || cpf3Col.length !== 3 || !cargoCol.trim()}
+                    onClick={() => {
+                      const duplicado = colaboradores.find(
+                        (c) => c.filial === session.filial && c.cpf3 === cpf3Col,
+                      );
+                      if (duplicado) {
+                        setErroCol(
+                          `CPF ${cpf3Col} já cadastrado nesta unidade (${duplicado.nome}).`,
+                        );
+                        return;
+                      }
+                      setErroCol("");
+                      setColaboradores([
+                        ...colaboradores,
+                        {
+                          id: uid(),
+                          nome: nomeCol.trim(),
+                          cpf3: cpf3Col,
+                          cargo: cargoCol.trim(),
+                          filial: session.filial as FilialId,
+                          nascimento: nascimentoCol || "2000-01-01",
+                          admissao: admissaoCol || new Date().toISOString().slice(0, 10),
+                        },
+                      ]);
+                      setNomeCol("");
+                      setCpf3Col("");
+                      setCargoCol("");
+                      setNascimentoCol("");
+                      setAdmissaoCol("");
+                      setCadastrarOpen(false);
+                      toast.success("Colaborador cadastrado com sucesso!");
+                    }}
+                  >
+                    Cadastrar colaborador
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          }
         >
-          <div className="grid max-w-2xl gap-3">
-            <Input
-              placeholder="Cargo desejado"
-              value={cargo}
-              onChange={(e) => setCargo(e.target.value)}
-            />
-            <Textarea
-              rows={3}
-              placeholder="Motivo da solicitação (substituição, aumento de quadro, sazonalidade...)"
-              value={motivo}
-              onChange={(e) => setMotivo(e.target.value)}
-            />
-            <div>
-              <Button
-                className="rounded-full"
-                disabled={!cargo.trim()}
-                onClick={() => {
-                  setVagas([
-                    {
-                      id: uid(),
-                      cargo: cargo.trim(),
-                      motivo: motivo.trim(),
-                      filial: session.filial,
-                      ts: Date.now(),
-                    },
-                    ...vagas,
-                  ]);
-                  setCargo("");
-                  setMotivo("");
-                  toast.success("Solicitação enviada à Azumi RH.");
-                }}
-              >
-                Enviar solicitação
-              </Button>
-            </div>
-            {daUnidade(vagas).map((v) => (
-              <div key={v.id} className="rounded-xl bg-muted px-4 py-3 text-sm">
-                <strong>{v.cargo}</strong> · {fmtData(v.ts)}
-                {v.motivo ? <p className="text-muted-foreground">{v.motivo}</p> : null}
+          {equipe.length === 0 ? (
+            <EmptyState>Nenhum colaborador cadastrado nesta unidade ainda.</EmptyState>
+          ) : (
+            <div className="grid gap-4">
+              {cargosUnicos.length > 2 && (
+                <div className="flex flex-wrap gap-2">
+                  {cargosUnicos.map((c) => (
+                    <button
+                      key={c}
+                      onClick={() => setFiltroCargoEquipe(c)}
+                      className={`rounded-full border px-3 py-1 text-sm font-medium transition-colors ${
+                        filtroCargoEquipe === c
+                          ? "border-kt bg-kt-soft text-kt"
+                          : "border-border text-muted-foreground hover:border-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {c}
+                    </button>
+                  ))}
+                </div>
+              )}
+              <div className="overflow-x-auto rounded-2xl border border-border">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border bg-muted/40">
+                      <th className="px-4 py-3 text-left font-semibold">Nome</th>
+                      <th className="px-4 py-3 text-left font-semibold">Cargo</th>
+                      <th className="px-4 py-3 text-left font-semibold">Idade</th>
+                      <th className="px-4 py-3 text-left font-semibold">Na casa desde</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {equipeFiltrada.map((c) => (
+                      <tr key={c.id} className="border-b border-border last:border-0">
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-3">
+                            <Avatar nome={c.nome} foto={c.foto} size={32} />
+                            <span className="font-medium">{c.nome}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground">{c.cargo}</td>
+                        <td className="px-4 py-3 text-muted-foreground">
+                          {idade(c.nascimento)} anos
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground">
+                          {new Date(c.admissao + "T00:00:00").getFullYear()}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            ))}
-          </div>
+            </div>
+          )}
         </Section>
 
         <Section

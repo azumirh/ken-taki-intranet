@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { toast } from "sonner";
+import { CalendarDays, ExternalLink } from "lucide-react";
 import { Section, EmptyState } from "@/components/kt/section";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +24,16 @@ const TIPO_ESTILO: Record<MuralTipo, string> = {
   aniversario: "bg-success-soft text-success",
 };
 
+function fmtEvento(iso: string) {
+  const d = new Date(iso);
+  return d.toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 export function Mural({
   filial,
   autorPadrao,
@@ -38,8 +49,18 @@ export function Mural({
   const [mensagem, setMensagem] = useState("");
   const [para, setPara] = useState("");
   const [emoji, setEmoji] = useState(EMOJIS[0]);
+  const [eventoData, setEventoData] = useState("");
+  const [eventoLink, setEventoLink] = useState("");
 
   const itens = mural.filter((m) => !m.filial || m.filial === "todas" || m.filial === filial);
+
+  const limpar = () => {
+    setTitulo("");
+    setMensagem("");
+    setPara("");
+    setEventoData("");
+    setEventoLink("");
+  };
 
   return (
     <Section
@@ -49,7 +70,13 @@ export function Mural({
       contagem={`${itens.length} publicações`}
       acao={
         podePublicar ? (
-          <Dialog open={open} onOpenChange={setOpen}>
+          <Dialog
+            open={open}
+            onOpenChange={(o) => {
+              setOpen(o);
+              if (!o) limpar();
+            }}
+          >
             <DialogTrigger asChild>
               <Button size="sm" className="rounded-full">
                 Deixar um recado
@@ -109,6 +136,25 @@ export function Mural({
                     onChange={(e) => setMensagem(e.target.value)}
                   />
                 </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="mevento">Data e horário do evento (opcional)</Label>
+                  <Input
+                    id="mevento"
+                    type="datetime-local"
+                    value={eventoData}
+                    onChange={(e) => setEventoData(e.target.value)}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="mlink">Link do evento (opcional)</Label>
+                  <Input
+                    id="mlink"
+                    type="url"
+                    placeholder="https://..."
+                    value={eventoLink}
+                    onChange={(e) => setEventoLink(e.target.value)}
+                  />
+                </div>
                 <Button
                   className="w-full rounded-full"
                   disabled={!titulo.trim() || !mensagem.trim()}
@@ -125,12 +171,12 @@ export function Mural({
                         data: new Date().toISOString().slice(0, 10),
                         filial: filial as never,
                         emoji,
+                        eventoData: eventoData || undefined,
+                        eventoLink: eventoLink.trim() || undefined,
                       },
                       ...mural,
                     ]);
-                    setTitulo("");
-                    setMensagem("");
-                    setPara("");
+                    limpar();
                     setOpen(false);
                     toast.success("Recado publicado no mural!");
                   }}
@@ -161,6 +207,22 @@ export function Mural({
               </span>
               <h3 className="mt-3 text-sm font-bold">{m.titulo}</h3>
               <p className="mt-1 flex-1 text-sm text-muted-foreground">{m.mensagem}</p>
+              {m.eventoData && (
+                <div className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <CalendarDays className="h-3.5 w-3.5 shrink-0" />
+                  <span>{fmtEvento(m.eventoData)}</span>
+                  {m.eventoLink && (
+                    <a
+                      href={m.eventoLink}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="ml-1 text-kt underline underline-offset-2"
+                    >
+                      ver <ExternalLink className="inline h-3 w-3" />
+                    </a>
+                  )}
+                </div>
+              )}
               <p className="mt-3 text-xs text-muted-foreground">
                 {m.autor} · {fmtData(m.data)}
               </p>

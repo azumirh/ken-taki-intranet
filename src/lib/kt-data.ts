@@ -198,6 +198,8 @@ export type MuralItem = {
   data: string;
   filial?: FilialId | "todas" | undefined;
   emoji?: string | undefined;
+  eventoData?: string | undefined; // "YYYY-MM-DDTHH:MM"
+  eventoLink?: string | undefined;
 };
 
 export const MURAL_SEED: MuralItem[] = [
