@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
 import { AppShell } from "@/components/kt/app-shell";
+import heroHome from "@/assets/hero-home.jpg";
 import entryColaborador from "@/assets/entry-colaborador.jpg";
 import entryGestor from "@/assets/entry-gestor.jpg";
 import entryAzumi from "@/assets/entry-azumi.jpg";
@@ -66,7 +67,7 @@ function Index() {
         </div>
         <div className="surface overflow-hidden">
           <img
-            src={entryColaborador}
+            src={heroHome}
             alt="Colaboradora do Ken Taki sorrindo"
             width={800}
             height={600}
