@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
-import { Check, ExternalLink, Trash2 } from "lucide-react";
+import { Check, Copy, ExternalLink, Trash2, UserPlus2 } from "lucide-react";
 import { AppShell, BackLink } from "@/components/kt/app-shell";
 import { EmptyState, Section } from "@/components/kt/section";
 import { Mural } from "@/components/kt/mural";
@@ -33,6 +33,7 @@ import {
 } from "@/lib/kt-store";
 import { type KtPerfil, useKtAuth } from "@/lib/kt-auth";
 import { supabase } from "@/lib/supabase";
+import { criarGestorFn } from "@/lib/server-fns";
 
 // ─── Helpers de importação CSV ───────────────────────────────────────────────
 
@@ -373,6 +374,13 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
   const [nData, setNData] = useState("");
 
   const [filtroAjuda, setFiltroAjuda] = useState<string>("Todas");
+
+  const [gNome, setGNome] = useState("");
+  const [gEmail, setGEmail] = useState("");
+  const [gFilial, setGFilial] = useState<"cristo-rei" | "champagnat">(FILIAIS[0].id);
+  const [gCriando, setGCriando] = useState(false);
+  const [gErro, setGErro] = useState("");
+  const [gSucesso, setGSucesso] = useState<{ email: string; senha: string } | null>(null);
 
   const csvInputRef = useRef<HTMLInputElement>(null);
   const [csvPreview, setCsvPreview] = useState<{
@@ -979,6 +987,121 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
                   onClick={() => setCsvPreview(null)}
                 >
                   Cancelar
+                </Button>
+              </div>
+            </div>
+          )}
+        </Section>
+
+        <Section
+          titulo="Criar acesso de gestor"
+          intro="Provisiona login e senha temporária para um novo gestor. O gestor cria a senha definitiva no primeiro acesso."
+        >
+          {gSucesso ? (
+            <div className="grid max-w-2xl gap-4">
+              <div className="rounded-2xl border border-success bg-success-soft p-5">
+                <p className="font-bold text-success">Acesso criado com sucesso!</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Comunique as credenciais abaixo por WhatsApp ou pessoalmente. O gestor precisará
+                  criar uma nova senha no primeiro acesso.
+                </p>
+                <div className="mt-4 grid gap-2">
+                  <div className="flex items-center justify-between gap-2 rounded-xl bg-card px-4 py-2.5 text-sm">
+                    <span className="text-muted-foreground">E-mail</span>
+                    <span className="font-mono font-semibold">{gSucesso.email}</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-2 rounded-xl bg-card px-4 py-2.5 text-sm">
+                    <span className="text-muted-foreground">Senha temporária</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono font-semibold tracking-wider">
+                        {gSucesso.senha}
+                      </span>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(gSucesso!.senha);
+                          toast.success("Senha copiada!");
+                        }}
+                        className="rounded-full p-1 hover:bg-muted"
+                        title="Copiar senha"
+                      >
+                        <Copy className="h-3.5 w-3.5 text-muted-foreground" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                className="w-fit rounded-full"
+                onClick={() => {
+                  setGSucesso(null);
+                  setGNome("");
+                  setGEmail("");
+                  setGFilial(FILIAIS[0].id);
+                }}
+              >
+                <UserPlus2 className="h-4 w-4" /> Criar outro acesso
+              </Button>
+            </div>
+          ) : (
+            <div className="grid max-w-2xl gap-3">
+              <div className="grid gap-2">
+                <Label htmlFor="g-nome">Nome completo</Label>
+                <Input
+                  id="g-nome"
+                  placeholder="Ex.: Marcos Tanaka"
+                  value={gNome}
+                  onChange={(e) => setGNome(e.target.value)}
+                  maxLength={80}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="g-email">E-mail de acesso</Label>
+                <Input
+                  id="g-email"
+                  type="email"
+                  placeholder="gestor@email.com"
+                  value={gEmail}
+                  onChange={(e) => setGEmail(e.target.value)}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label>Unidade</Label>
+                <div className="flex flex-wrap gap-2">
+                  {FILIAIS.map((f) => (
+                    <button
+                      key={f.id}
+                      onClick={() => setGFilial(f.id)}
+                      className={`rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors ${
+                        gFilial === f.id ? "border-kt bg-kt-soft text-kt" : "border-border bg-card"
+                      }`}
+                    >
+                      {f.nome}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {gErro ? <p className="text-sm font-medium text-destructive">{gErro}</p> : null}
+              <div>
+                <Button
+                  className="rounded-full"
+                  disabled={!gNome.trim() || !gEmail.trim() || gCriando}
+                  onClick={async () => {
+                    setGCriando(true);
+                    setGErro("");
+                    try {
+                      const result = await criarGestorFn({
+                        data: { nome: gNome, email: gEmail, filial: gFilial },
+                      });
+                      setGSucesso({ email: gEmail.trim().toLowerCase(), senha: result.senhaTemp });
+                    } catch (e) {
+                      setGErro((e as Error).message);
+                    } finally {
+                      setGCriando(false);
+                    }
+                  }}
+                >
+                  {gCriando ? "Criando acesso..." : "Criar acesso de gestor"}
                 </Button>
               </div>
             </div>
