@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Check, ExternalLink, MessageCircle, UserPlus, Briefcase } from "lucide-react";
+import { Check, ExternalLink, MessageCircle, UserPlus, Briefcase, UserMinus } from "lucide-react";
 import capaPadrao from "@/assets/capa-padrao-politicas.jpg";
 import { AppShell, BackLink } from "@/components/kt/app-shell";
 import { Avatar, EmptyState, Section } from "@/components/kt/section";
@@ -18,7 +18,15 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { AZUMI_CONTACT, FILIAIS, HUMORES, filialNome, idade, type FilialId } from "@/lib/kt-data";
+import {
+  AZUMI_CONTACT,
+  FILIAIS,
+  HUMORES,
+  filialNome,
+  idade,
+  type Colaborador,
+  type FilialId,
+} from "@/lib/kt-data";
 import {
   fmtData,
   uid,
@@ -319,6 +327,8 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
   const [colaboradores, setColaboradores] = useColaboradores();
   const [documentos] = useDocumentos();
   const [ajuda, setAjuda] = useAjuda();
+
+  const [desligarTarget, setDesligarTarget] = useState<Colaborador | null>(null);
 
   const [vagaOpen, setVagaOpen] = useState(false);
   const [cargo, setCargo] = useState("");
@@ -846,6 +856,7 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
                       <th className="px-4 py-3 text-left font-semibold">Cargo</th>
                       <th className="px-4 py-3 text-left font-semibold">Idade</th>
                       <th className="px-4 py-3 text-left font-semibold">Na casa desde</th>
+                      <th className="px-4 py-3" />
                     </tr>
                   </thead>
                   <tbody>
@@ -864,6 +875,15 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
                         <td className="px-4 py-3 text-muted-foreground">
                           {new Date(c.admissao + "T00:00:00").getFullYear()}
                         </td>
+                        <td className="px-4 py-3 text-right">
+                          <button
+                            onClick={() => setDesligarTarget(c)}
+                            title="Desligar colaborador"
+                            className="rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                          >
+                            <UserMinus className="h-4 w-4" />
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -872,6 +892,44 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
             </div>
           )}
         </Section>
+
+        <Dialog
+          open={!!desligarTarget}
+          onOpenChange={(o) => {
+            if (!o) setDesligarTarget(null);
+          }}
+        >
+          <DialogContent className="sm:max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Desligar colaborador</DialogTitle>
+              <DialogDescription>
+                Tem certeza que deseja desligar <strong>{desligarTarget?.nome}</strong>? O cadastro
+                será removido desta unidade.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button
+                variant="outline"
+                className="rounded-full"
+                onClick={() => setDesligarTarget(null)}
+              >
+                Cancelar
+              </Button>
+              <Button
+                variant="destructive"
+                className="rounded-full"
+                onClick={() => {
+                  if (!desligarTarget) return;
+                  setColaboradores(colaboradores.filter((c) => c.id !== desligarTarget.id));
+                  toast.success(`${desligarTarget.nome.split(" ")[0]} foi desligado(a).`);
+                  setDesligarTarget(null);
+                }}
+              >
+                Confirmar desligamento
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         <Section
           titulo="Documentos e processos"
