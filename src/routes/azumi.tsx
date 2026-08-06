@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
+import { Check, ExternalLink, Trash2 } from "lucide-react";
 import { AppShell, BackLink } from "@/components/kt/app-shell";
 import { EmptyState, Section } from "@/components/kt/section";
 import { Mural } from "@/components/kt/mural";
@@ -8,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import capaPadrao from "@/assets/capa-padrao-politicas.jpg";
 import {
   FILIAIS,
   HUMORES,
@@ -23,12 +25,15 @@ import {
   useAssinaturas,
   useCheckins,
   useColaboradores,
+  useDocumentos,
+  useLeituras,
   useNoticias,
   usePesquisa,
   useSugestoes,
   useVagas,
 } from "@/lib/kt-store";
 import { type KtPerfil, useKtAuth } from "@/lib/kt-auth";
+import { supabase } from "@/lib/supabase";
 
 // ─── Helpers de importação CSV ───────────────────────────────────────────────
 
@@ -328,12 +333,23 @@ function TrocarSenhaObrigatoria({
 function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => void }) {
   const [checkins] = useCheckins();
   const [assinaturas] = useAssinaturas();
+  const [leituras] = useLeituras();
   const [sugestoes] = useSugestoes();
   const [vagas] = useVagas();
   const [ajuda] = useAjuda();
   const [pesquisa, setPesquisa] = usePesquisa();
   const [noticias, setNoticias] = useNoticias();
   const [colaboradores, setColaboradores] = useColaboradores();
+  const [documentos, setDocumentos] = useDocumentos();
+
+  // ─── Estado: formulário de documento ────────────────────────────────────────
+  const docInputRef = useRef<HTMLInputElement>(null);
+  const [docTitulo, setDocTitulo] = useState("");
+  const [docFilial, setDocFilial] = useState<FilialId | "todas">("todas");
+  const [docCorTag, setDocCorTag] = useState("#8a2058");
+  const [docTextoTag, setDocTextoTag] = useState("");
+  const [docUploading, setDocUploading] = useState(false);
+  const [docErro, setDocErro] = useState("");
 
   const [pTitulo, setPTitulo] = useState("");
   const [pDesc, setPDesc] = useState("");
@@ -384,6 +400,46 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
       setCsvPreview({ adicionar, atualizar });
     };
     reader.readAsText(arquivo, "utf-8");
+  }
+
+  async function realizarUpload(file: File) {
+    if (!docTitulo.trim() || !docTextoTag.trim()) {
+      setDocErro("Preencha título e etiqueta antes de enviar.");
+      return;
+    }
+    setDocUploading(true);
+    setDocErro("");
+    try {
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const path = `${Date.now()}-${safeName}`;
+      const { data, error } = await supabase.storage.from("kt-documentos").upload(path, file, {
+        cacheControl: "3600",
+        upsert: false,
+      });
+      if (error) throw error;
+      const { data: urlData } = supabase.storage.from("kt-documentos").getPublicUrl(data.path);
+      setDocumentos((prev) => [
+        {
+          id: uid(),
+          titulo: docTitulo.trim(),
+          filial: docFilial,
+          url: urlData.publicUrl,
+          corTag: docCorTag,
+          textoTag: docTextoTag.trim(),
+          data: new Date().toISOString().slice(0, 10),
+        },
+        ...prev,
+      ]);
+      setDocTitulo("");
+      setDocTextoTag("");
+      setDocCorTag("#8a2058");
+      setDocFilial("todas");
+      toast.success("Documento publicado com sucesso.");
+    } catch (e) {
+      setDocErro(`Erro ao enviar: ${(e as Error).message}`);
+    } finally {
+      setDocUploading(false);
+    }
   }
 
   return (
@@ -569,6 +625,159 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
                   {a.assunto ? <p className="text-muted-foreground">{a.assunto}</p> : null}
                 </div>
               ))}
+            </div>
+          )}
+        </Section>
+
+        <Section
+          titulo="Documentos e políticas"
+          intro="Publique documentos para colaboradores e gestores. Upload de PDF direto no sistema."
+          contagem={`${documentos.length} publicados`}
+        >
+          {/* Formulário de novo documento */}
+          <div className="grid max-w-2xl gap-3">
+            <div className="grid gap-2">
+              <Label htmlFor="doc-titulo">Título do documento</Label>
+              <Input
+                id="doc-titulo"
+                placeholder="Ex: Código de Ética e Conduta"
+                value={docTitulo}
+                onChange={(e) => setDocTitulo(e.target.value)}
+                maxLength={100}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>Filial</Label>
+              <div className="flex flex-wrap gap-2">
+                {(["todas", ...FILIAIS.map((f) => f.id)] as const).map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => setDocFilial(f)}
+                    className={`rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors ${
+                      docFilial === f ? "border-kt bg-kt-soft text-kt" : "border-border bg-card"
+                    }`}
+                  >
+                    {f === "todas" ? "Todas as unidades" : filialNome(f)}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-2">
+                <Label htmlFor="doc-texto-tag">Etiqueta (texto)</Label>
+                <Input
+                  id="doc-texto-tag"
+                  placeholder="Ex: Ética, Segurança"
+                  value={docTextoTag}
+                  onChange={(e) => setDocTextoTag(e.target.value)}
+                  maxLength={20}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="doc-cor-tag">Cor da etiqueta</Label>
+                <div className="flex items-center gap-2">
+                  <input
+                    id="doc-cor-tag"
+                    type="color"
+                    value={docCorTag}
+                    onChange={(e) => setDocCorTag(e.target.value)}
+                    className="h-10 w-12 cursor-pointer rounded border border-border p-1"
+                  />
+                  <span className="text-xs text-muted-foreground">{docCorTag}</span>
+                </div>
+              </div>
+            </div>
+            <input ref={docInputRef} type="file" accept=".pdf,.doc,.docx" className="hidden" />
+            {docErro ? <p className="text-sm font-medium text-destructive">{docErro}</p> : null}
+            <div className="flex flex-wrap gap-2">
+              <Button
+                className="rounded-full"
+                disabled={!docTitulo.trim() || !docTextoTag.trim() || docUploading}
+                onClick={async () => {
+                  const file = docInputRef.current?.files?.[0];
+                  if (!file) {
+                    // No file selected: open picker first
+                    docInputRef.current?.click();
+                    docInputRef.current!.onchange = async () => {
+                      const f = docInputRef.current?.files?.[0];
+                      if (!f) return;
+                      await realizarUpload(f);
+                      if (docInputRef.current) docInputRef.current.value = "";
+                    };
+                    return;
+                  }
+                  await realizarUpload(file);
+                  if (docInputRef.current) docInputRef.current.value = "";
+                }}
+              >
+                {docUploading ? "Enviando..." : "Selecionar arquivo e publicar"}
+              </Button>
+            </div>
+          </div>
+
+          {/* Lista de documentos existentes */}
+          {documentos.length > 0 && (
+            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              {documentos.map((doc) => {
+                const totalAssinaturas = assinaturas.filter((a) => a.politica === doc.id).length;
+                const totalLeituras = leituras.filter((l) => l.documentoId === doc.id).length;
+                return (
+                  <div
+                    key={doc.id}
+                    className="overflow-hidden rounded-2xl border border-border bg-card"
+                  >
+                    <div className="relative">
+                      <img src={capaPadrao} alt="" className="h-16 w-full object-cover" />
+                      <span
+                        className="absolute left-2 top-2 rounded-full px-2 py-0.5 text-[10px] font-bold text-white"
+                        style={{ backgroundColor: doc.corTag }}
+                      >
+                        {doc.textoTag}
+                      </span>
+                    </div>
+                    <div className="p-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold">{doc.titulo}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {filialNome(doc.filial === "todas" ? undefined : doc.filial) ||
+                              "Todas as unidades"}{" "}
+                            · {new Date(doc.data + "T00:00:00").toLocaleDateString("pt-BR")}
+                          </p>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-1">
+                          <a
+                            href={doc.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="rounded-full p-1.5 hover:bg-muted"
+                            title="Abrir documento"
+                          >
+                            <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
+                          </a>
+                          <button
+                            className="rounded-full p-1.5 text-destructive hover:bg-destructive/10"
+                            title="Remover documento"
+                            onClick={() =>
+                              setDocumentos((prev) => prev.filter((d) => d.id !== doc.id))
+                            }
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                      <div className="mt-2 flex gap-2 text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1 rounded-full bg-success-soft px-2 py-0.5 text-success">
+                          <Check className="h-3 w-3" /> {totalAssinaturas}
+                        </span>
+                        <span className="rounded-full bg-muted px-2 py-0.5">
+                          {totalLeituras} leram
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </Section>

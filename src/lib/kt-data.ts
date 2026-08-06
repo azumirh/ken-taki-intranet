@@ -99,6 +99,28 @@ export const POLITICAS: Politica[] = [
   },
 ];
 
+export type Documento = {
+  id: string;
+  titulo: string;
+  filial: FilialId | "todas";
+  url: string;
+  corTag: string;
+  textoTag: string;
+  data: string;
+};
+
+export const DOCUMENTOS_SEED: Documento[] = [
+  {
+    id: "etica-cristo-rei",
+    titulo: "Código de Ética e Conduta",
+    filial: "cristo-rei",
+    url: "https://drive.google.com/file/d/1q7v6OskBF22skLPy2KwtL3JDXqDaJLOf/view?usp=sharing",
+    corTag: "#8a2058",
+    textoTag: "Ética",
+    data: "2025-09-01",
+  },
+];
+
 export type Colaborador = {
   id: string;
   nome: string;

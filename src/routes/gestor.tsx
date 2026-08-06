@@ -1,7 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
-import { ExternalLink } from "lucide-react";
+import { Check, ExternalLink } from "lucide-react";
+import capaPadrao from "@/assets/capa-padrao-politicas.jpg";
 import { AppShell, BackLink } from "@/components/kt/app-shell";
 import { Avatar, EmptyState, Section } from "@/components/kt/section";
 import { Mural } from "@/components/kt/mural";
@@ -9,14 +10,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { FILIAIS, HUMORES, POLITICAS, filialNome, idade, type FilialId } from "@/lib/kt-data";
+import { FILIAIS, HUMORES, filialNome, idade, type FilialId } from "@/lib/kt-data";
 import {
   fmtData,
   uid,
   useAssinaturas,
   useCheckins,
   useColaboradores,
+  useDocumentos,
   useFeedbacks,
+  useLeituras,
   usePesquisa,
   useSugestoes,
   useVagas,
@@ -299,11 +302,13 @@ function TrocarSenhaObrigatoria({
 function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => void }) {
   const [checkins] = useCheckins();
   const [assinaturas] = useAssinaturas();
+  const [leituras] = useLeituras();
   const [sugestoes] = useSugestoes();
   const [feedbacks] = useFeedbacks();
   const [pesquisa] = usePesquisa();
   const [vagas, setVagas] = useVagas();
   const [colaboradores, setColaboradores] = useColaboradores();
+  const [documentos] = useDocumentos();
 
   const [cargo, setCargo] = useState("");
   const [motivo, setMotivo] = useState("");
@@ -367,26 +372,88 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
         </Section>
 
         <Section
-          titulo="Assinaturas de políticas"
-          intro="Quem já leu e assinou cada política da casa."
-          contagem={`${POLITICAS.length} políticas`}
+          titulo="Documentos e políticas"
+          intro="Documentos publicados para esta unidade. Veja quem assinou e quem está pendente."
+          contagem={`${documentos.filter((d) => d.filial === session.filial || d.filial === "todas").length} documentos`}
         >
-          <div className="grid gap-3 sm:grid-cols-2">
-            {POLITICAS.map((p) => {
-              const n = daUnidade(assinaturas).filter((a) => a.politica === p.id).length;
-              return (
-                <div
-                  key={p.id}
-                  className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-card px-4 py-3"
-                >
-                  <span className="min-w-0 truncate text-sm font-medium">{p.titulo}</span>
-                  <span className="shrink-0 rounded-full bg-accent px-3 py-1 text-xs font-semibold text-accent-foreground">
-                    {n} assinaturas
-                  </span>
-                </div>
-              );
-            })}
-          </div>
+          {documentos.filter((d) => d.filial === session.filial || d.filial === "todas").length ===
+          0 ? (
+            <EmptyState>Nenhum documento publicado para esta unidade ainda.</EmptyState>
+          ) : (
+            <div className="grid gap-5">
+              {documentos
+                .filter((d) => d.filial === session.filial || d.filial === "todas")
+                .map((doc) => {
+                  const assinantes = daUnidade(assinaturas).filter((a) => a.politica === doc.id);
+                  const leram = daUnidade(leituras).filter((l) => l.documentoId === doc.id);
+                  const nomesAssinantes = new Set(assinantes.map((a) => a.nome));
+                  const pendentes = equipe.filter(
+                    (c) => !nomesAssinantes.has(c.nome) && leram.some((l) => l.nome === c.nome),
+                  );
+                  return (
+                    <div
+                      key={doc.id}
+                      className="overflow-hidden rounded-2xl border border-border bg-card"
+                    >
+                      <div className="relative">
+                        <img
+                          src={capaPadrao}
+                          alt=""
+                          width={1024}
+                          height={256}
+                          loading="lazy"
+                          className="h-20 w-full object-cover"
+                        />
+                        <span
+                          className="absolute left-3 top-3 rounded-full px-2.5 py-1 text-[11px] font-bold text-white"
+                          style={{ backgroundColor: doc.corTag }}
+                        >
+                          {doc.textoTag}
+                        </span>
+                      </div>
+                      <div className="p-4">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <h3 className="font-semibold">{doc.titulo}</h3>
+                          <a
+                            href={doc.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                          >
+                            <ExternalLink className="h-3.5 w-3.5" /> Abrir
+                          </a>
+                        </div>
+                        <div className="mt-3 flex flex-wrap gap-3 text-xs text-muted-foreground">
+                          <span className="flex items-center gap-1 rounded-full bg-success-soft px-2.5 py-1 text-success">
+                            <Check className="h-3 w-3" /> {assinantes.length} assinaturas
+                          </span>
+                          <span className="rounded-full bg-warn-soft px-2.5 py-1 text-warn">
+                            {pendentes.length} leram e não assinaram
+                          </span>
+                        </div>
+                        {pendentes.length > 0 && (
+                          <div className="mt-3">
+                            <p className="text-xs font-medium text-muted-foreground">
+                              Pendentes de assinatura:
+                            </p>
+                            <div className="mt-1 flex flex-wrap gap-1.5">
+                              {pendentes.map((c) => (
+                                <span
+                                  key={c.id}
+                                  className="rounded-full bg-muted px-2.5 py-1 text-xs"
+                                >
+                                  {c.nome.split(" ")[0]}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+          )}
         </Section>
 
         <Section

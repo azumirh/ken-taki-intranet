@@ -5,7 +5,7 @@ import { MessageCircle } from "lucide-react";
 import { AppShell } from "@/components/kt/app-shell";
 import { Avatar, EmptyState, Section } from "@/components/kt/section";
 import { CheckIn } from "@/components/kt/checkin";
-import { Politicas } from "@/components/kt/politicas";
+import { Documentos } from "@/components/kt/politicas";
 import { Mural } from "@/components/kt/mural";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -23,7 +23,10 @@ import {
 import {
   uid,
   useAjuda,
+  useAssinaturas,
+  useDocumentos,
   useFeedbacks,
+  useLeituras,
   useNoticias,
   usePesquisa,
   useSession,
@@ -84,6 +87,10 @@ function Painel() {
   const [noticias] = useNoticias();
   const [ajuda, setAjuda] = useAjuda();
 
+  const [documentos] = useDocumentos();
+  const [assinaturas] = useAssinaturas();
+  const [leituras] = useLeituras();
+
   const [sugCat, setSugCat] = useState(SUGESTAO_CATEGORIAS[0]!);
   const [sugMsg, setSugMsg] = useState("");
   const [fbTipo, setFbTipo] = useState(FEEDBACK_TIPOS[0]!);
@@ -110,7 +117,37 @@ function Painel() {
 
         <CheckIn session={session} />
 
-        <Politicas session={session} />
+        {/* Banner: leu mas não assinou */}
+        {(() => {
+          const pendentes = documentos.filter(
+            (d) =>
+              (d.filial === session.filial || d.filial === "todas") &&
+              leituras.some((l) => l.documentoId === d.id && l.nome === session.nome) &&
+              !assinaturas.some((a) => a.politica === d.id && a.nome === session.nome),
+          );
+          if (pendentes.length === 0) return null;
+          return (
+            <div className="rounded-2xl border border-warn bg-warn-soft px-4 py-3">
+              <p className="text-sm font-semibold text-warn">
+                Não esqueça de assinar{" "}
+                {pendentes.length === 1
+                  ? `"${pendentes[0]!.titulo}"`
+                  : `${pendentes.length} documentos que você já abriu`}
+                .
+              </p>
+              <button
+                className="mt-1 text-xs text-muted-foreground underline-offset-2 hover:underline"
+                onClick={() =>
+                  document.getElementById("politicas")?.scrollIntoView({ behavior: "smooth" })
+                }
+              >
+                Ver documentos pendentes
+              </button>
+            </div>
+          );
+        })()}
+
+        <Documentos session={session} />
 
         <Mural filial={session.filial} autorPadrao={session.nome} />
 

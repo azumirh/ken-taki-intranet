@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   COLABORADORES,
+  DOCUMENTOS_SEED,
   MURAL_SEED,
   NOTICIAS_SEED,
   type Colaborador,
+  type Documento,
   type MuralItem,
   type Noticia,
 } from "./kt-data";
@@ -111,8 +113,10 @@ export type Pesquisa = {
   ts: number;
 } | null;
 export type AjudaClick = { id: string; nome: string; filial: string; assunto: string; ts: number };
+export type Leitura = { documentoId: string; nome: string; filial: string; ts: number };
 
 export const useColaboradores = () => useStore<Colaborador[]>("colaboradores", COLABORADORES);
+export const useDocumentos = () => useStore<Documento[]>("documentos", DOCUMENTOS_SEED);
 export const useMural = () => useStore<MuralItem[]>("mural", MURAL_SEED);
 export const useNoticias = () => useStore<Noticia[]>("noticias", NOTICIAS_SEED);
 export const useCheckins = () => useStore<CheckIn[]>("checkins", []);
@@ -122,6 +126,7 @@ export const useFeedbacks = () => useStore<Feedback[]>("feedbacks", []);
 export const useVagas = () => useStore<Vaga[]>("vagas", []);
 export const usePesquisa = () => useStore<Pesquisa>("pesquisa", null);
 export const useAjuda = () => useStore<AjudaClick[]>("ajuda", []);
+export const useLeituras = () => useStore<Leitura[]>("leituras", []);
 
 export const uid = () => Math.random().toString(36).slice(2, 10);
 
