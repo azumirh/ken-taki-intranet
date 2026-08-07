@@ -358,6 +358,14 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
 
   // documento categoria filter
   const [filtroDocTag, setFiltroDocTag] = useState("Todos");
+  // expanded status tables per document
+  const [docExpandido, setDocExpandido] = useState<Set<string>>(new Set());
+  const toggleDocExpandido = (id: string) =>
+    setDocExpandido((prev) => {
+      const n = new Set(prev);
+      n.has(id) ? n.delete(id) : n.add(id);
+      return n;
+    });
 
   async function uploadFotoColaborador(file: File) {
     setFotoUploading(true);
@@ -848,50 +856,66 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
                             </span>
                           )}
                         </div>
-                        {/* Tabela de status por pessoa */}
+                        {/* Tabela de status por pessoa — colapsada por padrão */}
                         {equipe.length > 0 && (
-                          <div className="mt-3 overflow-x-auto rounded-xl border border-border">
-                            <table className="w-full text-xs">
-                              <thead>
-                                <tr className="border-b border-border bg-muted/30">
-                                  <th className="px-3 py-2 text-left font-medium">Nome</th>
-                                  <th className="px-3 py-2 text-left font-medium">Status</th>
-                                  <th className="px-3 py-2 text-left font-medium">Quando</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {equipe.map((c) => {
-                                  const assinou = nomesAssinantes.has(c.nome);
-                                  const leuSemAssinar = !assinou && nomesLeram.has(c.nome);
-                                  const nuncaAbriu = !assinou && !nomesLeram.has(c.nome);
-                                  const tsAssinou = assinantes.find((a) => a.nome === c.nome)?.ts;
-                                  const tsLeu = leram.find((l) => l.nome === c.nome)?.ts;
-                                  return (
-                                    <tr key={c.id} className="border-b border-border last:border-0">
-                                      <td className="px-3 py-2 font-medium">
-                                        {c.nome.split(" ")[0]}
-                                      </td>
-                                      <td className="px-3 py-2">
-                                        {assinou ? (
-                                          <span className="text-success">✓ Assinou</span>
-                                        ) : leuSemAssinar ? (
-                                          <span className="text-warn">Leu</span>
-                                        ) : (
-                                          <span className="text-muted-foreground">Não abriu</span>
-                                        )}
-                                      </td>
-                                      <td className="px-3 py-2 text-muted-foreground">
-                                        {assinou && tsAssinou
-                                          ? fmtData(tsAssinou)
-                                          : leuSemAssinar && tsLeu
-                                            ? fmtData(tsLeu)
-                                            : "—"}
-                                      </td>
+                          <div className="mt-3">
+                            <button
+                              onClick={() => toggleDocExpandido(doc.id)}
+                              className="text-xs text-muted-foreground underline-offset-2 hover:underline"
+                            >
+                              {docExpandido.has(doc.id) ? "▲ Recolher" : "▼ Ver status por pessoa"}
+                            </button>
+                            {docExpandido.has(doc.id) && (
+                              <div className="mt-2 overflow-x-auto rounded-xl border border-border">
+                                <table className="w-full text-xs">
+                                  <thead>
+                                    <tr className="border-b border-border bg-muted/30">
+                                      <th className="px-3 py-2 text-left font-medium">Nome</th>
+                                      <th className="px-3 py-2 text-left font-medium">Status</th>
+                                      <th className="px-3 py-2 text-left font-medium">Quando</th>
                                     </tr>
-                                  );
-                                })}
-                              </tbody>
-                            </table>
+                                  </thead>
+                                  <tbody>
+                                    {equipe.map((c) => {
+                                      const assinou = nomesAssinantes.has(c.nome);
+                                      const leuSemAssinar = !assinou && nomesLeram.has(c.nome);
+                                      const tsAssinou = assinantes.find(
+                                        (a) => a.nome === c.nome,
+                                      )?.ts;
+                                      const tsLeu = leram.find((l) => l.nome === c.nome)?.ts;
+                                      return (
+                                        <tr
+                                          key={c.id}
+                                          className="border-b border-border last:border-0"
+                                        >
+                                          <td className="px-3 py-2 font-medium">
+                                            {c.nome.split(" ")[0]}
+                                          </td>
+                                          <td className="px-3 py-2">
+                                            {assinou ? (
+                                              <span className="text-success">✓ Assinou</span>
+                                            ) : leuSemAssinar ? (
+                                              <span className="text-warn">Leu</span>
+                                            ) : (
+                                              <span className="text-muted-foreground">
+                                                Não abriu
+                                              </span>
+                                            )}
+                                          </td>
+                                          <td className="px-3 py-2 text-muted-foreground">
+                                            {assinou && tsAssinou
+                                              ? fmtData(tsAssinou)
+                                              : leuSemAssinar && tsLeu
+                                                ? fmtData(tsLeu)
+                                                : "—"}
+                                          </td>
+                                        </tr>
+                                      );
+                                    })}
+                                  </tbody>
+                                </table>
+                              </div>
+                            )}
                           </div>
                         )}
                         {!gestorJaAssinou && (
@@ -975,20 +999,20 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
               ) : (
                 <>
                   {/* Mobile: cards */}
-                  <div className="grid gap-3 md:hidden">
+                  <div className="grid gap-3 sm:hidden">
                     {fbPaginado.map((f) => (
-                      <div key={f.id} className="rounded-2xl border border-border p-4">
-                        <div className="flex flex-wrap items-center gap-2">
+                      <div key={f.id} className="rounded-2xl border border-border bg-card p-4">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
                           <span className="rounded-full bg-kt-soft px-2.5 py-1 text-xs font-semibold text-kt">
                             {f.tipo}
                           </span>
                           <span className="text-xs text-muted-foreground">{fmtData(f.ts)}</span>
                         </div>
-                        <p className="mt-2 text-sm font-semibold">{f.autor}</p>
-                        <p className="mt-1 text-sm text-muted-foreground">{f.mensagem}</p>
-                        <div className="mt-3 grid gap-2">
+                        <p className="mt-2 text-sm text-muted-foreground">{f.mensagem}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">— {f.autor}</p>
+                        <div className="mt-3 flex flex-wrap items-center gap-2">
                           <select
-                            className={`w-full rounded-full border px-3 py-1.5 text-xs font-medium focus:outline-none ${
+                            className={`rounded-full border px-3 py-1.5 text-xs font-medium focus:outline-none ${
                               f.status === "concluido"
                                 ? "border-success/30 bg-success-soft text-success"
                                 : f.status === "cancelado"
@@ -1003,9 +1027,7 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
                                     ? {
                                         ...x,
                                         status: e.target.value as
-                                          | "em-andamento"
-                                          | "concluido"
-                                          | "cancelado",
+                                          "em-andamento" | "concluido" | "cancelado",
                                         statusAlteradoEm: Date.now(),
                                       }
                                     : x,
@@ -1017,24 +1039,25 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
                             <option value="concluido">Concluído</option>
                             <option value="cancelado">Cancelado</option>
                           </select>
-                          <input
-                            type="text"
-                            className="w-full rounded-lg border border-border bg-transparent px-3 py-2 text-xs text-muted-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-kt/30"
-                            placeholder="Adicionar comentário..."
-                            value={f.comentarioGestor ?? ""}
-                            onChange={(e) => {
-                              const v = e.target.value;
-                              setFeedbacks((prev) =>
-                                prev.map((x) => (x.id === f.id ? { ...x, comentarioGestor: v } : x)),
-                              );
-                            }}
-                          />
                         </div>
+                        <input
+                          type="text"
+                          className="mt-2 w-full rounded-lg border border-border bg-transparent px-3 py-1.5 text-xs text-muted-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-kt/30"
+                          placeholder="Comentário do gestor..."
+                          value={f.comentarioGestor ?? ""}
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            setFeedbacks((prev) =>
+                              prev.map((x) => (x.id === f.id ? { ...x, comentarioGestor: v } : x)),
+                            );
+                          }}
+                        />
                       </div>
                     ))}
                   </div>
 
-                  <div className="hidden overflow-x-auto rounded-2xl border border-border md:block">
+                  {/* Desktop: table */}
+                  <div className="hidden overflow-x-auto rounded-2xl border border-border sm:block">
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b border-border bg-muted/40">
@@ -1058,7 +1081,7 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
                             <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">
                               {fmtData(f.ts)}
                             </td>
-                            <td className="px-4 py-3 text-muted-foreground max-w-xs">
+                            <td className="max-w-xs px-4 py-3 text-muted-foreground">
                               {f.mensagem}
                             </td>
                             <td className="px-4 py-2">
@@ -1098,7 +1121,7 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
                                 </p>
                               )}
                             </td>
-                            <td className="px-4 py-2 min-w-[160px]">
+                            <td className="min-w-[160px] px-4 py-2">
                               <input
                                 type="text"
                                 className="w-full rounded-lg border border-border bg-transparent px-2 py-1 text-xs text-muted-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-kt/30"
@@ -1326,29 +1349,49 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
                     })()}
                 </div>
                 {pesquisa.link && !gestorJaRespondeu && (
-                  <Button
-                    className="mt-4 rounded-full bg-az text-white hover:bg-az/90"
-                    size="sm"
-                    onClick={() => {
-                      setPesquisa({
-                        ...pesquisa,
-                        respondeu: [...(pesquisa.respondeu ?? []), session.nome],
-                      });
-                      window.open(pesquisa.link, "_blank", "noreferrer");
-                    }}
-                  >
-                    Responder pesquisa <ExternalLink className="h-3 w-3" />
-                  </Button>
+                  <div className="mt-4 grid gap-3">
+                    <a
+                      href={pesquisa.link}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex w-fit items-center gap-1.5 rounded-full bg-az px-5 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+                    >
+                      Abrir formulário <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        size="sm"
+                        className="rounded-full bg-success hover:bg-success/90"
+                        onClick={() =>
+                          setPesquisa({
+                            ...pesquisa,
+                            respondeu: [...(pesquisa.respondeu ?? []), session.nome],
+                            respondeuTs: {
+                              ...(pesquisa.respondeuTs ?? {}),
+                              [session.nome]: Date.now(),
+                            },
+                          })
+                        }
+                      >
+                        ✓ Já respondi
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="rounded-full text-muted-foreground"
+                      >
+                        Ainda não respondi
+                      </Button>
+                    </div>
+                  </div>
                 )}
-                {pesquisa.link && gestorJaRespondeu && (
-                  <a
-                    href={pesquisa.link}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="mt-4 inline-flex items-center gap-1 text-sm text-az underline underline-offset-2"
-                  >
-                    Ver formulário novamente
-                  </a>
+                {gestorJaRespondeu && (
+                  <p className="mt-3 text-sm font-medium text-success">
+                    ✓ Respondida
+                    {pesquisa.respondeuTs?.[session.nome]
+                      ? ` em ${new Date(pesquisa.respondeuTs[session.nome]!).toLocaleDateString("pt-BR", { day: "2-digit", month: "long" })}`
+                      : ""}
+                  </p>
                 )}
               </div>
               {/* Quem respondeu / quem não respondeu */}
@@ -1546,72 +1589,71 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
                 </div>
               )}
               {/* Mobile: cards */}
-              <div className="grid gap-3 md:hidden">
+              <div className="grid gap-3 sm:hidden">
                 {equipeFiltrada.map((c) => {
                   const anivEsseMes = aniversariantesEquipe.some((a) => a.id === c.id);
                   return (
-                    <div key={c.id} className="rounded-2xl border border-border p-4">
-                      <div className="flex items-center gap-3">
-                        <Avatar nome={c.nome} foto={c.foto} size={40} />
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate font-semibold">
-                            {c.nome} {anivEsseMes && <span title="Aniversário este mês">🎂</span>}
-                          </p>
-                          <p className="truncate text-xs text-muted-foreground">{c.cargo}</p>
+                    <div key={c.id} className="rounded-2xl border border-border bg-card p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <Avatar nome={c.nome} foto={c.foto} size={36} />
+                          <div>
+                            <p className="font-semibold">
+                              {c.nome} {anivEsseMes && "🎂"}
+                            </p>
+                            <p className="text-xs text-muted-foreground">{c.cargo}</p>
+                          </div>
+                        </div>
+                        <div className="flex shrink-0 gap-1">
+                          <button
+                            onClick={() => {
+                              setEditarTarget(c);
+                              setNomeCol(c.nome);
+                              setCpf3Col(c.cpf3);
+                              setCargoCol(c.cargo);
+                              setNascimentoCol(c.nascimento);
+                              setAdmissaoCol(c.admissao);
+                              setFotoCol(c.foto ?? "");
+                              setErroCol("");
+                            }}
+                            className="rounded-full p-1.5 text-muted-foreground hover:bg-kt-soft hover:text-kt"
+                          >
+                            <UserPlus className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => setDesligarTarget(c)}
+                            className="rounded-full p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                          >
+                            <UserMinus className="h-4 w-4" />
+                          </button>
                         </div>
                       </div>
-                      <dl className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                      <div className="mt-3 grid grid-cols-2 gap-y-2 text-sm">
                         <div>
-                          <dt className="text-muted-foreground">Idade</dt>
-                          <dd className="font-medium">{idade(c.nascimento)} anos</dd>
+                          <p className="text-xs text-muted-foreground">Idade</p>
+                          <p>
+                            {idade(c.nascimento)} anos{" "}
+                            <span className="text-xs text-muted-foreground/70">
+                              ({new Date(c.nascimento + "T00:00:00").toLocaleDateString("pt-BR")})
+                            </span>
+                          </p>
                         </div>
                         <div>
-                          <dt className="text-muted-foreground">Tempo de casa</dt>
-                          <dd className="font-medium">{tempoDeCasa(c.admissao)}</dd>
+                          <p className="text-xs text-muted-foreground">Tempo de casa</p>
+                          <p>{tempoDeCasa(c.admissao)}</p>
                         </div>
                         <div>
-                          <dt className="text-muted-foreground">Nascimento</dt>
-                          <dd className="font-medium">
-                            {new Date(c.nascimento + "T00:00:00").toLocaleDateString("pt-BR")}
-                          </dd>
+                          <p className="text-xs text-muted-foreground">Admissão</p>
+                          <p>{new Date(c.admissao + "T00:00:00").toLocaleDateString("pt-BR")}</p>
                         </div>
-                        <div>
-                          <dt className="text-muted-foreground">Admissão</dt>
-                          <dd className="font-medium">
-                            {new Date(c.admissao + "T00:00:00").toLocaleDateString("pt-BR")}
-                          </dd>
-                        </div>
-                      </dl>
-                      <div className="mt-3 grid grid-cols-2 gap-2">
-                        <button
-                          onClick={() => {
-                            setEditarTarget(c);
-                            setNomeCol(c.nome);
-                            setCpf3Col(c.cpf3);
-                            setCargoCol(c.cargo);
-                            setNascimentoCol(c.nascimento);
-                            setAdmissaoCol(c.admissao);
-                            setFotoCol(c.foto ?? "");
-                            setErroCol("");
-                          }}
-                          className="inline-flex items-center justify-center gap-1.5 rounded-full border border-border px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:border-kt hover:text-kt"
-                        >
-                          <UserPlus className="h-3.5 w-3.5" /> Editar
-                        </button>
-                        <button
-                          onClick={() => setDesligarTarget(c)}
-                          className="inline-flex items-center justify-center gap-1.5 rounded-full border border-border px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:border-destructive hover:text-destructive"
-                        >
-                          <UserMinus className="h-3.5 w-3.5" /> Desligar
-                        </button>
                       </div>
                     </div>
                   );
                 })}
               </div>
 
-              <div className="hidden overflow-x-auto rounded-2xl border border-border md:block">
-
+              {/* Desktop: table */}
+              <div className="hidden overflow-x-auto rounded-2xl border border-border sm:block">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-border bg-muted/40">

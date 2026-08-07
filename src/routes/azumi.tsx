@@ -449,6 +449,16 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
   const [pLink, setPLink] = useState("");
   const [pPrazo, setPPrazo] = useState("");
   const [pCategoria, setPCategoria] = useState("");
+  const [editandoPesquisa, setEditandoPesquisa] = useState(false);
+
+  // documentos: expanded status tables
+  const [docStatusExpandido, setDocStatusExpandido] = useState<Set<string>>(new Set());
+  const toggleDocStatus = (id: string) =>
+    setDocStatusExpandido((prev) => {
+      const n = new Set(prev);
+      n.has(id) ? n.delete(id) : n.add(id);
+      return n;
+    });
 
   // clima chart state
   const [climaPeriodo, setClimaPeriodo] = useState<"7d" | "30d" | "mes">("7d");
@@ -992,18 +1002,23 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
             defaultOpen
           >
             <div className="grid gap-3">
-              {pesquisa?.ativa && (
+              {pesquisa?.ativa && !editandoPesquisa && (
                 <div className="rounded-2xl border border-az bg-az-soft p-4">
-                  <div className="flex flex-wrap items-start justify-between gap-2">
-                    <div>
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
                       <p className="font-bold">{pesquisa.titulo}</p>
+                      {pesquisa.categoria && (
+                        <span className="mt-1 inline-block rounded-full bg-az/15 px-2.5 py-0.5 text-xs font-medium text-az">
+                          {pesquisa.categoria}
+                        </span>
+                      )}
                       {pesquisa.descricao && (
-                        <p className="mt-0.5 text-sm text-muted-foreground">{pesquisa.descricao}</p>
+                        <p className="mt-1 text-sm text-muted-foreground">{pesquisa.descricao}</p>
                       )}
                     </div>
                     {pesquisa.prazo && (
                       <span
-                        className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-bold ${
+                        className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-bold ${
                           diasRestantes(pesquisa.prazo) <= 2
                             ? "bg-destructive/10 text-destructive"
                             : diasRestantes(pesquisa.prazo) <= 5
@@ -1017,26 +1032,134 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
                       </span>
                     )}
                   </div>
+                  {pesquisa.prazo && (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Encerra em{" "}
+                      {new Date(pesquisa.prazo + "T00:00:00").toLocaleDateString("pt-BR", {
+                        day: "2-digit",
+                        month: "long",
+                        year: "numeric",
+                      })}
+                    </p>
+                  )}
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Publicada em{" "}
+                    {new Date(pesquisa.ts).toLocaleDateString("pt-BR", {
+                      day: "2-digit",
+                      month: "long",
+                    })}{" "}
+                    · {(pesquisa.respondeu ?? []).length} respondente(s)
+                  </p>
                   {pesquisa.link && (
                     <a
                       href={pesquisa.link}
                       target="_blank"
                       rel="noreferrer"
-                      className="mt-2 inline-flex items-center gap-1 text-xs text-az underline underline-offset-2"
+                      className="mt-3 inline-flex items-center gap-1 text-xs text-az underline underline-offset-2"
                     >
                       Ver formulário <ExternalLink className="h-3 w-3" />
                     </a>
                   )}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="mt-3 rounded-full"
-                    onClick={() => setPesquisa(null)}
-                  >
-                    Encerrar pesquisa
-                  </Button>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="rounded-full"
+                      onClick={() => {
+                        setPTitulo(pesquisa.titulo);
+                        setPDesc(pesquisa.descricao);
+                        setPLink(pesquisa.link);
+                        setPPrazo(pesquisa.prazo ?? "");
+                        setPCategoria(pesquisa.categoria ?? "");
+                        setEditandoPesquisa(true);
+                      }}
+                    >
+                      Editar pesquisa
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="rounded-full border-destructive/30 text-destructive hover:bg-destructive/5"
+                      onClick={() => setPesquisa(null)}
+                    >
+                      Encerrar pesquisa
+                    </Button>
+                  </div>
                 </div>
               )}
+
+              {/* Editar pesquisa ativa */}
+              {pesquisa?.ativa && editandoPesquisa && (
+                <div className="rounded-2xl border border-az bg-az-soft p-4">
+                  <p className="mb-3 font-semibold">Editar pesquisa</p>
+                  <div className="grid gap-3">
+                    <Input
+                      placeholder="Título da pesquisa"
+                      value={pTitulo}
+                      onChange={(e) => setPTitulo(e.target.value)}
+                    />
+                    <Textarea
+                      rows={2}
+                      placeholder="Descrição"
+                      value={pDesc}
+                      onChange={(e) => setPDesc(e.target.value)}
+                    />
+                    <Input
+                      placeholder="Link do formulário"
+                      value={pLink}
+                      onChange={(e) => setPLink(e.target.value)}
+                    />
+                    <Input type="date" value={pPrazo} onChange={(e) => setPPrazo(e.target.value)} />
+                    <div className="flex flex-wrap gap-2">
+                      {["Clima organizacional", "Satisfação", "Saúde e bem-estar", "Operação"].map(
+                        (c) => (
+                          <button
+                            key={c}
+                            onClick={() => setPCategoria((prev) => (prev === c ? "" : c))}
+                            className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                              pCategoria === c
+                                ? "border-az bg-az-soft text-az"
+                                : "border-border text-muted-foreground hover:border-foreground"
+                            }`}
+                          >
+                            {c}
+                          </button>
+                        ),
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        className="rounded-full"
+                        disabled={!pTitulo.trim()}
+                        onClick={() => {
+                          setPesquisa({
+                            ...pesquisa,
+                            titulo: pTitulo.trim(),
+                            descricao: pDesc.trim(),
+                            link: pLink.trim(),
+                            prazo: pPrazo || undefined,
+                            categoria: pCategoria || undefined,
+                          });
+                          setEditandoPesquisa(false);
+                          toast.success("Pesquisa atualizada.");
+                        }}
+                      >
+                        Salvar alterações
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="rounded-full"
+                        onClick={() => setEditandoPesquisa(false)}
+                      >
+                        Cancelar
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {!pesquisa?.ativa && (
                 <>
                   <Input
@@ -1834,49 +1957,64 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
                           </span>
                         )}
                       </div>
-                      {/* Compact status table */}
+                      {/* Compact status table — colapsada por padrão */}
                       {colabsFilial.length > 0 && (
-                        <div className="mt-3 overflow-x-auto rounded-xl border border-border">
-                          <table className="w-full text-xs">
-                            <thead>
-                              <tr className="border-b border-border bg-muted/30">
-                                <th className="px-2 py-1.5 text-left font-medium">Nome</th>
-                                <th className="px-2 py-1.5 text-left font-medium">Status</th>
-                                <th className="px-2 py-1.5 text-left font-medium">Data</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {colabsFilial.map((c) => {
-                                const assinou = nomesAssinantes.has(c.nome);
-                                const leu = !assinou && nomesLeram.has(c.nome);
-                                const tsA = assinantesList.find((a) => a.nome === c.nome)?.ts;
-                                const tsL = leituras.find(
-                                  (l) => l.documentoId === doc.id && l.nome === c.nome,
-                                )?.ts;
-                                return (
-                                  <tr key={c.id} className="border-b border-border last:border-0">
-                                    <td className="px-2 py-1.5">{c.nome.split(" ")[0]}</td>
-                                    <td className="px-2 py-1.5">
-                                      {assinou ? (
-                                        <span className="text-success">✓ Assinou</span>
-                                      ) : leu ? (
-                                        <span className="text-warn">Leu</span>
-                                      ) : (
-                                        <span className="text-muted-foreground">—</span>
-                                      )}
-                                    </td>
-                                    <td className="px-2 py-1.5 text-muted-foreground">
-                                      {assinou && tsA
-                                        ? fmtData(tsA)
-                                        : leu && tsL
-                                          ? fmtData(tsL)
-                                          : "—"}
-                                    </td>
+                        <div className="mt-3">
+                          <button
+                            onClick={() => toggleDocStatus(doc.id)}
+                            className="text-xs text-muted-foreground underline-offset-2 hover:underline"
+                          >
+                            {docStatusExpandido.has(doc.id)
+                              ? "▲ Recolher"
+                              : "▼ Ver status por pessoa"}
+                          </button>
+                          {docStatusExpandido.has(doc.id) && (
+                            <div className="mt-2 overflow-x-auto rounded-xl border border-border">
+                              <table className="w-full text-xs">
+                                <thead>
+                                  <tr className="border-b border-border bg-muted/30">
+                                    <th className="px-2 py-1.5 text-left font-medium">Nome</th>
+                                    <th className="px-2 py-1.5 text-left font-medium">Status</th>
+                                    <th className="px-2 py-1.5 text-left font-medium">Data</th>
                                   </tr>
-                                );
-                              })}
-                            </tbody>
-                          </table>
+                                </thead>
+                                <tbody>
+                                  {colabsFilial.map((c) => {
+                                    const assinou = nomesAssinantes.has(c.nome);
+                                    const leu = !assinou && nomesLeram.has(c.nome);
+                                    const tsA = assinantesList.find((a) => a.nome === c.nome)?.ts;
+                                    const tsL = leituras.find(
+                                      (l) => l.documentoId === doc.id && l.nome === c.nome,
+                                    )?.ts;
+                                    return (
+                                      <tr
+                                        key={c.id}
+                                        className="border-b border-border last:border-0"
+                                      >
+                                        <td className="px-2 py-1.5">{c.nome.split(" ")[0]}</td>
+                                        <td className="px-2 py-1.5">
+                                          {assinou ? (
+                                            <span className="text-success">✓ Assinou</span>
+                                          ) : leu ? (
+                                            <span className="text-warn">Leu</span>
+                                          ) : (
+                                            <span className="text-muted-foreground">—</span>
+                                          )}
+                                        </td>
+                                        <td className="px-2 py-1.5 text-muted-foreground">
+                                          {assinou && tsA
+                                            ? fmtData(tsA)
+                                            : leu && tsL
+                                              ? fmtData(tsL)
+                                              : "—"}
+                                        </td>
+                                      </tr>
+                                    );
+                                  })}
+                                </tbody>
+                              </table>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>

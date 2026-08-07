@@ -67,7 +67,7 @@ function BotaoWa({
   const [ajuda, setAjuda] = useAjuda();
   return (
     <Button
-      className="w-fit rounded-full"
+      className="w-full rounded-full sm:w-fit"
       onClick={() => {
         setAjuda([
           { id: uid(), nome: session.nome, filial: session.filial, assunto, ts: Date.now() },

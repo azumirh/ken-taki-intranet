@@ -121,6 +121,7 @@ export type Pesquisa = {
   prazo?: string | undefined; // yyyy-mm-dd
   categoria?: string | undefined;
   respondeu?: string[] | undefined; // names of people who responded
+  respondeuTs?: Record<string, number> | undefined; // name → timestamp of confirmation
 } | null;
 export type AjudaClick = {
   id: string;

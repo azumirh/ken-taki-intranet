@@ -198,7 +198,10 @@ function Painel() {
               }}
             >
               <MessageCircle className="h-4 w-4" />
-              Registrar pedido de apoio
+              <span className="sm:hidden">Registrar apoio</span>
+              <span className="hidden sm:inline">
+                Registrar pedido de apoio com a equipe Azumi RH
+              </span>
             </Button>
             <a
               href={`https://wa.me/${AZUMI_CONTACT.whatsapp}?text=${encodeURIComponent(
@@ -384,29 +387,51 @@ function Painel() {
                       })}
                     </p>
                   )}
-                  {pesquisa.link && !jaRespondeu ? (
-                    <Button
-                      className="mt-4 rounded-full"
-                      onClick={() => {
-                        setPesquisa({
-                          ...pesquisa,
-                          respondeu: [...(pesquisa.respondeu ?? []), session.nome],
-                        });
-                        window.open(pesquisa.link, "_blank", "noreferrer");
-                      }}
-                    >
-                      Responder pesquisa
-                    </Button>
-                  ) : pesquisa.link && jaRespondeu ? (
-                    <a
-                      href={pesquisa.link}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="mt-4 inline-flex items-center gap-1 text-sm text-az underline underline-offset-2"
-                    >
-                      Ver formulário novamente
-                    </a>
-                  ) : null}
+                  {pesquisa.link && !jaRespondeu && (
+                    <div className="mt-4 grid gap-3">
+                      <a
+                        href={pesquisa.link}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex w-fit items-center gap-1.5 rounded-full bg-az px-5 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+                      >
+                        Abrir formulário <span className="text-base">→</span>
+                      </a>
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          size="sm"
+                          className="rounded-full bg-success hover:bg-success/90"
+                          onClick={() =>
+                            setPesquisa({
+                              ...pesquisa,
+                              respondeu: [...(pesquisa.respondeu ?? []), session.nome],
+                              respondeuTs: {
+                                ...(pesquisa.respondeuTs ?? {}),
+                                [session.nome]: Date.now(),
+                              },
+                            })
+                          }
+                        >
+                          ✓ Já respondi
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="rounded-full text-muted-foreground"
+                        >
+                          Ainda não respondi
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                  {jaRespondeu && (
+                    <p className="mt-3 text-sm font-medium text-success">
+                      ✓ Respondida
+                      {pesquisa.respondeuTs?.[session.nome]
+                        ? ` em ${new Date(pesquisa.respondeuTs[session.nome]!).toLocaleDateString("pt-BR", { day: "2-digit", month: "long" })}`
+                        : ""}
+                    </p>
+                  )}
                 </div>
               );
             })()
@@ -426,57 +451,62 @@ function Painel() {
             <EmptyState>Ninguém faz aniversário este mês por aqui.</EmptyState>
           ) : (
             <div className="grid gap-4 md:grid-cols-2">
-              {aniversariantes.map((c) => {
+              {aniversariantes.map((c, idx) => {
                 const hoje = new Date();
                 const aniversario = new Date(c.nascimento + "T00:00:00");
                 const ehHoje =
                   aniversario.getDate() === hoje.getDate() &&
                   aniversario.getMonth() === hoje.getMonth();
-                const idadeAnos = ehHoje ? idade(c.nascimento) + 1 : idade(c.nascimento) + 1;
+                const idadeAnos = idade(c.nascimento) + 1;
                 const msgsDoPerfil = bdayMsgs.filter((m) => m.paraId === c.id);
                 const jaEnviouMsg = msgsDoPerfil.some((m) => m.de === session.nome);
+                const borderColors = [
+                  "border-kt/30 bg-gradient-to-br from-kt-soft via-white to-az-soft",
+                  "border-az/30 bg-gradient-to-br from-az-soft via-white to-success-soft",
+                  "border-success/30 bg-gradient-to-br from-success-soft via-white to-warn-soft",
+                ];
+                const cardClass = ehHoje
+                  ? "border-kt/40 bg-gradient-to-br from-kt-soft via-az-soft to-kt-soft"
+                  : (borderColors[idx % borderColors.length] ?? borderColors[0]!);
                 return (
-                  <div
-                    key={c.id}
-                    className={`overflow-hidden rounded-2xl border ${
-                      ehHoje
-                        ? "border-kt/30 bg-gradient-to-br from-kt-soft via-az-soft to-kt-soft"
-                        : "border-border bg-card"
-                    }`}
-                  >
-                    {/* Card header */}
-                    {c.foto ? (
-                      <img
-                        src={c.foto}
-                        alt={c.nome}
-                        className="h-32 w-full object-cover object-top"
-                      />
-                    ) : (
-                      <div className="flex h-24 items-center justify-center bg-gradient-to-br from-kt-soft to-az-soft">
-                        <Avatar nome={c.nome} size={72} />
-                      </div>
-                    )}
-                    <div className="p-4">
+                  <div key={c.id} className={`overflow-hidden rounded-2xl border-2 ${cardClass}`}>
+                    {/* Decoração */}
+                    <div className="py-2 text-center text-xl">
+                      {ehHoje ? "🎊 🎉 🎈 🎂 🎈 🎉 🎊" : "🎈 🎉 🎂 🎉 🎈"}
+                    </div>
+
+                    {/* Foto quadrada centralizada */}
+                    <div className="flex justify-center px-4">
+                      {c.foto ? (
+                        <img
+                          src={c.foto}
+                          alt={c.nome}
+                          className="h-32 w-32 rounded-2xl object-cover object-center shadow-md"
+                        />
+                      ) : (
+                        <div className="flex h-32 w-32 items-center justify-center rounded-2xl bg-gradient-to-br from-kt-soft to-az-soft shadow-md">
+                          <Avatar nome={c.nome} size={80} />
+                        </div>
+                      )}
+                    </div>
+                    <div className="p-4 text-center">
                       <p className="text-lg font-extrabold">
-                        {ehHoje ? "🥳 " : ""}Feliz aniversário, {c.nome.split(" ")[0]}!
+                        {ehHoje ? "🥳 " : "🎂 "}Feliz aniversário, {c.nome.split(" ")[0]}!
                       </p>
-                      <div className="mt-1 flex flex-wrap gap-1.5">
+                      <p className="mt-1 text-2xl font-extrabold text-kt">{idadeAnos} anos</p>
+                      <p className="mt-0.5 text-xs text-muted-foreground">{diaMes(c.nascimento)}</p>
+                      <div className="mt-2 flex flex-wrap justify-center gap-1.5">
                         <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
                           {c.cargo}
                         </span>
                         <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
                           {filialNome(c.filial)}
                         </span>
-                        <span className="rounded-full bg-kt-soft px-2.5 py-0.5 text-xs font-bold text-kt">
-                          {ehHoje
-                            ? `Hoje completa ${idadeAnos} anos! 🎂`
-                            : `${diaMes(c.nascimento)} · ${idadeAnos} anos`}
-                        </span>
                       </div>
 
                       {/* Mensagens de parabéns */}
                       {msgsDoPerfil.length > 0 && (
-                        <div className="mt-3 grid gap-1.5">
+                        <div className="mt-3 grid gap-1.5 text-left">
                           {msgsDoPerfil.map((m) => (
                             <div key={m.id} className="rounded-xl bg-muted/50 px-3 py-2 text-sm">
                               <span className="mr-1">{m.emoji}</span>
@@ -490,7 +520,7 @@ function Painel() {
                       {/* Enviar mensagem */}
                       {!jaEnviouMsg &&
                         c.id !== (session as typeof session & { id?: string }).id && (
-                          <div className="mt-3">
+                          <div className="mt-3 text-left">
                             {bdayMsgParaId === c.id ? (
                               <div className="grid gap-2">
                                 <div className="flex gap-2">
