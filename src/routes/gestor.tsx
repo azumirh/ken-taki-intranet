@@ -38,6 +38,7 @@ import {
   useDocumentos,
   useFeedbacks,
   useLeituras,
+  useMural,
   usePesquisa,
   useSugestoes,
 } from "@/lib/kt-store";
@@ -314,15 +315,17 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
   const [checkins] = useCheckins();
   const [assinaturas, setAssinaturas] = useAssinaturas();
   const [leituras, setLeituras] = useLeituras();
-  const [sugestoes] = useSugestoes();
-  const [feedbacks] = useFeedbacks();
+  const [sugestoes, setSugestoes] = useSugestoes();
+  const [feedbacks, setFeedbacks] = useFeedbacks();
   const [pesquisa] = usePesquisa();
   const [colaboradores, setColaboradores] = useColaboradores();
   const [documentos] = useDocumentos();
   const [ajuda, setAjuda] = useAjuda();
+  const [mural, setMural] = useMural();
 
   const [desligarTarget, setDesligarTarget] = useState<Colaborador | null>(null);
   const [cadastrarOpen, setCadastrarOpen] = useState(false);
+  const [editarTarget, setEditarTarget] = useState<Colaborador | null>(null);
   const [filtroCargoEquipe, setFiltroCargoEquipe] = useState("Todos");
   const [nomeCol, setNomeCol] = useState("");
   const [cpf3Col, setCpf3Col] = useState("");
@@ -334,6 +337,7 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
   // clima chart
   const [climaPeriodo, setClimaPeriodo] = useState<"7d" | "30d">("7d");
   const [drillDia, setDrillDia] = useState<string | null>(null);
+  const [drillBusca, setDrillBusca] = useState("");
 
   // feedback filters
   const [fbPagina, setFbPagina] = useState(0);
@@ -351,6 +355,27 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
   const cargosUnicos = ["Todos", ...Array.from(new Set(equipe.map((c) => c.cargo))).sort()];
   const equipeFiltrada =
     filtroCargoEquipe === "Todos" ? equipe : equipe.filter((c) => c.cargo === filtroCargoEquipe);
+
+  function tempoDeCasa(admissao: string): string {
+    const anos = idade(admissao);
+    if (anos < 1) {
+      const meses = Math.floor(
+        (Date.now() - new Date(admissao + "T00:00:00").getTime()) / (30 * 24 * 3600 * 1000),
+      );
+      return meses <= 1 ? "menos de 1 mês" : `${meses} meses`;
+    }
+    return `${anos} ano${anos > 1 ? "s" : ""}`;
+  }
+
+  const hoje = new Date();
+  const aniversariantesEquipe = equipe.filter((c) => {
+    const d = new Date(c.nascimento + "T00:00:00");
+    return d.getMonth() === hoje.getMonth();
+  });
+  const anivAdmissao = equipe.filter((c) => {
+    const d = new Date(c.admissao + "T00:00:00");
+    return d.getMonth() === hoje.getMonth() && d.getDate() === hoje.getDate();
+  });
 
   // climate chart data
   const numDias = climaPeriodo === "7d" ? 7 : 30;
@@ -447,9 +472,15 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
     <AppShell onLogout={onLogout}>
       <div className="grid gap-5">
         <div>
-          <h1 className="text-2xl font-extrabold sm:text-3xl">Painel do gestor</h1>
-          <p className="text-sm text-muted-foreground">
-            {session.nome} · unidade {filialNome(session.filial)}
+          <h1 className="text-2xl font-extrabold sm:text-3xl">
+            👋 Olá, {session.nome.split(" ")[0]}!
+          </h1>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            Bem-vindo(a) à intranet do Ken Taki × Azumi RH
+          </p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Gestor(a) · unidade{" "}
+            <strong className="text-foreground">{filialNome(session.filial)}</strong>
           </p>
         </div>
 
@@ -582,46 +613,86 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
                   Clique em uma barra para ver os check-ins do dia
                 </p>
 
-                {/* Drill-down */}
+                {/* Drill-down tabela */}
                 {drillDia && drillCheckins.length > 0 && (
                   <div className="rounded-2xl border border-border bg-muted/50 p-4">
-                    <p className="mb-3 text-sm font-semibold">
-                      {new Date(drillDia).toLocaleDateString("pt-BR", {
-                        weekday: "long",
-                        day: "2-digit",
-                        month: "long",
-                      })}{" "}
-                      · {drillCheckins.length} check-in
-                      {drillCheckins.length > 1 ? "s" : ""}
-                    </p>
-                    <div className="grid gap-2">
-                      {drillCheckins.map((c) => {
-                        const h = HUMORES.find((x) => x.id === c.humor);
-                        const privado = isPrivadoGestor(c);
-                        return (
-                          <div key={c.id} className="flex items-center gap-2 text-sm">
-                            <span className="text-base">{h?.emoji}</span>
-                            <span
-                              className={`font-medium ${privado ? "italic text-muted-foreground" : ""}`}
-                            >
-                              {privado ? "— (pedido privado de apoio)" : c.nome}
-                            </span>
-                            <span className="ml-auto text-xs text-muted-foreground">
-                              {new Date(c.ts).toLocaleTimeString("pt-BR", {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}
-                            </span>
-                          </div>
-                        );
-                      })}
+                    <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                      <p className="text-sm font-semibold">
+                        {new Date(drillDia).toLocaleDateString("pt-BR", {
+                          weekday: "long",
+                          day: "2-digit",
+                          month: "long",
+                        })}{" "}
+                        · {drillCheckins.length} check-in
+                        {drillCheckins.length > 1 ? "s" : ""}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          placeholder="Buscar por nome..."
+                          value={drillBusca}
+                          onChange={(e) => setDrillBusca(e.target.value)}
+                          className="h-8 w-40 text-xs"
+                        />
+                        <button
+                          className="text-xs text-muted-foreground underline-offset-2 hover:underline"
+                          onClick={() => {
+                            setDrillDia(null);
+                            setDrillBusca("");
+                          }}
+                        >
+                          Fechar
+                        </button>
+                      </div>
                     </div>
-                    <button
-                      className="mt-3 text-xs text-muted-foreground underline-offset-2 hover:underline"
-                      onClick={() => setDrillDia(null)}
-                    >
-                      Fechar
-                    </button>
+                    <div className="overflow-x-auto rounded-xl border border-border">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="border-b border-border bg-muted/40">
+                            <th className="px-3 py-2 text-left font-semibold">Humor</th>
+                            <th className="px-3 py-2 text-left font-semibold">Nome</th>
+                            <th className="px-3 py-2 text-left font-semibold">Horário</th>
+                            <th className="px-3 py-2 text-left font-semibold">Comentário</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {drillCheckins
+                            .filter((c) => {
+                              if (!drillBusca) return true;
+                              const privado = isPrivadoGestor(c);
+                              return (
+                                !privado &&
+                                c.nome.toLowerCase().includes(drillBusca.toLowerCase())
+                              );
+                            })
+                            .map((c) => {
+                              const h = HUMORES.find((x) => x.id === c.humor);
+                              const privado = isPrivadoGestor(c);
+                              return (
+                                <tr
+                                  key={c.id}
+                                  className="border-b border-border last:border-0"
+                                >
+                                  <td className="px-3 py-2 text-base">{h?.emoji}</td>
+                                  <td
+                                    className={`px-3 py-2 ${privado ? "italic text-muted-foreground" : "font-medium"}`}
+                                  >
+                                    {privado ? "— privado" : c.nome}
+                                  </td>
+                                  <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">
+                                    {new Date(c.ts).toLocaleTimeString("pt-BR", {
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    })}
+                                  </td>
+                                  <td className="px-3 py-2 text-muted-foreground">
+                                    {!privado && c.recado ? c.recado : "—"}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 )}
               </div>
@@ -840,6 +911,8 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
                           <th className="px-4 py-3 text-left font-semibold">Autor</th>
                           <th className="px-4 py-3 text-left font-semibold">Data</th>
                           <th className="px-4 py-3 text-left font-semibold">Mensagem</th>
+                          <th className="px-4 py-3 text-left font-semibold">Status</th>
+                          <th className="px-4 py-3 text-left font-semibold">Comentário</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -856,6 +929,49 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
                             </td>
                             <td className="px-4 py-3 text-muted-foreground max-w-xs">
                               {f.mensagem}
+                            </td>
+                            <td className="px-4 py-2">
+                              <select
+                                className={`rounded-full border px-2 py-1 text-[11px] font-medium focus:outline-none ${
+                                  f.status === "concluido"
+                                    ? "border-success/30 bg-success-soft text-success"
+                                    : "border-warn/30 bg-warn-soft text-warn"
+                                }`}
+                                value={f.status ?? "em-andamento"}
+                                onChange={(e) =>
+                                  setFeedbacks((prev) =>
+                                    prev.map((x) =>
+                                      x.id === f.id
+                                        ? {
+                                            ...x,
+                                            status: e.target.value as
+                                              | "em-andamento"
+                                              | "concluido",
+                                          }
+                                        : x,
+                                    ),
+                                  )
+                                }
+                              >
+                                <option value="em-andamento">Em andamento</option>
+                                <option value="concluido">Concluído</option>
+                              </select>
+                            </td>
+                            <td className="px-4 py-2 min-w-[160px]">
+                              <input
+                                type="text"
+                                className="w-full rounded-lg border border-border bg-transparent px-2 py-1 text-xs text-muted-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-kt/30"
+                                placeholder="Adicionar comentário..."
+                                value={f.comentarioGestor ?? ""}
+                                onChange={(e) => {
+                                  const v = e.target.value;
+                                  setFeedbacks((prev) =>
+                                    prev.map((x) =>
+                                      x.id === f.id ? { ...x, comentarioGestor: v } : x,
+                                    ),
+                                  );
+                                }}
+                              />
                             </td>
                           </tr>
                         ))}
@@ -906,18 +1022,62 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
           {daUnidade(sugestoes).length === 0 ? (
             <EmptyState>Nenhuma sugestão registrada ainda.</EmptyState>
           ) : (
-            <div className="grid gap-3">
-              {daUnidade(sugestoes).map((s) => (
-                <div key={s.id} className="rounded-2xl border border-border bg-card p-4">
-                  <div className="flex flex-wrap items-center gap-2 text-xs">
-                    <span className="rounded-full bg-az-soft px-2.5 py-1 font-semibold text-az">
-                      {s.categoria}
-                    </span>
-                    <span className="text-muted-foreground">{fmtData(s.ts)}</span>
-                  </div>
-                  <p className="mt-2 text-sm text-muted-foreground">{s.mensagem}</p>
-                </div>
-              ))}
+            <div className="overflow-x-auto rounded-2xl border border-border">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border bg-muted/40">
+                    <th className="px-4 py-3 text-left font-semibold">Categoria</th>
+                    <th className="px-4 py-3 text-left font-semibold">Data</th>
+                    <th className="px-4 py-3 text-left font-semibold">Sugestão</th>
+                    <th className="px-4 py-3 text-left font-semibold">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {daUnidade(sugestoes).map((s) => (
+                    <tr key={s.id} className="border-b border-border last:border-0">
+                      <td className="px-4 py-3">
+                        <span className="rounded-full bg-az-soft px-2.5 py-1 text-xs font-semibold text-az">
+                          {s.categoria}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-xs text-muted-foreground">
+                        {fmtData(s.ts)}
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground max-w-xs">{s.mensagem}</td>
+                      <td className="px-4 py-2 min-w-[180px]">
+                        <select
+                          className="w-full rounded-lg border border-border bg-card px-2 py-1 text-xs focus:outline-none"
+                          value={s.status ?? ""}
+                          onChange={(e) => {
+                            const v = e.target.value as
+                              | "enviado-rh"
+                              | "desconsiderado"
+                              | "considerar-depois"
+                              | "para-socios"
+                              | "";
+                            setSugestoes((prev) =>
+                              prev.map((x) =>
+                                x.id === s.id
+                                  ? {
+                                      ...x,
+                                      ...(v ? { status: v, statusTs: Date.now() } : {}),
+                                    }
+                                  : x,
+                              ),
+                            );
+                          }}
+                        >
+                          <option value="">— Sem status —</option>
+                          <option value="enviado-rh">Enviado para o RH</option>
+                          <option value="para-socios">Levado para os sócios</option>
+                          <option value="considerar-depois">Considerar em outro momento</option>
+                          <option value="desconsiderado">Desconsiderado</option>
+                        </select>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </Section>
@@ -1135,37 +1295,74 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
                       <th className="px-4 py-3 text-left font-semibold">Nome</th>
                       <th className="px-4 py-3 text-left font-semibold">Cargo</th>
                       <th className="px-4 py-3 text-left font-semibold">Idade</th>
-                      <th className="px-4 py-3 text-left font-semibold">Na casa desde</th>
+                      <th className="px-4 py-3 text-left font-semibold">Tempo de casa</th>
+                      <th className="px-4 py-3 text-left font-semibold">Admissão</th>
                       <th className="px-4 py-3" />
                     </tr>
                   </thead>
                   <tbody>
-                    {equipeFiltrada.map((c) => (
-                      <tr key={c.id} className="border-b border-border last:border-0">
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-3">
-                            <Avatar nome={c.nome} foto={c.foto} size={32} />
-                            <span className="font-medium">{c.nome}</span>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 text-muted-foreground">{c.cargo}</td>
-                        <td className="px-4 py-3 text-muted-foreground">
-                          {idade(c.nascimento)} anos
-                        </td>
-                        <td className="px-4 py-3 text-muted-foreground">
-                          {new Date(c.admissao + "T00:00:00").getFullYear()}
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          <button
-                            onClick={() => setDesligarTarget(c)}
-                            title="Desligar colaborador"
-                            className="rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-                          >
-                            <UserMinus className="h-4 w-4" />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
+                    {equipeFiltrada.map((c) => {
+                      const anivEsseMes = aniversariantesEquipe.some((a) => a.id === c.id);
+                      return (
+                        <tr key={c.id} className="border-b border-border last:border-0">
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-3">
+                              <Avatar nome={c.nome} foto={c.foto} size={32} />
+                              <div>
+                                <span className="font-medium">{c.nome}</span>
+                                {anivEsseMes && (
+                                  <span
+                                    className="ml-1.5 text-sm"
+                                    title="Aniversário este mês 🎉"
+                                  >
+                                    🎂
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-muted-foreground">{c.cargo}</td>
+                          <td className="px-4 py-3 text-muted-foreground">
+                            {idade(c.nascimento)} anos
+                            <span className="ml-1 text-xs text-muted-foreground/60">
+                              ({new Date(c.nascimento + "T00:00:00").toLocaleDateString("pt-BR")})
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-muted-foreground">
+                            {tempoDeCasa(c.admissao)}
+                          </td>
+                          <td className="px-4 py-3 text-xs text-muted-foreground">
+                            {new Date(c.admissao + "T00:00:00").toLocaleDateString("pt-BR")}
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              <button
+                                onClick={() => {
+                                  setEditarTarget(c);
+                                  setNomeCol(c.nome);
+                                  setCpf3Col(c.cpf3);
+                                  setCargoCol(c.cargo);
+                                  setNascimentoCol(c.nascimento);
+                                  setAdmissaoCol(c.admissao);
+                                  setErroCol("");
+                                }}
+                                title="Editar colaborador"
+                                className="rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-kt-soft hover:text-kt"
+                              >
+                                <UserPlus className="h-4 w-4" />
+                              </button>
+                              <button
+                                onClick={() => setDesligarTarget(c)}
+                                title="Desligar colaborador"
+                                className="rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                              >
+                                <UserMinus className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -1206,6 +1403,129 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
                 }}
               >
                 Confirmar desligamento
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Editar colaborador */}
+        <Dialog
+          open={!!editarTarget}
+          onOpenChange={(o) => {
+            if (!o) {
+              setEditarTarget(null);
+              setErroCol("");
+            }
+          }}
+        >
+          <DialogContent className="sm:max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Editar colaborador</DialogTitle>
+              <DialogDescription>
+                Atualize os dados de <strong>{editarTarget?.nome}</strong>.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-3">
+              <div className="grid gap-1.5">
+                <Label htmlFor="edit-nome">Nome completo</Label>
+                <Input
+                  id="edit-nome"
+                  value={nomeCol}
+                  onChange={(e) => setNomeCol(e.target.value)}
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="edit-cpf3">Últimos 3 dígitos do CPF</Label>
+                <Input
+                  id="edit-cpf3"
+                  value={cpf3Col}
+                  maxLength={3}
+                  onChange={(e) => setCpf3Col(e.target.value.replace(/\D/g, ""))}
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="edit-cargo">Cargo</Label>
+                <Input
+                  id="edit-cargo"
+                  value={cargoCol}
+                  onChange={(e) => setCargoCol(e.target.value)}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="grid gap-1.5">
+                  <Label htmlFor="edit-nasc">Nascimento</Label>
+                  <Input
+                    id="edit-nasc"
+                    type="date"
+                    value={nascimentoCol}
+                    onChange={(e) => setNascimentoCol(e.target.value)}
+                  />
+                </div>
+                <div className="grid gap-1.5">
+                  <Label htmlFor="edit-adm">Admissão</Label>
+                  <Input
+                    id="edit-adm"
+                    type="date"
+                    value={admissaoCol}
+                    onChange={(e) => setAdmissaoCol(e.target.value)}
+                  />
+                </div>
+              </div>
+              {erroCol && <p className="text-sm text-destructive">{erroCol}</p>}
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button
+                variant="outline"
+                className="rounded-full"
+                onClick={() => setEditarTarget(null)}
+              >
+                Cancelar
+              </Button>
+              <Button
+                className="rounded-full"
+                disabled={!nomeCol.trim() || cpf3Col.length !== 3 || !cargoCol.trim()}
+                onClick={() => {
+                  if (!editarTarget) return;
+                  const cargoAnterior = editarTarget.cargo;
+                  const novosCargo = cargoCol.trim();
+                  const promovido = novosCargo !== cargoAnterior;
+                  setColaboradores((prev) =>
+                    prev.map((c) =>
+                      c.id === editarTarget.id
+                        ? {
+                            ...c,
+                            nome: nomeCol.trim(),
+                            cpf3: cpf3Col,
+                            cargo: novosCargo,
+                            nascimento: nascimentoCol || c.nascimento,
+                            admissao: admissaoCol || c.admissao,
+                          }
+                        : c,
+                    ),
+                  );
+                  if (promovido) {
+                    const primeiroNome = nomeCol.trim().split(" ")[0];
+                    setMural((prev) => [
+                      {
+                        id: uid(),
+                        tipo: "novidade" as const,
+                        titulo: `Parabéns, ${primeiroNome}! 🎉`,
+                        mensagem: `${nomeCol.trim()} foi promovido(a) a ${novosCargo}. Parabéns pela conquista!`,
+                        autor: `${session.nome} (gestão)`,
+                        data: new Date().toISOString().slice(0, 10),
+                        filial: session.filial,
+                        emoji: "🏆",
+                      },
+                      ...prev,
+                    ]);
+                    toast.success("Promoção publicada no mural!");
+                  } else {
+                    toast.success("Cadastro atualizado.");
+                  }
+                  setEditarTarget(null);
+                }}
+              >
+                Salvar alterações
               </Button>
             </div>
           </DialogContent>

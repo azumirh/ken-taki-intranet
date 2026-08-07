@@ -100,7 +100,7 @@ function Painel() {
   const [session, , sessaoPronta] = useSession();
   const [sugestoes, setSugestoes] = useSugestoes();
   const [feedbacks, setFeedbacks] = useFeedbacks();
-  const [pesquisa] = usePesquisa();
+  const [pesquisa, setPesquisa] = usePesquisa();
   const [noticias] = useNoticias();
   const [ajuda, setAjuda] = useAjuda();
   const [checkins] = useCheckins();
@@ -147,28 +147,32 @@ function Painel() {
       <div className="grid gap-5">
         {/* Header — nome + unidade em destaque */}
         <div>
-          <h1 className="text-2xl font-extrabold sm:text-3xl">{session.nome.split(" ")[0]}</h1>
-          <p className="text-sm text-muted-foreground">
+          <h1 className="text-2xl font-extrabold sm:text-3xl">
+            👋 Olá, {session.nome.split(" ")[0]}!
+          </h1>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            Bem-vindo(a) à intranet do Ken Taki × Azumi RH
+          </p>
+          <p className="mt-1 text-sm text-muted-foreground">
             <strong className="text-foreground">Ken Taki · {filialNome(session.filial)}</strong> ·
             CPF ***{session.cpf3}
           </p>
         </div>
 
         {/* Precisa de apoio — movida para o topo */}
-        <div className="surface overflow-hidden">
-          <div className="flex items-center gap-3 border-b border-border px-5 py-4 sm:px-7">
+        <div className="overflow-hidden rounded-2xl border border-az/20 bg-gradient-to-br from-az-soft to-az/10">
+          <div className="flex items-center gap-3 border-b border-az/20 px-5 py-4 sm:px-7">
             <MessageCircle className="h-5 w-5 shrink-0 text-az" />
             <div>
-              <h2 className="font-bold">Precisa de apoio?</h2>
+              <h2 className="font-bold text-az">Precisa de apoio?</h2>
               <p className="text-xs text-muted-foreground">
                 Fale com a equipe Azumi RH — seu gestor não é identificado.
               </p>
             </div>
           </div>
-          <div className="flex flex-wrap gap-3 px-5 py-4 sm:px-7">
+          <div className="flex flex-wrap justify-center gap-3 px-5 py-5 sm:justify-start sm:px-7">
             <Button
-              variant="outline"
-              className="rounded-full border-az text-az hover:bg-az-soft"
+              className="rounded-full bg-az text-white hover:bg-az/90"
               onClick={() => {
                 setAjuda([
                   {
@@ -183,7 +187,8 @@ function Painel() {
                 toast.success("Pedido registrado. A equipe Azumi entrará em contato.");
               }}
             >
-              Registrar pedido de apoio
+              <MessageCircle className="h-4 w-4" />
+              Registrar pedido de apoio com a equipe Azumi RH
             </Button>
             <a
               href={`https://wa.me/${AZUMI_CONTACT.whatsapp}?text=${encodeURIComponent(
@@ -203,9 +208,9 @@ function Painel() {
                   ...ajuda,
                 ])
               }
-              className="inline-flex items-center gap-2 rounded-full border border-success px-4 py-2 text-sm font-medium text-success transition-colors hover:bg-success-soft"
+              className="inline-flex items-center gap-2 rounded-full bg-[#25D366] px-5 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
             >
-              <MessageCircle className="h-4 w-4" /> WhatsApp Azumi
+              <MessageCircle className="h-4 w-4" /> WhatsApp Azumi RH
             </a>
           </div>
         </div>
@@ -316,40 +321,84 @@ function Painel() {
           defaultOpen={!!pesquisa?.ativa}
         >
           {pesquisa?.ativa ? (
-            <div className="rounded-2xl border border-az bg-az-soft p-5">
-              <div className="flex flex-wrap items-start justify-between gap-2">
-                <h3 className="font-bold">{pesquisa.titulo}</h3>
-                {pesquisa.prazo &&
-                  (() => {
-                    const dias = Math.ceil(
-                      (new Date(pesquisa.prazo + "T00:00:00").getTime() -
-                        new Date().setHours(0, 0, 0, 0)) /
-                        86400000,
-                    );
-                    return (
-                      <span
-                        className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-bold ${
-                          dias <= 2
-                            ? "bg-destructive/10 text-destructive"
-                            : dias <= 5
-                              ? "bg-warn-soft text-warn"
-                              : "bg-success-soft text-success"
-                        }`}
-                      >
-                        {dias > 0 ? `${dias} dias restantes` : "Prazo encerrado"}
-                      </span>
-                    );
-                  })()}
-              </div>
-              <p className="mt-1 text-sm text-muted-foreground">{pesquisa.descricao}</p>
-              {pesquisa.link ? (
-                <Button asChild className="mt-4 rounded-full">
-                  <a href={pesquisa.link} target="_blank" rel="noreferrer">
-                    Responder pesquisa
-                  </a>
-                </Button>
-              ) : null}
-            </div>
+            (() => {
+              const jaRespondeu = (pesquisa.respondeu ?? []).includes(session.nome);
+              const dias = pesquisa.prazo
+                ? Math.ceil(
+                    (new Date(pesquisa.prazo + "T00:00:00").getTime() -
+                      new Date().setHours(0, 0, 0, 0)) /
+                      86400000,
+                  )
+                : null;
+              return (
+                <div className="rounded-2xl border border-az bg-az-soft p-5">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div>
+                      <h3 className="font-bold">{pesquisa.titulo}</h3>
+                      {pesquisa.categoria && (
+                        <span className="mt-1 inline-block rounded-full bg-az px-2.5 py-0.5 text-[11px] font-bold text-white">
+                          {pesquisa.categoria}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {jaRespondeu && (
+                        <span className="shrink-0 rounded-full bg-success px-2.5 py-1 text-xs font-bold text-white">
+                          ✓ Respondida
+                        </span>
+                      )}
+                      {dias !== null && (
+                        <span
+                          className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-bold ${
+                            dias <= 2
+                              ? "bg-destructive/10 text-destructive"
+                              : dias <= 5
+                                ? "bg-warn-soft text-warn"
+                                : "bg-success-soft text-success"
+                          }`}
+                        >
+                          {dias > 0 ? `${dias} dias restantes` : "Prazo encerrado"}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <p className="mt-1 text-sm text-muted-foreground">{pesquisa.descricao}</p>
+                  {pesquisa.prazo && (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Prazo:{" "}
+                      {new Date(pesquisa.prazo + "T00:00:00").toLocaleDateString("pt-BR", {
+                        day: "2-digit",
+                        month: "long",
+                        year: "numeric",
+                      })}
+                    </p>
+                  )}
+                  {pesquisa.link && !jaRespondeu ? (
+                    <Button
+                      className="mt-4 rounded-full"
+                      onClick={() => {
+                        setPesquisa({
+                          ...pesquisa,
+                          respondeu: [...(pesquisa.respondeu ?? []), session.nome],
+                        });
+                        window.open(pesquisa.link, "_blank", "noreferrer");
+                      }}
+                    >
+                      Responder pesquisa
+                    </Button>
+                  ) : pesquisa.link && jaRespondeu ? (
+                    <a
+                      href={pesquisa.link}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-4 inline-flex items-center gap-1 text-sm text-az underline underline-offset-2"
+                    >
+                      Ver formulário novamente
+                    </a>
+                  ) : null}
+                </div>
+              );
+            })()
           ) : (
             <EmptyState>Nenhuma pesquisa de clima ativa no momento.</EmptyState>
           )}
@@ -366,24 +415,44 @@ function Painel() {
             <EmptyState>Ninguém faz aniversário este mês por aqui.</EmptyState>
           ) : (
             <div className="grid gap-3 md:grid-cols-2">
-              {aniversariantes.map((c) => (
-                <div
-                  key={c.id}
-                  className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 rounded-2xl border border-border bg-card p-4"
-                >
-                  <Avatar nome={c.nome} foto={c.foto} size={52} />
-                  <div className="min-w-0">
-                    <p className="truncate font-semibold">{c.nome}</p>
-                    <p className="truncate text-sm text-muted-foreground">{c.cargo}</p>
-                    <p className="truncate text-xs text-muted-foreground">
-                      {filialNome(c.filial)} · faz {idade(c.nascimento) + 1} anos
-                    </p>
+              {aniversariantes.map((c) => {
+                const hoje = new Date();
+                const aniversario = new Date(c.nascimento + "T00:00:00");
+                const ehHoje =
+                  aniversario.getDate() === hoje.getDate() &&
+                  aniversario.getMonth() === hoje.getMonth();
+                return (
+                  <div
+                    key={c.id}
+                    className={`grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 overflow-hidden rounded-2xl border p-4 ${
+                      ehHoje
+                        ? "border-kt/30 bg-gradient-to-br from-kt-soft via-az-soft to-kt-soft"
+                        : "border-border bg-card"
+                    }`}
+                  >
+                    <Avatar nome={c.nome} foto={c.foto} size={52} />
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold">
+                        {ehHoje && <span className="mr-1">🥳</span>}
+                        {c.nome}
+                      </p>
+                      <p className="truncate text-sm text-muted-foreground">{c.cargo}</p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {filialNome(c.filial)} · faz {idade(c.nascimento) + 1} anos
+                      </p>
+                    </div>
+                    <div className="shrink-0 text-center">
+                      {ehHoje ? (
+                        <span className="block text-2xl">🎂</span>
+                      ) : (
+                        <span className="block rounded-xl bg-kt-soft px-3 py-2 text-xs font-bold text-kt">
+                          {diaMes(c.nascimento)}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <span className="shrink-0 rounded-xl bg-kt-soft px-3 py-2 text-center text-xs font-bold text-kt">
-                    {diaMes(c.nascimento)}
-                  </span>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </Section>

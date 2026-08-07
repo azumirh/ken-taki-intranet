@@ -93,6 +93,14 @@ export type Sugestao = {
   mensagem: string;
   filial: string;
   ts: number;
+  status?:
+    | "enviado-rh"
+    | "desconsiderado"
+    | "considerar-depois"
+    | "para-socios"
+    | undefined;
+  statusTs?: number | undefined;
+  justificativa?: string | undefined;
 };
 export type Feedback = {
   id: string;
@@ -102,6 +110,8 @@ export type Feedback = {
   autor: string;
   filial: string;
   ts: number;
+  status?: "em-andamento" | "concluido" | undefined;
+  comentarioGestor?: string | undefined;
 };
 export type Vaga = { id: string; cargo: string; filial: string; motivo: string; ts: number };
 export type Pesquisa = {
@@ -112,6 +122,8 @@ export type Pesquisa = {
   ativa: boolean;
   ts: number;
   prazo?: string | undefined; // yyyy-mm-dd
+  categoria?: string | undefined;
+  respondeu?: string[] | undefined; // names of people who responded
 } | null;
 export type AjudaClick = {
   id: string;

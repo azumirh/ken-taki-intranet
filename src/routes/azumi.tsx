@@ -410,7 +410,7 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
   const [checkins] = useCheckins();
   const [assinaturas] = useAssinaturas();
   const [leituras] = useLeituras();
-  const [sugestoes] = useSugestoes();
+  const [sugestoes, setSugestoes] = useSugestoes();
   const [ajuda, setAjuda] = useAjuda();
   const [anotacoes, setAnotacoes] = useAnotacoesApoio();
   const [pesquisa, setPesquisa] = usePesquisa();
@@ -443,6 +443,7 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
   const [pDesc, setPDesc] = useState("");
   const [pLink, setPLink] = useState("");
   const [pPrazo, setPPrazo] = useState("");
+  const [pCategoria, setPCategoria] = useState("");
 
   // clima chart state
   const [climaPeriodo, setClimaPeriodo] = useState<"7d" | "30d" | "mes">("7d");
@@ -626,9 +627,14 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
     <AppShell onLogout={onLogout}>
       <div className="grid gap-5">
         <div>
-          <h1 className="text-2xl font-extrabold sm:text-3xl">Área Azumi RH</h1>
-          <p className="text-sm text-muted-foreground">
-            Olá, {perfil.nome}! Visão consolidada de Cristo Rei e Champagnat.
+          <h1 className="text-2xl font-extrabold sm:text-3xl">
+            👋 Olá, {perfil.nome.split(" ")[0]}!
+          </h1>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            Bem-vinda à intranet do Ken Taki × Azumi RH
+          </p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Visão consolidada · Cristo Rei e Champagnat
           </p>
         </div>
 
@@ -1011,6 +1017,26 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
                       onChange={(e) => setPPrazo(e.target.value)}
                     />
                   </div>
+                  <div className="grid gap-2">
+                    <Label>Categoria (opcional)</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {["Clima organizacional", "Satisfação", "Saúde e bem-estar", "Operação"].map(
+                        (c) => (
+                          <button
+                            key={c}
+                            onClick={() => setPCategoria((prev) => (prev === c ? "" : c))}
+                            className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                              pCategoria === c
+                                ? "border-az bg-az-soft text-az"
+                                : "border-border text-muted-foreground hover:border-foreground"
+                            }`}
+                          >
+                            {c}
+                          </button>
+                        ),
+                      )}
+                    </div>
+                  </div>
                   <Button
                     className="rounded-full"
                     disabled={!pTitulo.trim()}
@@ -1023,11 +1049,13 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
                         ativa: true,
                         ts: Date.now(),
                         prazo: pPrazo || undefined,
+                        categoria: pCategoria || undefined,
                       });
                       setPTitulo("");
                       setPDesc("");
                       setPLink("");
                       setPPrazo("");
+                      setPCategoria("");
                       toast.success("Pesquisa publicada.");
                     }}
                   >
@@ -1126,6 +1154,11 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
                         <span className="font-semibold">
                           {a.nome} · {filialNome(a.filial)}
                         </span>
+                        {a.assunto.includes("gestor") && (
+                          <span className="rounded-full bg-warn-soft px-2 py-0.5 text-[11px] font-medium text-warn">
+                            envolveu gestor
+                          </span>
+                        )}
                         <span className="ml-auto text-xs text-muted-foreground">
                           {new Date(a.ts).toLocaleString("pt-BR", {
                             day: "2-digit",
@@ -1238,6 +1271,80 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
                   ))
                 )}
               </div>
+            </div>
+          )}
+        </Section>
+
+        {/* Sugestões — visão consolidada todas as filiais */}
+        <Section
+          titulo="Caixinha de sugestão"
+          intro="Sugestões anônimas de todas as unidades. Classifique o encaminhamento de cada uma."
+          contagem={`${sugestoes.length} sugestões`}
+          collapsible
+          defaultOpen={sugestoes.length > 0}
+        >
+          {sugestoes.length === 0 ? (
+            <EmptyState>Nenhuma sugestão registrada ainda.</EmptyState>
+          ) : (
+            <div className="overflow-x-auto rounded-2xl border border-border">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border bg-muted/40">
+                    <th className="px-4 py-3 text-left font-semibold">Filial</th>
+                    <th className="px-4 py-3 text-left font-semibold">Categoria</th>
+                    <th className="px-4 py-3 text-left font-semibold">Data</th>
+                    <th className="px-4 py-3 text-left font-semibold">Sugestão</th>
+                    <th className="px-4 py-3 text-left font-semibold">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...sugestoes]
+                    .sort((a, b) => b.ts - a.ts)
+                    .map((s) => (
+                      <tr key={s.id} className="border-b border-border last:border-0">
+                        <td className="px-4 py-3 whitespace-nowrap text-xs text-muted-foreground">
+                          {filialNome(s.filial)}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="rounded-full bg-az-soft px-2.5 py-1 text-xs font-semibold text-az">
+                            {s.categoria}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-xs text-muted-foreground">
+                          {fmtData(s.ts)}
+                        </td>
+                        <td className="max-w-xs px-4 py-3 text-muted-foreground">{s.mensagem}</td>
+                        <td className="min-w-[180px] px-4 py-2">
+                          <select
+                            className="w-full rounded-lg border border-border bg-card px-2 py-1 text-xs focus:outline-none"
+                            value={s.status ?? ""}
+                            onChange={(e) => {
+                              const v = e.target.value as
+                                | "enviado-rh"
+                                | "desconsiderado"
+                                | "considerar-depois"
+                                | "para-socios"
+                                | "";
+                              setSugestoes((prev) =>
+                                prev.map((x) =>
+                                  x.id === s.id
+                                    ? { ...x, ...(v ? { status: v, statusTs: Date.now() } : {}) }
+                                    : x,
+                                ),
+                              );
+                            }}
+                          >
+                            <option value="">— Sem status —</option>
+                            <option value="enviado-rh">Enviado para o RH</option>
+                            <option value="para-socios">Levado para os sócios</option>
+                            <option value="considerar-depois">Considerar em outro momento</option>
+                            <option value="desconsiderado">Desconsiderado</option>
+                          </select>
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
             </div>
           )}
         </Section>

@@ -8,6 +8,35 @@ import { Textarea } from "@/components/ui/textarea";
 import { AZUMI_CONTACT, HUMORES, filialNome } from "@/lib/kt-data";
 import { uid, useAjuda, useCheckins, useFeedbacks, type Session } from "@/lib/kt-store";
 
+const MENSAGENS_APOIO: Record<string, string> = {
+  dificil: "Hoje está difícil — isso é válido. Você não precisa guardar isso sozinho(a).",
+  "muito-dificil":
+    "Estamos aqui por você. Dias muito difíceis também fazem parte, e você não está só.",
+};
+
+function FloatingHearts({ ativo }: { ativo: boolean }) {
+  if (!ativo) return null;
+  return (
+    <div className="pointer-events-none fixed inset-0 z-50 overflow-hidden" aria-hidden>
+      {[10, 24, 38, 54, 68, 82].map((left, i) => (
+        <span
+          key={i}
+          style={{
+            position: "absolute",
+            left: `${left}%`,
+            bottom: "35%",
+            fontSize: "1.4rem",
+            opacity: 0,
+            animation: `kt-heart-float 1.4s ease-out ${i * 0.14}s forwards`,
+          }}
+        >
+          ❤️
+        </span>
+      ))}
+    </div>
+  );
+}
+
 const FRASES_POSITIVAS = [
   "Que bom! Times animados fazem a diferença. Continue assim!",
   "Energia boa contagia! Obrigado por trazer isso hoje.",
@@ -202,6 +231,7 @@ export function CheckIn({ session }: { session: Extract<Session, { tipo: "colabo
   const [mostrarRecado, setMostrarRecado] = useState(false);
   const [opcaoNeg, setOpcaoNeg] = useState<OpcaoNeg | null>(null);
   const [enviado, setEnviado] = useState(false);
+  const [heartsActive, setHeartsActive] = useState(false);
 
   const humorObj = HUMORES.find((h) => h.id === humor);
   const categoria = humorObj?.categoria;
@@ -210,6 +240,10 @@ export function CheckIn({ session }: { session: Extract<Session, { tipo: "colabo
     if (humor !== id) {
       setOpcaoNeg(null);
       setEnviado(false);
+      if (id === "dificil" || id === "muito-dificil") {
+        setHeartsActive(true);
+        setTimeout(() => setHeartsActive(false), 1800);
+      }
     }
     setHumor(id);
   };
@@ -242,6 +276,7 @@ export function CheckIn({ session }: { session: Extract<Session, { tipo: "colabo
       intro="Conta pra gente: como você está hoje? Sem certo ou errado — é só pra sua liderança entender o clima do time."
       contagem="Leva 20 segundos"
     >
+      <FloatingHearts ativo={heartsActive} />
       <div className="grid gap-4">
         {/* Histórico de check-ins hoje */}
         {hojeCheckins.length > 0 && (
@@ -378,6 +413,13 @@ export function CheckIn({ session }: { session: Extract<Session, { tipo: "colabo
                 );
               })}
             </div>
+
+            {/* Mensagem de acolhimento ao selecionar humor negativo */}
+            {humor && (humor === "dificil" || humor === "muito-dificil") && !enviado && (
+              <div className="rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm">
+                <p className="font-semibold text-destructive">❤️ {MENSAGENS_APOIO[humor]}</p>
+              </div>
+            )}
 
             {/* Bloco de apoio negativo — aparece ao selecionar emoji negativo */}
             {humor && categoria === "negativa" && (
