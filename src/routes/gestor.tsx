@@ -332,7 +332,6 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
   const [ajuda, setAjuda] = useAjuda();
   const [mural, setMural] = useMural();
 
-  const [editandoPesquisa, setEditandoPesquisa] = useState(false);
   const [desligarTarget, setDesligarTarget] = useState<Colaborador | null>(null);
   const [cadastrarOpen, setCadastrarOpen] = useState(false);
   const [editarTarget, setEditarTarget] = useState<Colaborador | null>(null);
@@ -384,6 +383,9 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
     arr.filter((i) => i.filial === session.filial);
   const meusCheckins = daUnidade(checkins);
   const equipe = colaboradores.filter((c) => c.filial === session.filial);
+  const gestorJaRespondeu = pesquisa?.ativa
+    ? (pesquisa.respondeu ?? []).includes(session.nome)
+    : false;
   const cargosUnicos = ["Todos", ...Array.from(new Set(equipe.map((c) => c.cargo))).sort()];
   const equipeFiltrada =
     filtroCargoEquipe === "Todos" ? equipe : equipe.filter((c) => c.cargo === filtroCargoEquipe);
@@ -845,38 +847,50 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
                             </span>
                           )}
                         </div>
-                        {pendentes.length > 0 && (
-                          <div className="mt-3">
-                            <p className="text-xs font-medium text-muted-foreground">
-                              Leram, pendentes de assinatura:
-                            </p>
-                            <div className="mt-1 flex flex-wrap gap-1.5">
-                              {pendentes.map((c) => (
-                                <span
-                                  key={c.id}
-                                  className="rounded-full bg-warn-soft px-2.5 py-1 text-xs text-warn"
-                                >
-                                  {c.nome.split(" ")[0]}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                        {nuncaAbriram.length > 0 && (
-                          <div className="mt-2">
-                            <p className="text-xs font-medium text-muted-foreground">
-                              Nunca abriram:
-                            </p>
-                            <div className="mt-1 flex flex-wrap gap-1.5">
-                              {nuncaAbriram.map((c) => (
-                                <span
-                                  key={c.id}
-                                  className="rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground"
-                                >
-                                  {c.nome.split(" ")[0]}
-                                </span>
-                              ))}
-                            </div>
+                        {/* Tabela de status por pessoa */}
+                        {equipe.length > 0 && (
+                          <div className="mt-3 overflow-x-auto rounded-xl border border-border">
+                            <table className="w-full text-xs">
+                              <thead>
+                                <tr className="border-b border-border bg-muted/30">
+                                  <th className="px-3 py-2 text-left font-medium">Nome</th>
+                                  <th className="px-3 py-2 text-left font-medium">Status</th>
+                                  <th className="px-3 py-2 text-left font-medium">Quando</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {equipe.map((c) => {
+                                  const assinou = nomesAssinantes.has(c.nome);
+                                  const leuSemAssinar = !assinou && nomesLeram.has(c.nome);
+                                  const nuncaAbriu = !assinou && !nomesLeram.has(c.nome);
+                                  const tsAssinou = assinantes.find((a) => a.nome === c.nome)?.ts;
+                                  const tsLeu = leram.find((l) => l.nome === c.nome)?.ts;
+                                  return (
+                                    <tr key={c.id} className="border-b border-border last:border-0">
+                                      <td className="px-3 py-2 font-medium">
+                                        {c.nome.split(" ")[0]}
+                                      </td>
+                                      <td className="px-3 py-2">
+                                        {assinou ? (
+                                          <span className="text-success">✓ Assinou</span>
+                                        ) : leuSemAssinar ? (
+                                          <span className="text-warn">Leu</span>
+                                        ) : (
+                                          <span className="text-muted-foreground">Não abriu</span>
+                                        )}
+                                      </td>
+                                      <td className="px-3 py-2 text-muted-foreground">
+                                        {assinou && tsAssinou
+                                          ? fmtData(tsAssinou)
+                                          : leuSemAssinar && tsLeu
+                                            ? fmtData(tsLeu)
+                                            : "—"}
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
                           </div>
                         )}
                         {!gestorJaAssinou && (
@@ -1154,75 +1168,10 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
           defaultOpen={!!pesquisa?.ativa}
         >
           {pesquisa?.ativa ? (
-            <div className="rounded-2xl border border-az bg-az-soft p-5">
-              {editandoPesquisa ? (
-                <div className="grid gap-3">
-                  <div className="grid gap-1">
-                    <label className="text-xs font-medium text-muted-foreground">Título</label>
-                    <input
-                      className="rounded-lg border border-border bg-card px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-az"
-                      value={pesquisa.titulo}
-                      onChange={(e) => setPesquisa({ ...pesquisa, titulo: e.target.value })}
-                    />
-                  </div>
-                  <div className="grid gap-1">
-                    <label className="text-xs font-medium text-muted-foreground">Link</label>
-                    <input
-                      className="rounded-lg border border-border bg-card px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-az"
-                      value={pesquisa.link}
-                      onChange={(e) => setPesquisa({ ...pesquisa, link: e.target.value })}
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="grid gap-1">
-                      <label className="text-xs font-medium text-muted-foreground">Prazo</label>
-                      <input
-                        type="date"
-                        className="rounded-lg border border-border bg-card px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-az"
-                        value={pesquisa.prazo ?? ""}
-                        onChange={(e) =>
-                          setPesquisa({
-                            ...pesquisa,
-                            prazo: e.target.value !== "" ? e.target.value : undefined,
-                          })
-                        }
-                      />
-                    </div>
-                    <div className="grid gap-1">
-                      <label className="text-xs font-medium text-muted-foreground">Categoria</label>
-                      <input
-                        className="rounded-lg border border-border bg-card px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-az"
-                        value={pesquisa.categoria ?? ""}
-                        onChange={(e) =>
-                          setPesquisa({
-                            ...pesquisa,
-                            categoria: e.target.value !== "" ? e.target.value : undefined,
-                          })
-                        }
-                      />
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      className="rounded-full bg-az text-primary-foreground hover:bg-az/90"
-                      onClick={() => setEditandoPesquisa(false)}
-                    >
-                      Salvar
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="rounded-full"
-                      onClick={() => setEditandoPesquisa(false)}
-                    >
-                      Cancelar
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <div className="flex flex-wrap items-start justify-between gap-2">
+            <div className="grid gap-4">
+              <div className="rounded-2xl border border-az bg-az-soft p-5">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
                     <div className="flex flex-wrap items-center gap-2">
                       <h3 className="font-bold">{pesquisa.titulo}</h3>
                       {pesquisa.categoria && (
@@ -1230,50 +1179,104 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
                           {pesquisa.categoria}
                         </span>
                       )}
+                      {gestorJaRespondeu && (
+                        <span className="rounded-full bg-success px-2.5 py-0.5 text-xs font-bold text-white">
+                          ✓ Respondida
+                        </span>
+                      )}
                     </div>
-                    <div className="flex shrink-0 items-center gap-2">
-                      {pesquisa.prazo &&
-                        (() => {
-                          const dias = Math.ceil(
-                            (new Date(pesquisa.prazo + "T00:00:00").getTime() -
-                              new Date().setHours(0, 0, 0, 0)) /
-                              86400000,
-                          );
-                          return (
-                            <span
-                              className={`rounded-full px-2.5 py-1 text-xs font-bold ${
-                                dias <= 2
-                                  ? "bg-destructive/10 text-destructive"
-                                  : dias <= 5
-                                    ? "bg-warn-soft text-warn"
-                                    : "bg-success-soft text-success"
-                              }`}
-                            >
-                              {dias > 0 ? `${dias} dias restantes` : "Prazo encerrado"}
-                            </span>
-                          );
-                        })()}
-                      <button
-                        onClick={() => setEditandoPesquisa(true)}
-                        className="rounded-full border border-az/30 px-2.5 py-1 text-xs font-medium text-az hover:bg-az/10"
-                      >
-                        Editar
-                      </button>
-                    </div>
+                    <p className="mt-2 text-sm text-muted-foreground">{pesquisa.descricao}</p>
+                    {pesquisa.prazo && (
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Prazo:{" "}
+                        {new Date(pesquisa.prazo + "T00:00:00").toLocaleDateString("pt-BR", {
+                          day: "2-digit",
+                          month: "long",
+                          year: "numeric",
+                        })}
+                      </p>
+                    )}
                   </div>
-                  <p className="mt-3 text-sm text-muted-foreground">{pesquisa.descricao}</p>
-                  {pesquisa.link && (
-                    <a
-                      href={pesquisa.link}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="mt-4 inline-flex items-center gap-1 rounded-full bg-az px-3 py-1.5 text-xs font-semibold text-primary-foreground"
-                    >
-                      Responder pesquisa <ExternalLink className="h-3 w-3" />
-                    </a>
-                  )}
-                </>
-              )}
+                  {pesquisa.prazo &&
+                    (() => {
+                      const dias = Math.ceil(
+                        (new Date(pesquisa.prazo + "T00:00:00").getTime() -
+                          new Date().setHours(0, 0, 0, 0)) /
+                          86400000,
+                      );
+                      return (
+                        <span
+                          className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-bold ${
+                            dias <= 2
+                              ? "bg-destructive/10 text-destructive"
+                              : dias <= 5
+                                ? "bg-warn-soft text-warn"
+                                : "bg-success-soft text-success"
+                          }`}
+                        >
+                          {dias > 0 ? `${dias} dias restantes` : "Prazo encerrado"}
+                        </span>
+                      );
+                    })()}
+                </div>
+                {pesquisa.link && !gestorJaRespondeu && (
+                  <Button
+                    className="mt-4 rounded-full bg-az text-white hover:bg-az/90"
+                    size="sm"
+                    onClick={() => {
+                      setPesquisa({
+                        ...pesquisa,
+                        respondeu: [...(pesquisa.respondeu ?? []), session.nome],
+                      });
+                      window.open(pesquisa.link, "_blank", "noreferrer");
+                    }}
+                  >
+                    Responder pesquisa <ExternalLink className="h-3 w-3" />
+                  </Button>
+                )}
+                {pesquisa.link && gestorJaRespondeu && (
+                  <a
+                    href={pesquisa.link}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-4 inline-flex items-center gap-1 text-sm text-az underline underline-offset-2"
+                  >
+                    Ver formulário novamente
+                  </a>
+                )}
+              </div>
+              {/* Quem respondeu / quem não respondeu */}
+              <div className="overflow-x-auto rounded-2xl border border-border">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border bg-muted/40">
+                      <th className="px-4 py-3 text-left font-semibold">Colaborador</th>
+                      <th className="px-4 py-3 text-left font-semibold">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {equipe.map((c) => {
+                      const respondeu = (pesquisa.respondeu ?? []).includes(c.nome);
+                      return (
+                        <tr key={c.id} className="border-b border-border last:border-0">
+                          <td className="px-4 py-3 font-medium">{c.nome}</td>
+                          <td className="px-4 py-3">
+                            {respondeu ? (
+                              <span className="rounded-full bg-success-soft px-2.5 py-0.5 text-xs font-semibold text-success">
+                                ✓ Respondeu
+                              </span>
+                            ) : (
+                              <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+                                Pendente
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
           ) : (
             <EmptyState>Nenhuma pesquisa ativa no momento.</EmptyState>

@@ -240,7 +240,10 @@ export function CheckIn({ session }: { session: Extract<Session, { tipo: "colabo
     if (humor !== id) {
       setOpcaoNeg(null);
       setEnviado(false);
-      if (id === "dificil" || id === "muito-dificil") {
+      const h = HUMORES.find((x) => x.id === id);
+      if (h?.categoria === "positiva") {
+        dispararConfete();
+      } else if (id === "dificil" || id === "muito-dificil") {
         setHeartsActive(true);
         setTimeout(() => setHeartsActive(false), 1800);
       }
@@ -272,25 +275,23 @@ export function CheckIn({ session }: { session: Extract<Session, { tipo: "colabo
 
   return (
     <Section
-      titulo={`Olá, ${session.nome.split(" ")[0]}!`}
-      intro="Conta pra gente: como você está hoje? Sem certo ou errado — é só pra sua liderança entender o clima do time."
+      titulo="Conta pra gente como você tá hoje"
+      intro="Sem certo ou errado — é só pra sua liderança entender o clima do time."
       contagem="Leva 20 segundos"
     >
       <FloatingHearts ativo={heartsActive} />
       <div className="grid gap-4">
-        {/* Histórico de check-ins hoje */}
+        {/* Badge "já fez check-in hoje" */}
         {hojeCheckins.length > 0 && (
-          <div className="rounded-2xl border border-border bg-muted/50 px-4 py-3 text-sm">
-            <p className="font-medium">
-              {hojeCheckins.length === 1
-                ? "Você já fez um check-in hoje."
-                : `Você fez ${hojeCheckins.length} check-ins hoje.`}
-            </p>
-            <div className="mt-2 grid gap-1">
+          <div className="flex flex-wrap items-start gap-3">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-success-soft px-3 py-1.5 text-sm font-semibold text-success">
+              ✓ Você já fez check-in hoje
+            </span>
+            <div className="grid gap-0.5">
               {hojeCheckins.map((c) => {
                 const h = HUMORES.find((x) => x.id === c.humor);
                 return (
-                  <span key={c.id} className="text-muted-foreground">
+                  <span key={c.id} className="text-sm text-muted-foreground">
                     {h?.emoji} {h?.label} ·{" "}
                     {new Date(c.ts).toLocaleTimeString("pt-BR", {
                       hour: "2-digit",
@@ -300,8 +301,10 @@ export function CheckIn({ session }: { session: Extract<Session, { tipo: "colabo
                   </span>
                 );
               })}
+              <span className="text-xs text-muted-foreground">
+                Quer registrar como está agora? É permitido.
+              </span>
             </div>
-            <p className="mt-2 text-muted-foreground">Quer registrar como está agora?</p>
           </div>
         )}
 

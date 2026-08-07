@@ -93,14 +93,10 @@ export type Sugestao = {
   mensagem: string;
   filial: string;
   ts: number;
-  status?:
-    | "enviado-rh"
-    | "desconsiderado"
-    | "considerar-depois"
-    | "para-socios"
-    | undefined;
+  status?: "enviado-rh" | "desconsiderado" | "considerar-depois" | "para-socios" | undefined;
   statusTs?: number | undefined;
   justificativa?: string | undefined;
+  observacao?: string | undefined;
 };
 export type Feedback = {
   id: string;
@@ -139,7 +135,19 @@ export type AnotacaoApoio = {
   pedidoId: string;
   texto: string;
   canal?: "WhatsApp" | "E-mail" | "Presencial" | undefined;
+  consultor?: string | undefined;
+  envolveGestor?: boolean | undefined;
+  nomeGestor?: string | undefined;
   criadoEm: number;
+};
+
+export type BdayMsg = {
+  id: string;
+  paraId: string;
+  de: string;
+  emoji: string;
+  mensagem: string;
+  ts: number;
 };
 export type Leitura = { documentoId: string; nome: string; filial: string; ts: number };
 
@@ -156,6 +164,7 @@ export const usePesquisa = () => useStore<Pesquisa>("pesquisa", null);
 export const useAjuda = () => useStore<AjudaClick[]>("ajuda", []);
 export const useAnotacoesApoio = () => useStore<AnotacaoApoio[]>("anotacoes-apoio", []);
 export const useLeituras = () => useStore<Leitura[]>("leituras", []);
+export const useBdayMsgs = () => useStore<BdayMsg[]>("bday-msgs", []);
 
 export const uid = () => Math.random().toString(36).slice(2, 10);
 

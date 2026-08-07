@@ -24,6 +24,7 @@ import {
   uid,
   useAjuda,
   useAssinaturas,
+  useBdayMsgs,
   useCheckins,
   useColaboradores,
   useDocumentos,
@@ -111,12 +112,17 @@ function Painel() {
   const [leituras] = useLeituras();
 
   const [colaboradores] = useColaboradores();
+  const [bdayMsgs, setBdayMsgs] = useBdayMsgs();
   const [sugCat, setSugCat] = useState(SUGESTAO_CATEGORIAS[0]!);
   const [sugMsg, setSugMsg] = useState("");
   const [sugEnviado, setSugEnviado] = useState(false);
   const [fbTipo, setFbTipo] = useState(FEEDBACK_TIPOS[0]!);
   const [fbAnon, setFbAnon] = useState(true);
   const [fbMsg, setFbMsg] = useState("");
+  const [histFiltroData, setHistFiltroData] = useState("");
+  const [bdayMsgParaId, setBdayMsgParaId] = useState<string | null>(null);
+  const [bdayMsgTexto, setBdayMsgTexto] = useState("");
+  const [bdayMsgEmoji, setBdayMsgEmoji] = useState("🎉");
 
   useEffect(() => {
     if (sessaoPronta && session === null) navigate({ to: "/colaborador" });
@@ -418,40 +424,141 @@ function Painel() {
           {aniversariantes.length === 0 ? (
             <EmptyState>Ninguém faz aniversário este mês por aqui.</EmptyState>
           ) : (
-            <div className="grid gap-3 md:grid-cols-2">
+            <div className="grid gap-4 md:grid-cols-2">
               {aniversariantes.map((c) => {
                 const hoje = new Date();
                 const aniversario = new Date(c.nascimento + "T00:00:00");
                 const ehHoje =
                   aniversario.getDate() === hoje.getDate() &&
                   aniversario.getMonth() === hoje.getMonth();
+                const idadeAnos = ehHoje ? idade(c.nascimento) + 1 : idade(c.nascimento) + 1;
+                const msgsDoPerfil = bdayMsgs.filter((m) => m.paraId === c.id);
+                const jaEnviouMsg = msgsDoPerfil.some((m) => m.de === session.nome);
                 return (
                   <div
                     key={c.id}
-                    className={`grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 overflow-hidden rounded-2xl border p-4 ${
+                    className={`overflow-hidden rounded-2xl border ${
                       ehHoje
                         ? "border-kt/30 bg-gradient-to-br from-kt-soft via-az-soft to-kt-soft"
                         : "border-border bg-card"
                     }`}
                   >
-                    <Avatar nome={c.nome} foto={c.foto} size={52} />
-                    <div className="min-w-0">
-                      <p className="truncate font-semibold">
-                        {ehHoje && <span className="mr-1">🥳</span>}
-                        {c.nome}
+                    {/* Card header */}
+                    {c.foto ? (
+                      <img
+                        src={c.foto}
+                        alt={c.nome}
+                        className="h-32 w-full object-cover object-top"
+                      />
+                    ) : (
+                      <div className="flex h-24 items-center justify-center bg-gradient-to-br from-kt-soft to-az-soft">
+                        <Avatar nome={c.nome} size={72} />
+                      </div>
+                    )}
+                    <div className="p-4">
+                      <p className="text-lg font-extrabold">
+                        {ehHoje ? "🥳 " : ""}Feliz aniversário, {c.nome.split(" ")[0]}!
                       </p>
-                      <p className="truncate text-sm text-muted-foreground">{c.cargo}</p>
-                      <p className="truncate text-xs text-muted-foreground">
-                        {filialNome(c.filial)} · faz {idade(c.nascimento) + 1} anos
-                      </p>
-                    </div>
-                    <div className="shrink-0 text-center">
-                      {ehHoje ? (
-                        <span className="block text-2xl">🎂</span>
-                      ) : (
-                        <span className="block rounded-xl bg-kt-soft px-3 py-2 text-xs font-bold text-kt">
-                          {diaMes(c.nascimento)}
+                      <div className="mt-1 flex flex-wrap gap-1.5">
+                        <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+                          {c.cargo}
                         </span>
+                        <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+                          {filialNome(c.filial)}
+                        </span>
+                        <span className="rounded-full bg-kt-soft px-2.5 py-0.5 text-xs font-bold text-kt">
+                          {ehHoje
+                            ? `Hoje completa ${idadeAnos} anos! 🎂`
+                            : `${diaMes(c.nascimento)} · ${idadeAnos} anos`}
+                        </span>
+                      </div>
+
+                      {/* Mensagens de parabéns */}
+                      {msgsDoPerfil.length > 0 && (
+                        <div className="mt-3 grid gap-1.5">
+                          {msgsDoPerfil.map((m) => (
+                            <div key={m.id} className="rounded-xl bg-muted/50 px-3 py-2 text-sm">
+                              <span className="mr-1">{m.emoji}</span>
+                              <span className="font-medium">{m.de}:</span>{" "}
+                              <span className="text-muted-foreground">{m.mensagem}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Enviar mensagem */}
+                      {!jaEnviouMsg &&
+                        c.id !== (session as typeof session & { id?: string }).id && (
+                          <div className="mt-3">
+                            {bdayMsgParaId === c.id ? (
+                              <div className="grid gap-2">
+                                <div className="flex gap-2">
+                                  {["🎉", "🎂", "🥳", "❤️", "🌟"].map((e) => (
+                                    <button
+                                      key={e}
+                                      onClick={() => setBdayMsgEmoji(e)}
+                                      className={`rounded-full p-1 text-lg transition-transform hover:scale-125 ${bdayMsgEmoji === e ? "ring-2 ring-kt" : ""}`}
+                                    >
+                                      {e}
+                                    </button>
+                                  ))}
+                                </div>
+                                <Textarea
+                                  rows={2}
+                                  placeholder="Deixe uma mensagem de parabéns..."
+                                  value={bdayMsgTexto}
+                                  onChange={(e) => setBdayMsgTexto(e.target.value)}
+                                  maxLength={200}
+                                  className="text-sm"
+                                />
+                                <div className="flex gap-2">
+                                  <Button
+                                    size="sm"
+                                    className="rounded-full"
+                                    disabled={!bdayMsgTexto.trim()}
+                                    onClick={() => {
+                                      setBdayMsgs([
+                                        ...bdayMsgs,
+                                        {
+                                          id: uid(),
+                                          paraId: c.id,
+                                          de: session.nome,
+                                          emoji: bdayMsgEmoji,
+                                          mensagem: bdayMsgTexto.trim(),
+                                          ts: Date.now(),
+                                        },
+                                      ]);
+                                      setBdayMsgTexto("");
+                                      setBdayMsgParaId(null);
+                                    }}
+                                  >
+                                    Enviar parabéns
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="rounded-full"
+                                    onClick={() => setBdayMsgParaId(null)}
+                                  >
+                                    Cancelar
+                                  </Button>
+                                </div>
+                              </div>
+                            ) : (
+                              <button
+                                className="text-xs text-muted-foreground underline-offset-2 hover:underline"
+                                onClick={() => {
+                                  setBdayMsgParaId(c.id);
+                                  setBdayMsgTexto("");
+                                }}
+                              >
+                                🎉 Deixar mensagem de parabéns
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      {jaEnviouMsg && (
+                        <p className="mt-2 text-xs text-success">✓ Você já deixou uma mensagem</p>
                       )}
                     </div>
                   </div>
@@ -507,6 +614,108 @@ function Painel() {
           )}
         </Section>
 
+        {/* Meu histórico de check-ins */}
+        {(() => {
+          const meusCheckins = checkins
+            .filter((c) => c.nome === session.nome)
+            .sort((a, b) => b.ts - a.ts);
+          const filtrados = histFiltroData
+            ? meusCheckins.filter(
+                (c) =>
+                  new Date(c.ts).toLocaleDateString("pt-BR") ===
+                  new Date(histFiltroData + "T00:00:00").toLocaleDateString("pt-BR"),
+              )
+            : meusCheckins.slice(0, 30);
+          return (
+            <Section
+              titulo="Meu histórico de check-ins"
+              intro="Seus registros de humor anteriores."
+              contagem={`${meusCheckins.length} registros`}
+              collapsible
+              defaultOpen={false}
+            >
+              <div className="grid gap-3">
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="hist-data">Filtrar por data</Label>
+                  <input
+                    id="hist-data"
+                    type="date"
+                    value={histFiltroData}
+                    onChange={(e) => setHistFiltroData(e.target.value)}
+                    className="rounded-lg border border-border bg-card px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-kt/30"
+                  />
+                  {histFiltroData && (
+                    <button
+                      onClick={() => setHistFiltroData("")}
+                      className="text-xs text-muted-foreground underline-offset-2 hover:underline"
+                    >
+                      Limpar
+                    </button>
+                  )}
+                </div>
+                {filtrados.length === 0 ? (
+                  <EmptyState>Nenhum check-in nessa data.</EmptyState>
+                ) : (
+                  <div className="overflow-x-auto rounded-2xl border border-border">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-border bg-muted/40">
+                          <th className="px-4 py-3 text-left font-semibold">Humor</th>
+                          <th className="px-4 py-3 text-left font-semibold">Data</th>
+                          <th className="px-4 py-3 text-left font-semibold">Hora</th>
+                          <th className="px-4 py-3 text-left font-semibold">Comentário</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filtrados.map((c) => {
+                          const h = HUMORES.find((x) => x.id === c.humor);
+                          return (
+                            <tr key={c.id} className="border-b border-border last:border-0">
+                              <td className="px-4 py-3">
+                                <span
+                                  className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${
+                                    h?.categoria === "positiva"
+                                      ? "bg-success-soft text-success"
+                                      : h?.categoria === "negativa"
+                                        ? "bg-destructive/10 text-destructive"
+                                        : "bg-warn-soft text-warn"
+                                  }`}
+                                >
+                                  {h?.emoji} {h?.label}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">
+                                {new Date(c.ts).toLocaleDateString("pt-BR", {
+                                  day: "2-digit",
+                                  month: "short",
+                                })}
+                              </td>
+                              <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">
+                                {new Date(c.ts).toLocaleTimeString("pt-BR", {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}
+                              </td>
+                              <td className="max-w-xs px-4 py-3 text-muted-foreground">
+                                {c.recado ? <em>"{c.recado}"</em> : "—"}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                    {!histFiltroData && meusCheckins.length > 30 && (
+                      <p className="px-4 py-2 text-center text-xs text-muted-foreground">
+                        Mostrando os 30 mais recentes. Use o filtro de data para ver outros.
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            </Section>
+          );
+        })()}
+
         {/* Caixinha de sugestão */}
         <Section
           titulo="Caixinha de sugestão"
@@ -515,36 +724,36 @@ function Painel() {
           collapsible
           defaultOpen
         >
-          <div className="grid max-w-2xl gap-4">
-            {/* icon header */}
-            <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-kt-soft">
-                <Inbox className="h-6 w-6 text-kt" />
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Sua sugestão é completamente anônima — nenhum dado pessoal é vinculado ao envio.
-                Usamos a unidade só para entender o contexto.
-              </p>
-            </div>
-
-            {sugEnviado ? (
-              <div className="flex flex-col items-center gap-3 rounded-2xl border border-kt/30 bg-kt-soft py-8 text-center">
-                <Inbox className="h-10 w-10 animate-bounce text-kt" />
-                <p className="text-lg font-semibold text-kt">📬 Sugestão enviada!</p>
+          <div className="grid gap-6 lg:grid-cols-[1fr_auto]">
+            <div className="grid gap-4">
+              {/* icon header */}
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-kt-soft">
+                  <Inbox className="h-6 w-6 text-kt" />
+                </div>
                 <p className="text-sm text-muted-foreground">
-                  Obrigado por contribuir com a equipe.
+                  Sua sugestão é completamente anônima — nenhum dado pessoal é vinculado ao envio.
+                  Usamos a unidade só para entender o contexto.
                 </p>
               </div>
-            ) : (
-              <>
-                <div className="grid gap-2">
-                  <Label>Sua sugestão é sobre:</Label>
-                  <div className="flex flex-wrap gap-2">
-                    {SUGESTAO_CATEGORIAS.map((cat) => (
-                      <div key={cat} className="flex flex-col items-start gap-0.5">
+
+              {sugEnviado ? (
+                <div className="flex flex-col items-center gap-3 rounded-2xl border border-kt/30 bg-kt-soft py-8 text-center">
+                  <Inbox className="h-10 w-10 animate-bounce text-kt" />
+                  <p className="text-lg font-semibold text-kt">📬 Sugestão enviada!</p>
+                  <p className="text-sm text-muted-foreground">
+                    Obrigado por contribuir com a equipe.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <div className="grid gap-2">
+                    <Label>Sua sugestão é sobre:</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {SUGESTAO_CATEGORIAS.map((cat) => (
                         <button
+                          key={cat}
                           onClick={() => setSugCat(cat)}
-                          title={SUG_DICAS[cat]}
                           className={`rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors ${
                             sugCat === cat
                               ? "border-kt bg-kt-soft text-kt"
@@ -553,45 +762,52 @@ function Painel() {
                         >
                           {cat}
                         </button>
-                        {sugCat === cat && SUG_DICAS[cat] && (
-                          <p className="px-1 text-xs text-muted-foreground">{SUG_DICAS[cat]}</p>
-                        )}
-                      </div>
-                    ))}
+                      ))}
+                    </div>
+                    {SUG_DICAS[sugCat] && (
+                      <p className="text-xs text-muted-foreground">{SUG_DICAS[sugCat]}</p>
+                    )}
                   </div>
-                </div>
-                <Textarea
-                  rows={4}
-                  maxLength={800}
-                  placeholder="Conte sua ideia, elogio ou observação..."
-                  value={sugMsg}
-                  onChange={(e) => setSugMsg(e.target.value)}
-                />
-                <div>
-                  <Button
-                    className="rounded-full"
-                    disabled={!sugMsg.trim()}
-                    onClick={() => {
-                      setSugestoes([
-                        {
-                          id: uid(),
-                          categoria: sugCat,
-                          mensagem: sugMsg.trim(),
-                          filial: session.filial,
-                          ts: Date.now(),
-                        },
-                        ...sugestoes,
-                      ]);
-                      setSugMsg("");
-                      setSugEnviado(true);
-                      setTimeout(() => setSugEnviado(false), 2500);
-                    }}
-                  >
-                    Enviar anonimamente
-                  </Button>
-                </div>
-              </>
-            )}
+                  <Textarea
+                    rows={4}
+                    maxLength={800}
+                    placeholder="Conte sua ideia, elogio ou observação..."
+                    value={sugMsg}
+                    onChange={(e) => setSugMsg(e.target.value)}
+                  />
+                  <div>
+                    <Button
+                      className="rounded-full"
+                      disabled={!sugMsg.trim()}
+                      onClick={() => {
+                        setSugestoes([
+                          {
+                            id: uid(),
+                            categoria: sugCat,
+                            mensagem: sugMsg.trim(),
+                            filial: session.filial,
+                            ts: Date.now(),
+                          },
+                          ...sugestoes,
+                        ]);
+                        setSugMsg("");
+                        setSugEnviado(true);
+                        setTimeout(() => setSugEnviado(false), 2500);
+                      }}
+                    >
+                      Enviar anonimamente
+                    </Button>
+                  </div>
+                </>
+              )}
+            </div>
+            {/* Floating icon — visible on large screens */}
+            <div className="hidden items-center justify-center lg:flex">
+              <Inbox
+                className="h-36 w-36 text-kt/15"
+                style={{ animation: "kt-icon-float 3s ease-in-out infinite" }}
+              />
+            </div>
           </div>
         </Section>
 
@@ -603,22 +819,23 @@ function Painel() {
           collapsible
           defaultOpen
         >
-          <div className="grid max-w-2xl gap-4">
-            {/* icon header */}
-            <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-muted">
-                <Mail className="h-6 w-6 text-muted-foreground" />
+          <div className="grid gap-6 lg:grid-cols-[1fr_auto]">
+            <div className="grid gap-4">
+              {/* icon header */}
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-muted">
+                  <Mail className="h-6 w-6 text-muted-foreground" />
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Seu gestor recebe o feedback pelo painel. Escolha se quer se identificar ou não.
+                </p>
               </div>
-              <p className="text-sm text-muted-foreground">
-                Seu gestor recebe o feedback pelo painel. Escolha se quer se identificar ou não.
-              </p>
-            </div>
-            <div className="grid gap-2">
-              <Label>Você quer se identificar?</Label>
-              <div className="flex flex-wrap gap-2">
-                {(["Anônimo", "Com meu nome"] as const).map((op) => (
-                  <div key={op} className="flex flex-col gap-0.5">
+              <div className="grid gap-2">
+                <Label>Você quer se identificar?</Label>
+                <div className="flex flex-wrap gap-2">
+                  {(["Anônimo", "Com meu nome"] as const).map((op) => (
                     <button
+                      key={op}
                       onClick={() => setFbAnon(op === "Anônimo")}
                       className={`rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors ${
                         (op === "Anônimo") === fbAnon
@@ -628,21 +845,22 @@ function Painel() {
                     >
                       {op}
                     </button>
-                    {op === "Com meu nome" && !fbAnon && (
-                      <p className="px-1 text-xs text-muted-foreground">
-                        O gestor verá seu nome vinculado ao feedback.
-                      </p>
-                    )}
-                  </div>
-                ))}
+                  ))}
+                </div>
+                {fbAnon ? (
+                  <p className="text-xs text-muted-foreground">Sua identidade não será revelada.</p>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    O gestor verá seu nome vinculado ao feedback.
+                  </p>
+                )}
               </div>
-            </div>
-            <div className="grid gap-2">
-              <Label>Tipo de feedback</Label>
-              <div className="flex flex-wrap gap-2">
-                {FEEDBACK_TIPOS.map((tipo) => (
-                  <div key={tipo} className="flex flex-col gap-0.5">
+              <div className="grid gap-2">
+                <Label>Tipo de feedback</Label>
+                <div className="flex flex-wrap gap-2">
+                  {FEEDBACK_TIPOS.map((tipo) => (
                     <button
+                      key={tipo}
                       onClick={() => setFbTipo(tipo)}
                       className={`rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors ${
                         fbTipo === tipo
@@ -652,43 +870,50 @@ function Painel() {
                     >
                       {tipo}
                     </button>
-                    {fbTipo === tipo && FB_DESC[tipo] && (
-                      <p className="px-1 text-xs text-muted-foreground">{FB_DESC[tipo]}</p>
-                    )}
-                  </div>
-                ))}
+                  ))}
+                </div>
+                {FB_DESC[fbTipo] && (
+                  <p className="text-xs text-muted-foreground">{FB_DESC[fbTipo]}</p>
+                )}
+              </div>
+              <Textarea
+                rows={4}
+                maxLength={800}
+                placeholder="Escreva para seu gestor..."
+                value={fbMsg}
+                onChange={(e) => setFbMsg(e.target.value)}
+              />
+              <div>
+                <Button
+                  className="rounded-full"
+                  disabled={!fbMsg.trim()}
+                  onClick={() => {
+                    setFeedbacks([
+                      {
+                        id: uid(),
+                        tipo: fbTipo,
+                        mensagem: fbMsg.trim(),
+                        anonimo: fbAnon,
+                        autor: fbAnon ? "Anônimo" : session.nome,
+                        filial: session.filial,
+                        ts: Date.now(),
+                      },
+                      ...feedbacks,
+                    ]);
+                    setFbMsg("");
+                    toast.success("Feedback enviado ao seu gestor.");
+                  }}
+                >
+                  Enviar feedback ao gestor
+                </Button>
               </div>
             </div>
-            <Textarea
-              rows={4}
-              maxLength={800}
-              placeholder="Escreva para seu gestor..."
-              value={fbMsg}
-              onChange={(e) => setFbMsg(e.target.value)}
-            />
-            <div>
-              <Button
-                className="rounded-full"
-                disabled={!fbMsg.trim()}
-                onClick={() => {
-                  setFeedbacks([
-                    {
-                      id: uid(),
-                      tipo: fbTipo,
-                      mensagem: fbMsg.trim(),
-                      anonimo: fbAnon,
-                      autor: fbAnon ? "Anônimo" : session.nome,
-                      filial: session.filial,
-                      ts: Date.now(),
-                    },
-                    ...feedbacks,
-                  ]);
-                  setFbMsg("");
-                  toast.success("Feedback enviado ao seu gestor.");
-                }}
-              >
-                Enviar feedback ao gestor
-              </Button>
+            {/* Floating icon */}
+            <div className="hidden items-center justify-center lg:flex">
+              <Mail
+                className="h-36 w-36 text-muted-foreground/10"
+                style={{ animation: "kt-icon-float 3.5s ease-in-out infinite" }}
+              />
             </div>
           </div>
         </Section>

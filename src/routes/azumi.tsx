@@ -465,6 +465,11 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
   const [novaAnotacaoCanal, setNovaAnotacaoCanal] = useState<
     "WhatsApp" | "E-mail" | "Presencial" | ""
   >("");
+  const [novaAnotacaoConsultor, setNovaAnotacaoConsultor] = useState("");
+  const [novaAnotacaoEnvolveGestor, setNovaAnotacaoEnvolveGestor] = useState(false);
+  const [novaAnotacaoNomeGestor, setNovaAnotacaoNomeGestor] = useState("");
+  const [obsSugestaoId, setObsSugestaoId] = useState<string | null>(null);
+  const [obsSugestaoTexto, setObsSugestaoTexto] = useState("");
 
   // CSV import state (now in Dialog)
   const [csvOpen, setCsvOpen] = useState(false);
@@ -1256,26 +1261,61 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
                               >
                                 <td colSpan={6} className="px-4 py-3">
                                   {anotacoesRow.length > 0 && (
-                                    <div className="mb-2 grid gap-1.5">
-                                      {anotacoesRow.map((n) => (
-                                        <div
-                                          key={n.id}
-                                          className="rounded-xl bg-card px-3 py-2 text-xs"
-                                        >
-                                          <p className="text-foreground">{n.texto}</p>
-                                          <p className="mt-0.5 text-muted-foreground">
-                                            {n.canal && (
-                                              <span className="mr-1 font-medium">{n.canal} ·</span>
-                                            )}
-                                            {new Date(n.criadoEm).toLocaleString("pt-BR", {
-                                              day: "2-digit",
-                                              month: "short",
-                                              hour: "2-digit",
-                                              minute: "2-digit",
-                                            })}
-                                          </p>
-                                        </div>
-                                      ))}
+                                    <div className="mb-3 overflow-x-auto rounded-xl border border-border">
+                                      <table className="w-full text-xs">
+                                        <thead>
+                                          <tr className="border-b border-border bg-muted/30">
+                                            <th className="px-3 py-2 text-left font-medium">
+                                              Anotação
+                                            </th>
+                                            <th className="px-3 py-2 text-left font-medium">
+                                              Canal
+                                            </th>
+                                            <th className="px-3 py-2 text-left font-medium">
+                                              Data/Hora
+                                            </th>
+                                            <th className="px-3 py-2 text-left font-medium">
+                                              Consultor
+                                            </th>
+                                            <th className="px-3 py-2 text-left font-medium">
+                                              Gestor
+                                            </th>
+                                          </tr>
+                                        </thead>
+                                        <tbody>
+                                          {anotacoesRow.map((n) => (
+                                            <tr
+                                              key={n.id}
+                                              className="border-b border-border last:border-0"
+                                            >
+                                              <td className="max-w-[200px] px-3 py-2">{n.texto}</td>
+                                              <td className="px-3 py-2 text-muted-foreground">
+                                                {n.canal ?? "—"}
+                                              </td>
+                                              <td className="whitespace-nowrap px-3 py-2 text-muted-foreground">
+                                                {new Date(n.criadoEm).toLocaleString("pt-BR", {
+                                                  day: "2-digit",
+                                                  month: "short",
+                                                  hour: "2-digit",
+                                                  minute: "2-digit",
+                                                })}
+                                              </td>
+                                              <td className="px-3 py-2 text-muted-foreground">
+                                                {n.consultor ?? "—"}
+                                              </td>
+                                              <td className="px-3 py-2">
+                                                {n.envolveGestor ? (
+                                                  <span className="text-warn">
+                                                    sim{n.nomeGestor ? ` (${n.nomeGestor})` : ""}
+                                                  </span>
+                                                ) : (
+                                                  "—"
+                                                )}
+                                              </td>
+                                            </tr>
+                                          ))}
+                                        </tbody>
+                                      </table>
                                     </div>
                                   )}
                                   {anotandoId === a.id ? (
@@ -1288,21 +1328,68 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
                                         value={novaAnotacaoTexto}
                                         onChange={(e) => setNovaAnotacaoTexto(e.target.value)}
                                       />
-                                      <div className="flex flex-wrap gap-1.5">
-                                        {(["WhatsApp", "E-mail", "Presencial"] as const).map(
-                                          (c) => (
-                                            <button
-                                              key={c}
-                                              onClick={() =>
-                                                setNovaAnotacaoCanal((prev) =>
-                                                  prev === c ? "" : c,
-                                                )
-                                              }
-                                              className={`rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors ${novaAnotacaoCanal === c ? "border-az bg-az-soft text-az" : "border-border"}`}
-                                            >
-                                              {c}
-                                            </button>
-                                          ),
+                                      <div className="grid grid-cols-2 gap-2">
+                                        <div>
+                                          <p className="mb-1 text-[11px] font-medium text-muted-foreground">
+                                            Canal
+                                          </p>
+                                          <div className="flex flex-wrap gap-1">
+                                            {(["WhatsApp", "E-mail", "Presencial"] as const).map(
+                                              (c) => (
+                                                <button
+                                                  key={c}
+                                                  onClick={() =>
+                                                    setNovaAnotacaoCanal((prev) =>
+                                                      prev === c ? "" : c,
+                                                    )
+                                                  }
+                                                  className={`rounded-full border px-2 py-0.5 text-[11px] font-medium transition-colors ${novaAnotacaoCanal === c ? "border-az bg-az-soft text-az" : "border-border"}`}
+                                                >
+                                                  {c}
+                                                </button>
+                                              ),
+                                            )}
+                                          </div>
+                                        </div>
+                                        <div>
+                                          <p className="mb-1 text-[11px] font-medium text-muted-foreground">
+                                            Consultor responsável
+                                          </p>
+                                          <input
+                                            className="w-full rounded-lg border border-border bg-card px-2 py-1 text-xs focus:outline-none"
+                                            placeholder="Nome do consultor..."
+                                            value={novaAnotacaoConsultor}
+                                            onChange={(e) =>
+                                              setNovaAnotacaoConsultor(e.target.value)
+                                            }
+                                          />
+                                        </div>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <input
+                                          id={`envolve-gestor-${a.id}`}
+                                          type="checkbox"
+                                          checked={novaAnotacaoEnvolveGestor}
+                                          onChange={(e) =>
+                                            setNovaAnotacaoEnvolveGestor(e.target.checked)
+                                          }
+                                          className="h-3.5 w-3.5"
+                                        />
+                                        <label
+                                          htmlFor={`envolve-gestor-${a.id}`}
+                                          className="text-xs"
+                                        >
+                                          Envolveu o gestor
+                                        </label>
+                                        {novaAnotacaoEnvolveGestor && (
+                                          <input
+                                            className="ml-2 rounded-lg border border-border bg-card px-2 py-1 text-xs focus:outline-none"
+                                            placeholder="Nome do gestor..."
+                                            value={novaAnotacaoNomeGestor}
+                                            onChange={(e) =>
+                                              setNovaAnotacaoNomeGestor(e.target.value)
+                                            }
+                                          />
                                         )}
                                       </div>
                                       <div className="flex gap-2">
@@ -1323,11 +1410,25 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
                                                         "WhatsApp" | "E-mail" | "Presencial",
                                                     }
                                                   : {}),
+                                                ...(novaAnotacaoConsultor
+                                                  ? { consultor: novaAnotacaoConsultor }
+                                                  : {}),
+                                                ...(novaAnotacaoEnvolveGestor
+                                                  ? {
+                                                      envolveGestor: true,
+                                                      ...(novaAnotacaoNomeGestor
+                                                        ? { nomeGestor: novaAnotacaoNomeGestor }
+                                                        : {}),
+                                                    }
+                                                  : {}),
                                                 criadoEm: Date.now(),
                                               },
                                             ]);
                                             setNovaAnotacaoTexto("");
                                             setNovaAnotacaoCanal("");
+                                            setNovaAnotacaoConsultor("");
+                                            setNovaAnotacaoEnvolveGestor(false);
+                                            setNovaAnotacaoNomeGestor("");
                                             setAnotandoId(null);
                                           }}
                                         >
@@ -1341,6 +1442,9 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
                                             setAnotandoId(null);
                                             setNovaAnotacaoTexto("");
                                             setNovaAnotacaoCanal("");
+                                            setNovaAnotacaoConsultor("");
+                                            setNovaAnotacaoEnvolveGestor(false);
+                                            setNovaAnotacaoNomeGestor("");
                                           }}
                                         >
                                           Cancelar
@@ -1412,32 +1516,19 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
                           {fmtData(s.ts)}
                         </td>
                         <td className="max-w-xs px-4 py-3 text-muted-foreground">{s.mensagem}</td>
-                        <td className="min-w-[200px] px-4 py-2">
-                          <div className="flex flex-wrap items-center gap-1.5">
-                            {s.status && (
-                              <span
-                                className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
-                                  s.status === "enviado-rh"
-                                    ? "bg-success-soft text-success"
-                                    : s.status === "para-socios"
-                                      ? "bg-az-soft text-az"
-                                      : s.status === "considerar-depois"
-                                        ? "bg-warn-soft text-warn"
-                                        : "bg-muted text-muted-foreground"
-                                }`}
-                              >
-                                {s.status === "enviado-rh"
-                                  ? "Enviado RH"
-                                  : s.status === "para-socios"
-                                    ? "Para sócios"
-                                    : s.status === "considerar-depois"
-                                      ? "Considerar depois"
-                                      : "Desconsiderado"}
-                              </span>
-                            )}
-                          </div>
+                        <td className="min-w-[220px] px-4 py-2">
                           <select
-                            className="mt-1 w-full rounded-lg border border-border bg-card px-2 py-1 text-xs focus:outline-none"
+                            className={`w-full rounded-lg border px-2 py-1 text-xs focus:outline-none ${
+                              s.status === "enviado-rh"
+                                ? "border-success/30 bg-success-soft text-success"
+                                : s.status === "para-socios"
+                                  ? "border-az/30 bg-az-soft text-az"
+                                  : s.status === "considerar-depois"
+                                    ? "border-warn/30 bg-warn-soft text-warn"
+                                    : s.status === "desconsiderado"
+                                      ? "border-border bg-muted text-muted-foreground"
+                                      : "border-border bg-card"
+                            }`}
                             value={s.status ?? ""}
                             onChange={(e) => {
                               const v = e.target.value as
@@ -1453,6 +1544,7 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
                                     : x,
                                 ),
                               );
+                              if (v) setObsSugestaoId(s.id);
                             }}
                           >
                             <option value="">— Sem status —</option>
@@ -1464,6 +1556,51 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
                           {s.statusTs && (
                             <p className="mt-0.5 text-[10px] text-muted-foreground">
                               {fmtData(s.statusTs)}
+                            </p>
+                          )}
+                          {obsSugestaoId === s.id && (
+                            <div className="mt-1.5 grid gap-1">
+                              <input
+                                autoFocus
+                                className="w-full rounded-lg border border-border bg-card px-2 py-1 text-xs focus:outline-none"
+                                placeholder="Observação..."
+                                value={obsSugestaoTexto}
+                                onChange={(e) => setObsSugestaoTexto(e.target.value)}
+                              />
+                              <div className="flex gap-1">
+                                <button
+                                  className="rounded-full bg-az-soft px-2 py-0.5 text-[11px] font-medium text-az"
+                                  onClick={() => {
+                                    if (obsSugestaoTexto.trim()) {
+                                      setSugestoes((prev) =>
+                                        prev.map((x) =>
+                                          x.id === s.id
+                                            ? { ...x, observacao: obsSugestaoTexto.trim() }
+                                            : x,
+                                        ),
+                                      );
+                                    }
+                                    setObsSugestaoId(null);
+                                    setObsSugestaoTexto("");
+                                  }}
+                                >
+                                  Salvar
+                                </button>
+                                <button
+                                  className="text-[11px] text-muted-foreground hover:underline"
+                                  onClick={() => {
+                                    setObsSugestaoId(null);
+                                    setObsSugestaoTexto("");
+                                  }}
+                                >
+                                  Pular
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                          {s.observacao && obsSugestaoId !== s.id && (
+                            <p className="mt-1 text-[10px] italic text-muted-foreground">
+                              "{s.observacao}"
                             </p>
                           )}
                         </td>
@@ -1625,9 +1762,13 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
                   doc.filial === "todas"
                     ? colaboradores
                     : colaboradores.filter((c) => c.filial === doc.filial);
-                const nuncaAbriram = colabsFilial.filter(
+                const nuncaAbriramList = colabsFilial.filter(
                   (c) => !nomesAssinantes.has(c.nome) && !nomesLeram.has(c.nome),
-                ).length;
+                );
+                const leuSemAssinarList = colabsFilial.filter(
+                  (c) => !nomesAssinantes.has(c.nome) && nomesLeram.has(c.nome),
+                );
+                const assinantesList = assinaturas.filter((a) => a.politica === doc.id);
                 return (
                   <div
                     key={doc.id}
@@ -1677,21 +1818,67 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
                           </button>
                         </div>
                       </div>
+                      {/* Summary badges */}
                       <div className="mt-auto flex flex-wrap gap-2 pt-3 text-xs">
                         <span className="flex items-center gap-1 rounded-full bg-success-soft px-2 py-0.5 text-success">
                           <Check className="h-3 w-3" /> {nomesAssinantes.size} assinaram
                         </span>
-                        {nomesLeram.size - nomesAssinantes.size > 0 && (
+                        {leuSemAssinarList.length > 0 && (
                           <span className="rounded-full bg-warn-soft px-2 py-0.5 text-warn">
-                            {nomesLeram.size - nomesAssinantes.size} leram, não assinaram
+                            {leuSemAssinarList.length} leram
                           </span>
                         )}
-                        {nuncaAbriram > 0 && (
+                        {nuncaAbriramList.length > 0 && (
                           <span className="rounded-full bg-muted px-2 py-0.5 text-muted-foreground">
-                            {nuncaAbriram} nunca abriram
+                            {nuncaAbriramList.length} não abriram
                           </span>
                         )}
                       </div>
+                      {/* Compact status table */}
+                      {colabsFilial.length > 0 && (
+                        <div className="mt-3 overflow-x-auto rounded-xl border border-border">
+                          <table className="w-full text-xs">
+                            <thead>
+                              <tr className="border-b border-border bg-muted/30">
+                                <th className="px-2 py-1.5 text-left font-medium">Nome</th>
+                                <th className="px-2 py-1.5 text-left font-medium">Status</th>
+                                <th className="px-2 py-1.5 text-left font-medium">Data</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {colabsFilial.map((c) => {
+                                const assinou = nomesAssinantes.has(c.nome);
+                                const leu = !assinou && nomesLeram.has(c.nome);
+                                const tsA = assinantesList.find((a) => a.nome === c.nome)?.ts;
+                                const tsL = leituras.find(
+                                  (l) => l.documentoId === doc.id && l.nome === c.nome,
+                                )?.ts;
+                                return (
+                                  <tr key={c.id} className="border-b border-border last:border-0">
+                                    <td className="px-2 py-1.5">{c.nome.split(" ")[0]}</td>
+                                    <td className="px-2 py-1.5">
+                                      {assinou ? (
+                                        <span className="text-success">✓ Assinou</span>
+                                      ) : leu ? (
+                                        <span className="text-warn">Leu</span>
+                                      ) : (
+                                        <span className="text-muted-foreground">—</span>
+                                      )}
+                                    </td>
+                                    <td className="px-2 py-1.5 text-muted-foreground">
+                                      {assinou && tsA
+                                        ? fmtData(tsA)
+                                        : leu && tsL
+                                          ? fmtData(tsL)
+                                          : "—"}
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
