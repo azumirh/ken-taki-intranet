@@ -505,11 +505,11 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
   return (
     <AppShell onLogout={onLogout}>
       <div className="grid gap-5">
-        <div>
-          <h1 className="text-2xl font-extrabold sm:text-3xl">
+        <div className="text-center sm:text-left">
+          <h1 className="text-3xl font-extrabold leading-tight sm:text-3xl">
             👋 Olá, {session.nome.split(" ")[0]}!
           </h1>
-          <p className="mt-0.5 text-sm text-muted-foreground">
+          <p className="mt-1 text-sm text-muted-foreground">
             Bem-vindo(a) à intranet do Ken Taki × Azumi RH
           </p>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -517,6 +517,7 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
             <strong className="text-foreground">{filialNome(session.filial)}</strong>
           </p>
         </div>
+
 
         <div className="grid gap-4 sm:grid-cols-3">
           {[
