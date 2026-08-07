@@ -31,7 +31,7 @@ const POST_IT_BG: Record<MuralTipo, string> = {
   aniversario: "bg-success-soft/60 border-success/20",
 };
 
-const ROTACOES = ["-rotate-1", "rotate-0", "rotate-1"] as const;
+const ROTACOES = ["sm:-rotate-1", "sm:rotate-0", "sm:rotate-1"] as const;
 
 function fmtEvento(iso: string) {
   const d = new Date(iso);

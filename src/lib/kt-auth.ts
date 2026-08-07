@@ -61,8 +61,11 @@ export function useKtAuth() {
   }
 
   async function esqueceuSenha(email: string) {
-    const redirectTo = typeof window !== "undefined" ? `${window.location.origin}/auth` : undefined;
-    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo });
+    const redirectTo = typeof window !== "undefined" ? `${window.location.origin}/auth` : "";
+    const { error } = await supabase.auth.resetPasswordForEmail(
+      email.trim(),
+      redirectTo ? { redirectTo } : {},
+    );
     if (error) throw error;
   }
 

@@ -53,18 +53,19 @@ function Index() {
   return (
     <AppShell>
       <section className="grid items-center gap-8 lg:grid-cols-[1.05fr_0.95fr]">
-        <div className="min-w-0">
+        <div className="min-w-0 text-center lg:text-left">
           <span className="inline-flex rounded-full bg-accent px-3 py-1 text-xs font-semibold text-accent-foreground">
             Intranet · Cristo Rei e Champagnat
           </span>
-          <h1 className="mt-4 text-3xl font-extrabold leading-tight sm:text-5xl">
+          <h1 className="mt-4 text-4xl font-extrabold leading-[1.1] sm:text-5xl">
             Tudo do time <span className="text-union">em um lugar só</span>
           </h1>
-          <p className="mt-4 max-w-xl text-base text-muted-foreground">
+          <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-muted-foreground lg:mx-0">
             Políticas para ler e assinar, mural da equipe, aniversariantes, clima e canais de escuta
             — simples no celular e completo no computador.
           </p>
         </div>
+
         <div className="surface overflow-hidden">
           <img
             src={heroHome}

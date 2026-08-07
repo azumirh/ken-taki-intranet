@@ -505,11 +505,11 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
   return (
     <AppShell onLogout={onLogout}>
       <div className="grid gap-5">
-        <div>
-          <h1 className="text-2xl font-extrabold sm:text-3xl">
+        <div className="text-center sm:text-left">
+          <h1 className="text-3xl font-extrabold leading-tight sm:text-3xl">
             👋 Olá, {session.nome.split(" ")[0]}!
           </h1>
-          <p className="mt-0.5 text-sm text-muted-foreground">
+          <p className="mt-1 text-sm text-muted-foreground">
             Bem-vindo(a) à intranet do Ken Taki × Azumi RH
           </p>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -517,6 +517,7 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
             <strong className="text-foreground">{filialNome(session.filial)}</strong>
           </p>
         </div>
+
 
         <div className="grid gap-4 sm:grid-cols-3">
           {[
@@ -952,7 +953,7 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
                       setFbFiltroColab(e.target.value);
                       setFbPagina(0);
                     }}
-                    className="h-9 w-48 text-sm"
+                    className="h-9 w-full text-sm sm:w-48"
                   />
                 </div>
                 {(fbFiltroMes !== "Todos" || fbFiltroColab) && (
@@ -973,7 +974,67 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
                 <EmptyState>Nenhum feedback corresponde aos filtros.</EmptyState>
               ) : (
                 <>
-                  <div className="overflow-x-auto rounded-2xl border border-border">
+                  {/* Mobile: cards */}
+                  <div className="grid gap-3 md:hidden">
+                    {fbPaginado.map((f) => (
+                      <div key={f.id} className="rounded-2xl border border-border p-4">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="rounded-full bg-kt-soft px-2.5 py-1 text-xs font-semibold text-kt">
+                            {f.tipo}
+                          </span>
+                          <span className="text-xs text-muted-foreground">{fmtData(f.ts)}</span>
+                        </div>
+                        <p className="mt-2 text-sm font-semibold">{f.autor}</p>
+                        <p className="mt-1 text-sm text-muted-foreground">{f.mensagem}</p>
+                        <div className="mt-3 grid gap-2">
+                          <select
+                            className={`w-full rounded-full border px-3 py-1.5 text-xs font-medium focus:outline-none ${
+                              f.status === "concluido"
+                                ? "border-success/30 bg-success-soft text-success"
+                                : f.status === "cancelado"
+                                  ? "border-destructive/30 bg-destructive/10 text-destructive"
+                                  : "border-warn/30 bg-warn-soft text-warn"
+                            }`}
+                            value={f.status ?? "em-andamento"}
+                            onChange={(e) =>
+                              setFeedbacks((prev) =>
+                                prev.map((x) =>
+                                  x.id === f.id
+                                    ? {
+                                        ...x,
+                                        status: e.target.value as
+                                          | "em-andamento"
+                                          | "concluido"
+                                          | "cancelado",
+                                        statusAlteradoEm: Date.now(),
+                                      }
+                                    : x,
+                                ),
+                              )
+                            }
+                          >
+                            <option value="em-andamento">Em andamento</option>
+                            <option value="concluido">Concluído</option>
+                            <option value="cancelado">Cancelado</option>
+                          </select>
+                          <input
+                            type="text"
+                            className="w-full rounded-lg border border-border bg-transparent px-3 py-2 text-xs text-muted-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-kt/30"
+                            placeholder="Adicionar comentário..."
+                            value={f.comentarioGestor ?? ""}
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              setFeedbacks((prev) =>
+                                prev.map((x) => (x.id === f.id ? { ...x, comentarioGestor: v } : x)),
+                              );
+                            }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="hidden overflow-x-auto rounded-2xl border border-border md:block">
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b border-border bg-muted/40">
@@ -1017,7 +1078,9 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
                                         ? {
                                             ...x,
                                             status: e.target.value as
-                                              "em-andamento" | "concluido" | "cancelado",
+                                              | "em-andamento"
+                                              | "concluido"
+                                              | "cancelado",
                                             statusAlteradoEm: Date.now(),
                                           }
                                         : x,
@@ -1056,6 +1119,7 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
                       </tbody>
                     </table>
                   </div>
+
                   {fbTotalPags > 1 && (
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-muted-foreground">
@@ -1100,7 +1164,8 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
           {daUnidade(sugestoes).length === 0 ? (
             <EmptyState>Nenhuma sugestão registrada ainda.</EmptyState>
           ) : (
-            <div className="overflow-x-auto rounded-2xl border border-border">
+            <div className="hidden overflow-x-auto rounded-2xl border border-border md:block">
+
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border bg-muted/40">
@@ -1158,6 +1223,47 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
               </table>
             </div>
           )}
+          {daUnidade(sugestoes).length > 0 && (
+            <div className="grid gap-3 md:hidden">
+              {daUnidade(sugestoes).map((s) => (
+                <div key={s.id} className="rounded-2xl border border-border p-4">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="rounded-full bg-az-soft px-2.5 py-1 text-xs font-semibold text-az">
+                      {s.categoria}
+                    </span>
+                    <span className="text-xs text-muted-foreground">{fmtData(s.ts)}</span>
+                  </div>
+                  <p className="mt-2 text-sm text-muted-foreground">{s.mensagem}</p>
+                  <select
+                    className="mt-3 w-full rounded-lg border border-border bg-card px-3 py-2 text-xs focus:outline-none"
+                    value={s.status ?? ""}
+                    onChange={(e) => {
+                      const v = e.target.value as
+                        | "enviado-rh"
+                        | "desconsiderado"
+                        | "considerar-depois"
+                        | "para-socios"
+                        | "";
+                      setSugestoes((prev) =>
+                        prev.map((x) =>
+                          x.id === s.id
+                            ? { ...x, ...(v ? { status: v, statusTs: Date.now() } : {}) }
+                            : x,
+                        ),
+                      );
+                    }}
+                  >
+                    <option value="">— Sem status —</option>
+                    <option value="enviado-rh">Enviado para o RH</option>
+                    <option value="para-socios">Levado para os sócios</option>
+                    <option value="considerar-depois">Considerar em outro momento</option>
+                    <option value="desconsiderado">Desconsiderado</option>
+                  </select>
+                </div>
+              ))}
+            </div>
+          )}
+
         </Section>
 
         <Section
@@ -1439,7 +1545,73 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
                   ))}
                 </div>
               )}
-              <div className="overflow-x-auto rounded-2xl border border-border">
+              {/* Mobile: cards */}
+              <div className="grid gap-3 md:hidden">
+                {equipeFiltrada.map((c) => {
+                  const anivEsseMes = aniversariantesEquipe.some((a) => a.id === c.id);
+                  return (
+                    <div key={c.id} className="rounded-2xl border border-border p-4">
+                      <div className="flex items-center gap-3">
+                        <Avatar nome={c.nome} foto={c.foto} size={40} />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate font-semibold">
+                            {c.nome} {anivEsseMes && <span title="Aniversário este mês">🎂</span>}
+                          </p>
+                          <p className="truncate text-xs text-muted-foreground">{c.cargo}</p>
+                        </div>
+                      </div>
+                      <dl className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                        <div>
+                          <dt className="text-muted-foreground">Idade</dt>
+                          <dd className="font-medium">{idade(c.nascimento)} anos</dd>
+                        </div>
+                        <div>
+                          <dt className="text-muted-foreground">Tempo de casa</dt>
+                          <dd className="font-medium">{tempoDeCasa(c.admissao)}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-muted-foreground">Nascimento</dt>
+                          <dd className="font-medium">
+                            {new Date(c.nascimento + "T00:00:00").toLocaleDateString("pt-BR")}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt className="text-muted-foreground">Admissão</dt>
+                          <dd className="font-medium">
+                            {new Date(c.admissao + "T00:00:00").toLocaleDateString("pt-BR")}
+                          </dd>
+                        </div>
+                      </dl>
+                      <div className="mt-3 grid grid-cols-2 gap-2">
+                        <button
+                          onClick={() => {
+                            setEditarTarget(c);
+                            setNomeCol(c.nome);
+                            setCpf3Col(c.cpf3);
+                            setCargoCol(c.cargo);
+                            setNascimentoCol(c.nascimento);
+                            setAdmissaoCol(c.admissao);
+                            setFotoCol(c.foto ?? "");
+                            setErroCol("");
+                          }}
+                          className="inline-flex items-center justify-center gap-1.5 rounded-full border border-border px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:border-kt hover:text-kt"
+                        >
+                          <UserPlus className="h-3.5 w-3.5" /> Editar
+                        </button>
+                        <button
+                          onClick={() => setDesligarTarget(c)}
+                          className="inline-flex items-center justify-center gap-1.5 rounded-full border border-border px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:border-destructive hover:text-destructive"
+                        >
+                          <UserMinus className="h-3.5 w-3.5" /> Desligar
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="hidden overflow-x-auto rounded-2xl border border-border md:block">
+
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-border bg-muted/40">

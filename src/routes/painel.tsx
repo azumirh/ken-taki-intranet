@@ -156,11 +156,11 @@ function Painel() {
     <AppShell>
       <div className="grid gap-5">
         {/* Header — nome + unidade em destaque */}
-        <div>
-          <h1 className="text-2xl font-extrabold sm:text-3xl">
+        <div className="text-center sm:text-left">
+          <h1 className="text-3xl font-extrabold leading-tight sm:text-3xl">
             👋 Olá, {session.nome.split(" ")[0]}!
           </h1>
-          <p className="mt-0.5 text-sm text-muted-foreground">
+          <p className="mt-1 text-sm text-muted-foreground">
             Bem-vindo(a) à intranet do Ken Taki × Azumi RH
           </p>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -171,18 +171,18 @@ function Painel() {
 
         {/* Precisa de apoio — movida para o topo */}
         <div className="overflow-hidden rounded-2xl border border-az/20 bg-gradient-to-br from-az-soft to-az/10">
-          <div className="flex items-center gap-3 border-b border-az/20 px-5 py-4 sm:px-7">
+          <div className="flex flex-col items-center gap-2 border-b border-az/20 px-5 py-4 text-center sm:flex-row sm:items-center sm:gap-3 sm:px-7 sm:text-left">
             <MessageCircle className="h-5 w-5 shrink-0 text-az" />
-            <div>
+            <div className="min-w-0">
               <h2 className="font-bold text-az">Precisa de apoio?</h2>
               <p className="text-xs text-muted-foreground">
                 Fale com a equipe Azumi RH — seu gestor não é identificado.
               </p>
             </div>
           </div>
-          <div className="flex flex-wrap justify-center gap-3 px-5 py-5 sm:justify-start sm:px-7">
+          <div className="grid gap-3 px-4 py-5 sm:flex sm:flex-wrap sm:justify-start sm:px-7">
             <Button
-              className="rounded-full bg-az text-white hover:bg-az/90"
+              className="w-full rounded-full bg-az text-white hover:bg-az/90 sm:w-auto"
               onClick={() => {
                 setAjuda([
                   {
@@ -198,7 +198,7 @@ function Painel() {
               }}
             >
               <MessageCircle className="h-4 w-4" />
-              Registrar pedido de apoio com a equipe Azumi RH
+              Registrar pedido de apoio
             </Button>
             <a
               href={`https://wa.me/${AZUMI_CONTACT.whatsapp}?text=${encodeURIComponent(
@@ -218,12 +218,13 @@ function Painel() {
                   ...ajuda,
                 ])
               }
-              className="inline-flex items-center gap-2 rounded-full bg-[#25D366] px-5 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#25D366] px-5 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 sm:w-auto"
             >
               <MessageCircle className="h-4 w-4" /> WhatsApp Azumi RH
             </a>
           </div>
         </div>
+
 
         {/* Alerta persistente: 2+ check-ins negativos no mesmo dia */}
         {alertaCritico && (
@@ -635,14 +636,14 @@ function Painel() {
               defaultOpen={false}
             >
               <div className="grid gap-3">
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <Label htmlFor="hist-data">Filtrar por data</Label>
                   <input
                     id="hist-data"
                     type="date"
                     value={histFiltroData}
                     onChange={(e) => setHistFiltroData(e.target.value)}
-                    className="rounded-lg border border-border bg-card px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-kt/30"
+                    className="min-w-0 flex-1 rounded-lg border border-border bg-card px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-kt/30 sm:flex-none"
                   />
                   {histFiltroData && (
                     <button
@@ -656,8 +657,49 @@ function Painel() {
                 {filtrados.length === 0 ? (
                   <EmptyState>Nenhum check-in nessa data.</EmptyState>
                 ) : (
-                  <div className="overflow-x-auto rounded-2xl border border-border">
+                  <>
+                  {/* Mobile: lista */}
+                  <div className="grid gap-2 sm:hidden">
+                    {filtrados.map((c) => {
+                      const h = HUMORES.find((x) => x.id === c.humor);
+                      return (
+                        <div key={c.id} className="rounded-xl border border-border p-3">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <span
+                              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${
+                                h?.categoria === "positiva"
+                                  ? "bg-success-soft text-success"
+                                  : h?.categoria === "negativa"
+                                    ? "bg-destructive/10 text-destructive"
+                                    : "bg-warn-soft text-warn"
+                              }`}
+                            >
+                              {h?.emoji} {h?.label}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {new Date(c.ts).toLocaleDateString("pt-BR", {
+                                day: "2-digit",
+                                month: "short",
+                              })}
+                              {" · "}
+                              {new Date(c.ts).toLocaleTimeString("pt-BR", {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </span>
+                          </div>
+                          {c.recado && (
+                            <p className="mt-2 text-sm text-muted-foreground">
+                              <em>"{c.recado}"</em>
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="hidden overflow-x-auto rounded-2xl border border-border sm:block">
                     <table className="w-full text-sm">
+
                       <thead>
                         <tr className="border-b border-border bg-muted/40">
                           <th className="px-4 py-3 text-left font-semibold">Humor</th>
@@ -710,6 +752,7 @@ function Painel() {
                       </p>
                     )}
                   </div>
+                  </>
                 )}
               </div>
             </Section>
