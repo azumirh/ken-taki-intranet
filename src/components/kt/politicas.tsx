@@ -19,7 +19,9 @@ export function Documentos({
   const [assinaturas, setAssinaturas] = useAssinaturas();
   const [leituras, setLeituras] = useLeituras();
 
-  const docs = documentos.filter((d) => d.filial === session.filial || d.filial === "todas");
+  const docs = documentos.filter(
+    (d) => (d.filial === session.filial || d.filial === "todas") && d.categoria !== "gestao",
+  );
   const leu = (id: string) => leituras.some((l) => l.documentoId === id && l.nome === session.nome);
   const assinou = (id: string) =>
     assinaturas.some((a) => a.politica === id && a.nome === session.nome);

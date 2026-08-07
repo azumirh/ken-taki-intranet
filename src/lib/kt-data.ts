@@ -107,6 +107,7 @@ export type Documento = {
   corTag: string;
   textoTag: string;
   data: string;
+  categoria?: "todos" | "gestao" | undefined; // "gestao" = gestor only; default "todos"
 };
 
 export const DOCUMENTOS_SEED: Documento[] = [
@@ -118,6 +119,7 @@ export const DOCUMENTOS_SEED: Documento[] = [
     corTag: "#8a2058",
     textoTag: "Ética",
     data: "2025-09-01",
+    categoria: "todos",
   },
 ];
 

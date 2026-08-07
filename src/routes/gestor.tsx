@@ -333,6 +333,7 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
 
   // clima chart
   const [climaPeriodo, setClimaPeriodo] = useState<"7d" | "30d">("7d");
+  const [drillDia, setDrillDia] = useState<string | null>(null);
 
   // feedback filters
   const [fbPagina, setFbPagina] = useState(0);
@@ -353,6 +354,17 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
 
   // climate chart data
   const numDias = climaPeriodo === "7d" ? 7 : 30;
+  // check-ins from this unit that the gestor can see by name (private Azumi requests excluded)
+  // privacy rule: if someone chose "falar só com a Azumi" for a check-in (assunto = "Apoio - check-in negativo"),
+  // hide their name. Matched by same person + same hour bucket.
+  const apoioPrivadoSet = new Set(
+    daUnidade(ajuda)
+      .filter((a) => a.assunto === "Apoio - check-in negativo")
+      .map((a) => `${a.nome}:${Math.floor(a.ts / 3_600_000)}`),
+  );
+  const isPrivadoGestor = (c: { nome: string; ts: number }) =>
+    apoioPrivadoSet.has(`${c.nome}:${Math.floor(c.ts / 3_600_000)}`);
+
   const dadosCli = Array.from({ length: numDias }, (_, i) => {
     const d = new Date();
     d.setDate(d.getDate() - (numDias - 1 - i));
@@ -360,6 +372,7 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
     const doDia = meusCheckins.filter((c) => new Date(c.ts).toDateString() === ds);
     return {
       data: d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }),
+      dataStr: ds,
       Pos: doDia.filter((c) => HUMORES.find((h) => h.id === c.humor)?.categoria === "positiva")
         .length,
       Neu: doDia.filter((c) => HUMORES.find((h) => h.id === c.humor)?.categoria === "neutra")
@@ -368,6 +381,10 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
         .length,
     };
   });
+
+  const drillCheckins = drillDia
+    ? meusCheckins.filter((c) => new Date(c.ts).toDateString() === drillDia)
+    : [];
 
   const recadosRecentes = meusCheckins
     .filter((c) => c.recado)
@@ -536,9 +553,16 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
                     </button>
                   ))}
                 </div>
-                <div className="h-44 w-full">
+                <div className="h-44 w-full cursor-pointer">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={dadosCli} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
+                    <BarChart
+                      data={dadosCli}
+                      margin={{ top: 4, right: 4, bottom: 0, left: -20 }}
+                      onClick={(d) => {
+                        const ds = d?.activePayload?.[0]?.payload?.dataStr as string | undefined;
+                        if (ds) setDrillDia((prev) => (prev === ds ? null : ds));
+                      }}
+                    >
                       <XAxis dataKey="data" tick={{ fontSize: 10 }} />
                       <YAxis allowDecimals={false} tick={{ fontSize: 10 }} />
                       <Tooltip />
@@ -554,6 +578,52 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
+                <p className="text-center text-[11px] text-muted-foreground">
+                  Clique em uma barra para ver os check-ins do dia
+                </p>
+
+                {/* Drill-down */}
+                {drillDia && drillCheckins.length > 0 && (
+                  <div className="rounded-2xl border border-border bg-muted/50 p-4">
+                    <p className="mb-3 text-sm font-semibold">
+                      {new Date(drillDia).toLocaleDateString("pt-BR", {
+                        weekday: "long",
+                        day: "2-digit",
+                        month: "long",
+                      })}{" "}
+                      · {drillCheckins.length} check-in
+                      {drillCheckins.length > 1 ? "s" : ""}
+                    </p>
+                    <div className="grid gap-2">
+                      {drillCheckins.map((c) => {
+                        const h = HUMORES.find((x) => x.id === c.humor);
+                        const privado = isPrivadoGestor(c);
+                        return (
+                          <div key={c.id} className="flex items-center gap-2 text-sm">
+                            <span className="text-base">{h?.emoji}</span>
+                            <span
+                              className={`font-medium ${privado ? "italic text-muted-foreground" : ""}`}
+                            >
+                              {privado ? "— (pedido privado de apoio)" : c.nome}
+                            </span>
+                            <span className="ml-auto text-xs text-muted-foreground">
+                              {new Date(c.ts).toLocaleTimeString("pt-BR", {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <button
+                      className="mt-3 text-xs text-muted-foreground underline-offset-2 hover:underline"
+                      onClick={() => setDrillDia(null)}
+                    >
+                      Fechar
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 

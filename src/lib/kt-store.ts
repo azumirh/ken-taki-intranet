@@ -119,8 +119,14 @@ export type AjudaClick = {
   filial: string;
   assunto: string;
   ts: number;
-  nota?: string | undefined;
   status?: "em-andamento" | "resolvido" | undefined;
+};
+export type AnotacaoApoio = {
+  id: string;
+  pedidoId: string;
+  texto: string;
+  canal?: "WhatsApp" | "E-mail" | "Presencial" | undefined;
+  criadoEm: number;
 };
 export type Leitura = { documentoId: string; nome: string; filial: string; ts: number };
 
@@ -135,6 +141,7 @@ export const useFeedbacks = () => useStore<Feedback[]>("feedbacks", []);
 export const useVagas = () => useStore<Vaga[]>("vagas", []);
 export const usePesquisa = () => useStore<Pesquisa>("pesquisa", null);
 export const useAjuda = () => useStore<AjudaClick[]>("ajuda", []);
+export const useAnotacoesApoio = () => useStore<AnotacaoApoio[]>("anotacoes-apoio", []);
 export const useLeituras = () => useStore<Leitura[]>("leituras", []);
 
 export const uid = () => Math.random().toString(36).slice(2, 10);

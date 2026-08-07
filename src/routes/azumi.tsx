@@ -31,6 +31,7 @@ import {
   fmtData,
   uid,
   useAjuda,
+  useAnotacoesApoio,
   useAssinaturas,
   useCheckins,
   useColaboradores,
@@ -411,6 +412,7 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
   const [leituras] = useLeituras();
   const [sugestoes] = useSugestoes();
   const [ajuda, setAjuda] = useAjuda();
+  const [anotacoes, setAnotacoes] = useAnotacoesApoio();
   const [pesquisa, setPesquisa] = usePesquisa();
   const [noticias, setNoticias] = useNoticias();
   const [colaboradores, setColaboradores] = useColaboradores();
@@ -421,6 +423,7 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
   const [docOpen, setDocOpen] = useState(false);
   const [docTitulo, setDocTitulo] = useState("");
   const [docFilial, setDocFilial] = useState<FilialId | "todas">("todas");
+  const [docCategoria, setDocCategoria] = useState<"todos" | "gestao">("todos");
   const [docCorTag, setDocCorTag] = useState("#8a2058");
   const [docTextoTag, setDocTextoTag] = useState("");
   const [docUploading, setDocUploading] = useState(false);
@@ -449,6 +452,11 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
   // pedidos de apoio state
   const [filtroAjuda, setFiltroAjuda] = useState<string>("Todas");
   const [filtroStatus, setFiltroStatus] = useState<string>("Todos");
+  const [anotandoId, setAnotandoId] = useState<string | null>(null);
+  const [novaAnotacaoTexto, setNovaAnotacaoTexto] = useState("");
+  const [novaAnotacaoCanal, setNovaAnotacaoCanal] = useState<
+    "WhatsApp" | "E-mail" | "Presencial" | ""
+  >("");
 
   // CSV import state (now in Dialog)
   const [csvOpen, setCsvOpen] = useState(false);
@@ -529,6 +537,7 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
           corTag: docCorTag,
           textoTag: docTextoTag.trim(),
           data: new Date().toISOString().slice(0, 10),
+          categoria: docCategoria,
         },
         ...prev,
       ]);
@@ -536,6 +545,7 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
       setDocTextoTag("");
       setDocCorTag("#8a2058");
       setDocFilial("todas");
+      setDocCategoria("todos");
       setDocOpen(false);
       toast.success("Documento publicado com sucesso.");
     } catch (e) {
@@ -1089,15 +1099,30 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
                         >
                           {labelAssunto(a.assunto)}
                         </span>
-                        {a.status === "resolvido" ? (
-                          <span className="flex items-center gap-1 rounded-full bg-success-soft px-2.5 py-1 text-[11px] font-bold text-success">
-                            <Check className="h-3 w-3" /> Resolvido
-                          </span>
-                        ) : (
-                          <span className="rounded-full bg-warn-soft px-2.5 py-1 text-[11px] font-bold text-warn">
-                            Em andamento
-                          </span>
-                        )}
+                        {/* Status selector */}
+                        <select
+                          className={`rounded-full border px-2.5 py-1 text-[11px] font-bold focus:outline-none ${
+                            a.status === "resolvido"
+                              ? "border-success/30 bg-success-soft text-success"
+                              : "border-warn/30 bg-warn-soft text-warn"
+                          }`}
+                          value={a.status ?? "em-andamento"}
+                          onChange={(e) =>
+                            setAjuda((prev) =>
+                              prev.map((x) =>
+                                x.id === a.id
+                                  ? {
+                                      ...x,
+                                      status: e.target.value as "em-andamento" | "resolvido",
+                                    }
+                                  : x,
+                              ),
+                            )
+                          }
+                        >
+                          <option value="em-andamento">Em andamento</option>
+                          <option value="resolvido">Resolvido</option>
+                        </select>
                         <span className="font-semibold">
                           {a.nome} · {filialNome(a.filial)}
                         </span>
@@ -1110,31 +1135,104 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
                           })}
                         </span>
                       </div>
-                      <Textarea
-                        className="mt-3 text-xs"
-                        rows={2}
-                        placeholder="Nota interna / ação tomada (visível só para a Azumi RH)..."
-                        value={a.nota ?? ""}
-                        onChange={(e) => {
-                          const nota = e.target.value;
-                          setAjuda((prev) => prev.map((x) => (x.id === a.id ? { ...x, nota } : x)));
-                        }}
-                      />
-                      {a.status !== "resolvido" && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="mt-2 rounded-full border-success text-success hover:bg-success-soft"
-                          onClick={() =>
-                            setAjuda((prev) =>
-                              prev.map((x) =>
-                                x.id === a.id ? { ...x, status: "resolvido" as const } : x,
-                              ),
-                            )
-                          }
+                      {/* Annotation history */}
+                      {anotacoes.filter((n) => n.pedidoId === a.id).length > 0 && (
+                        <div className="mt-3 grid gap-1.5">
+                          {anotacoes
+                            .filter((n) => n.pedidoId === a.id)
+                            .sort((x, y) => x.criadoEm - y.criadoEm)
+                            .map((n) => (
+                              <div key={n.id} className="rounded-xl bg-muted px-3 py-2 text-xs">
+                                <p className="text-foreground">{n.texto}</p>
+                                <p className="mt-0.5 text-muted-foreground">
+                                  {n.canal && <span className="mr-1 font-medium">{n.canal} ·</span>}
+                                  {new Date(n.criadoEm).toLocaleString("pt-BR", {
+                                    day: "2-digit",
+                                    month: "short",
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  })}
+                                </p>
+                              </div>
+                            ))}
+                        </div>
+                      )}
+                      {/* Add annotation */}
+                      {anotandoId === a.id ? (
+                        <div className="mt-3 grid gap-2">
+                          <Textarea
+                            className="text-xs"
+                            rows={2}
+                            autoFocus
+                            placeholder="Descreva a ação tomada..."
+                            value={novaAnotacaoTexto}
+                            onChange={(e) => setNovaAnotacaoTexto(e.target.value)}
+                          />
+                          <div className="flex flex-wrap gap-1.5">
+                            {(["WhatsApp", "E-mail", "Presencial"] as const).map((c) => (
+                              <button
+                                key={c}
+                                onClick={() =>
+                                  setNovaAnotacaoCanal((prev) => (prev === c ? "" : c))
+                                }
+                                className={`rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                                  novaAnotacaoCanal === c
+                                    ? "border-az bg-az-soft text-az"
+                                    : "border-border"
+                                }`}
+                              >
+                                {c}
+                              </button>
+                            ))}
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              className="rounded-full"
+                              disabled={!novaAnotacaoTexto.trim()}
+                              onClick={() => {
+                                setAnotacoes((prev) => [
+                                  ...prev,
+                                  {
+                                    id: uid(),
+                                    pedidoId: a.id,
+                                    texto: novaAnotacaoTexto.trim(),
+                                    ...(novaAnotacaoCanal ? { canal: novaAnotacaoCanal } : {}),
+                                    criadoEm: Date.now(),
+                                  },
+                                ]);
+                                setNovaAnotacaoTexto("");
+                                setNovaAnotacaoCanal("");
+                                setAnotandoId(null);
+                              }}
+                            >
+                              Salvar anotação
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="rounded-full"
+                              onClick={() => {
+                                setAnotandoId(null);
+                                setNovaAnotacaoTexto("");
+                                setNovaAnotacaoCanal("");
+                              }}
+                            >
+                              Cancelar
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button
+                          className="mt-2 text-xs text-muted-foreground underline-offset-2 hover:underline"
+                          onClick={() => {
+                            setAnotandoId(a.id);
+                            setNovaAnotacaoTexto("");
+                            setNovaAnotacaoCanal("");
+                          }}
                         >
-                          <Check className="h-3.5 w-3.5" /> Registrar ação tomada
-                        </Button>
+                          + Adicionar anotação
+                        </button>
                       )}
                     </div>
                   ))
@@ -1161,6 +1259,7 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
                   setDocTextoTag("");
                   setDocCorTag("#8a2058");
                   setDocFilial("todas");
+                  setDocCategoria("todos");
                   setDocErro("");
                 }
               }}
@@ -1202,6 +1301,24 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
                           }`}
                         >
                           {f === "todas" ? "Todas" : filialNome(f)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label>Visibilidade</Label>
+                    <div className="flex gap-2">
+                      {(["todos", "gestao"] as const).map((c) => (
+                        <button
+                          key={c}
+                          onClick={() => setDocCategoria(c)}
+                          className={`rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors ${
+                            docCategoria === c
+                              ? "border-kt bg-kt-soft text-kt"
+                              : "border-border bg-card"
+                          }`}
+                        >
+                          {c === "todos" ? "Todos (colaboradores e gestores)" : "Só gestores"}
                         </button>
                       ))}
                     </div>
@@ -1280,6 +1397,11 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
                       >
                         {doc.textoTag}
                       </span>
+                      {doc.categoria === "gestao" && (
+                        <span className="absolute right-3 top-3 rounded-full bg-az px-2.5 py-1 text-[11px] font-bold text-white">
+                          Gestão
+                        </span>
+                      )}
                     </div>
                     <div className="flex flex-1 flex-col p-4">
                       <div className="flex items-start justify-between gap-2">
