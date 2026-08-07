@@ -13,13 +13,26 @@ function gerarSenhaTemp(): string {
   return `Ken@${num}${suf}`;
 }
 
+function validarServiceKey(key: string | undefined): string {
+  if (!key) throw new Error("SUPABASE_SERVICE_ROLE_KEY não configurada no servidor.");
+  try {
+    const payload = JSON.parse(atob(key.split(".")[1] ?? "")) as { role?: string };
+    if (payload.role !== "service_role") {
+      throw new Error(
+        `Chave com role="${payload.role}" — precisa ser a service_role key, não a anon key.`,
+      );
+    }
+  } catch (e) {
+    if (e instanceof Error && e.message.includes("role=")) throw e;
+    throw new Error("SUPABASE_SERVICE_ROLE_KEY não é um JWT válido.");
+  }
+  return key;
+}
+
 export const criarGestorFn = createServerFn({ method: "POST" })
   .validator((input: CriarGestorInput) => input)
   .handler(async ({ data }) => {
-    const serviceKey = process.env["SUPABASE_SERVICE_ROLE_KEY"];
-    if (!serviceKey) {
-      throw new Error("SUPABASE_SERVICE_ROLE_KEY não configurada no servidor.");
-    }
+    const serviceKey = validarServiceKey(process.env["SUPABASE_SERVICE_ROLE_KEY"]);
 
     const admin = createClient("https://nxmwhtkygiljkbovwixk.supabase.co", serviceKey, {
       auth: { autoRefreshToken: false, persistSession: false },
