@@ -15,8 +15,16 @@ function gerarSenhaTemp(): string {
 
 function validarServiceKey(key: string | undefined): string {
   if (!key) throw new Error("SUPABASE_SERVICE_ROLE_KEY não configurada no servidor.");
+  const clean = key.trim().replace(/^["']|["']$/g, "");
   try {
-    const payload = JSON.parse(atob(key.split(".")[1] ?? "")) as { role?: string };
+    const parts = clean.split(".");
+    if (parts.length !== 3) throw new Error("formato inválido");
+    // JWTs usam base64url; Buffer.from lida corretamente no Node.js
+    const b64 = (parts[1] ?? "").replace(/-/g, "+").replace(/_/g, "/");
+    const padding = b64.length % 4 ? "=".repeat(4 - (b64.length % 4)) : "";
+    const payload = JSON.parse(
+      Buffer.from(b64 + padding, "base64").toString("utf-8"),
+    ) as { role?: string };
     if (payload.role !== "service_role") {
       throw new Error(
         `Chave com role="${payload.role}" — precisa ser a service_role key, não a anon key.`,
@@ -26,7 +34,7 @@ function validarServiceKey(key: string | undefined): string {
     if (e instanceof Error && e.message.includes("role=")) throw e;
     throw new Error("SUPABASE_SERVICE_ROLE_KEY não é um JWT válido.");
   }
-  return key;
+  return clean;
 }
 
 export const criarGestorFn = createServerFn({ method: "POST" })
