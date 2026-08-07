@@ -1223,6 +1223,47 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
               </table>
             </div>
           )}
+          {daUnidade(sugestoes).length > 0 && (
+            <div className="grid gap-3 md:hidden">
+              {daUnidade(sugestoes).map((s) => (
+                <div key={s.id} className="rounded-2xl border border-border p-4">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="rounded-full bg-az-soft px-2.5 py-1 text-xs font-semibold text-az">
+                      {s.categoria}
+                    </span>
+                    <span className="text-xs text-muted-foreground">{fmtData(s.ts)}</span>
+                  </div>
+                  <p className="mt-2 text-sm text-muted-foreground">{s.mensagem}</p>
+                  <select
+                    className="mt-3 w-full rounded-lg border border-border bg-card px-3 py-2 text-xs focus:outline-none"
+                    value={s.status ?? ""}
+                    onChange={(e) => {
+                      const v = e.target.value as
+                        | "enviado-rh"
+                        | "desconsiderado"
+                        | "considerar-depois"
+                        | "para-socios"
+                        | "";
+                      setSugestoes((prev) =>
+                        prev.map((x) =>
+                          x.id === s.id
+                            ? { ...x, ...(v ? { status: v, statusTs: Date.now() } : {}) }
+                            : x,
+                        ),
+                      );
+                    }}
+                  >
+                    <option value="">— Sem status —</option>
+                    <option value="enviado-rh">Enviado para o RH</option>
+                    <option value="para-socios">Levado para os sócios</option>
+                    <option value="considerar-depois">Considerar em outro momento</option>
+                    <option value="desconsiderado">Desconsiderado</option>
+                  </select>
+                </div>
+              ))}
+            </div>
+          )}
+
         </Section>
 
         <Section
