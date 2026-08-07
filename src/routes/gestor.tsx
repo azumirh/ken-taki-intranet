@@ -1164,7 +1164,8 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
           {daUnidade(sugestoes).length === 0 ? (
             <EmptyState>Nenhuma sugestão registrada ainda.</EmptyState>
           ) : (
-            <div className="overflow-x-auto rounded-2xl border border-border">
+            <div className="hidden overflow-x-auto rounded-2xl border border-border md:block">
+
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border bg-muted/40">
