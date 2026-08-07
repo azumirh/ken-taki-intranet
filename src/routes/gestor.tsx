@@ -1545,7 +1545,73 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
                   ))}
                 </div>
               )}
-              <div className="overflow-x-auto rounded-2xl border border-border">
+              {/* Mobile: cards */}
+              <div className="grid gap-3 md:hidden">
+                {equipeFiltrada.map((c) => {
+                  const anivEsseMes = aniversariantesEquipe.some((a) => a.id === c.id);
+                  return (
+                    <div key={c.id} className="rounded-2xl border border-border p-4">
+                      <div className="flex items-center gap-3">
+                        <Avatar nome={c.nome} foto={c.foto} size={40} />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate font-semibold">
+                            {c.nome} {anivEsseMes && <span title="Aniversário este mês">🎂</span>}
+                          </p>
+                          <p className="truncate text-xs text-muted-foreground">{c.cargo}</p>
+                        </div>
+                      </div>
+                      <dl className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                        <div>
+                          <dt className="text-muted-foreground">Idade</dt>
+                          <dd className="font-medium">{idade(c.nascimento)} anos</dd>
+                        </div>
+                        <div>
+                          <dt className="text-muted-foreground">Tempo de casa</dt>
+                          <dd className="font-medium">{tempoDeCasa(c.admissao)}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-muted-foreground">Nascimento</dt>
+                          <dd className="font-medium">
+                            {new Date(c.nascimento + "T00:00:00").toLocaleDateString("pt-BR")}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt className="text-muted-foreground">Admissão</dt>
+                          <dd className="font-medium">
+                            {new Date(c.admissao + "T00:00:00").toLocaleDateString("pt-BR")}
+                          </dd>
+                        </div>
+                      </dl>
+                      <div className="mt-3 grid grid-cols-2 gap-2">
+                        <button
+                          onClick={() => {
+                            setEditarTarget(c);
+                            setNomeCol(c.nome);
+                            setCpf3Col(c.cpf3);
+                            setCargoCol(c.cargo);
+                            setNascimentoCol(c.nascimento);
+                            setAdmissaoCol(c.admissao);
+                            setFotoCol(c.foto ?? "");
+                            setErroCol("");
+                          }}
+                          className="inline-flex items-center justify-center gap-1.5 rounded-full border border-border px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:border-kt hover:text-kt"
+                        >
+                          <UserPlus className="h-3.5 w-3.5" /> Editar
+                        </button>
+                        <button
+                          onClick={() => setDesligarTarget(c)}
+                          className="inline-flex items-center justify-center gap-1.5 rounded-full border border-border px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:border-destructive hover:text-destructive"
+                        >
+                          <UserMinus className="h-3.5 w-3.5" /> Desligar
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="hidden overflow-x-auto rounded-2xl border border-border md:block">
+
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-border bg-muted/40">
