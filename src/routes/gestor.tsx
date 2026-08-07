@@ -495,6 +495,17 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
   const leu = (docId: string, nome: string) =>
     leituras.some((l) => l.documentoId === docId && l.nome === nome);
 
+  // CPF dialog para assinatura do gestor
+  const [docPendenteGestor, setDocPendenteGestor] = useState<string | null>(null);
+  const [cpfGestor, setCpfGestor] = useState("");
+  const [cpfGestorErro, setCpfGestorErro] = useState("");
+
+  function gerarProtocolo(): string {
+    const ts = Date.now().toString(36).toUpperCase();
+    const rand = Math.random().toString(36).slice(2, 6).toUpperCase();
+    return `KT-${ts}-${rand}`;
+  }
+
   const assinarDocGestor = (docId: string) => {
     if (assinou(docId, session.nome)) return;
     if (!leu(docId, session.nome)) {
@@ -503,11 +514,32 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
         ...prev,
       ]);
     }
+    setCpfGestor("");
+    setCpfGestorErro("");
+    setDocPendenteGestor(docId);
+  };
+
+  const confirmarAssinaturaGestor = () => {
+    if (!docPendenteGestor) return;
+    const cpf = cpfGestor.replace(/\D/g, "");
+    if (cpf.length !== 11) {
+      setCpfGestorErro("Digite o CPF completo (11 dígitos).");
+      return;
+    }
     setAssinaturas((prev) => [
       ...prev,
-      { politica: docId, nome: session.nome, filial: session.filial, ts: Date.now() },
+      {
+        politica: docPendenteGestor,
+        nome: session.nome,
+        filial: session.filial,
+        ts: Date.now(),
+        cpfConfirmado: cpf,
+        protocolo: gerarProtocolo(),
+      },
     ]);
     toast.success("Documento assinado.");
+    setDocPendenteGestor(null);
+    setCpfGestor("");
   };
 
   return (
@@ -525,7 +557,6 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
             <strong className="text-foreground">{filialNome(session.filial)}</strong>
           </p>
         </div>
-
 
         <div className="grid gap-4 sm:grid-cols-3">
           {[
@@ -937,6 +968,69 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
           )}
         </Section>
 
+        {/* Diálogo de confirmação de CPF para assinatura do gestor */}
+        <Dialog
+          open={!!docPendenteGestor}
+          onOpenChange={(o) => {
+            if (!o) {
+              setDocPendenteGestor(null);
+              setCpfGestor("");
+              setCpfGestorErro("");
+            }
+          }}
+        >
+          <DialogContent className="sm:max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Confirmar assinatura</DialogTitle>
+              <DialogDescription>
+                Digite seu CPF completo para assinar o documento e gerar o protocolo.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="cpf-gestor">CPF completo</Label>
+                <Input
+                  id="cpf-gestor"
+                  placeholder="000.000.000-00"
+                  value={cpfGestor}
+                  onChange={(e) => {
+                    setCpfGestor(e.target.value);
+                    setCpfGestorErro("");
+                  }}
+                  onKeyDown={(e) => e.key === "Enter" && confirmarAssinaturaGestor()}
+                  maxLength={14}
+                />
+                {cpfGestorErro && (
+                  <p className="text-sm font-medium text-destructive">{cpfGestorErro}</p>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Um protocolo único será gerado como comprovante desta assinatura.
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  className="flex-1 rounded-full"
+                  disabled={!cpfGestor.trim()}
+                  onClick={confirmarAssinaturaGestor}
+                >
+                  Confirmar assinatura
+                </Button>
+                <Button
+                  variant="outline"
+                  className="rounded-full"
+                  onClick={() => {
+                    setDocPendenteGestor(null);
+                    setCpfGestor("");
+                    setCpfGestorErro("");
+                  }}
+                >
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
         {/* Feedbacks — tabela com paginação */}
         <Section
           titulo="Feedbacks da equipe"
@@ -1044,11 +1138,21 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
                           type="text"
                           className="mt-2 w-full rounded-lg border border-border bg-transparent px-3 py-1.5 text-xs text-muted-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-kt/30"
                           placeholder="Comentário do gestor..."
-                          value={f.comentarioGestor ?? ""}
+                          value={f.comentariosGestor?.[perfil.id] ?? f.comentarioGestor ?? ""}
                           onChange={(e) => {
                             const v = e.target.value;
                             setFeedbacks((prev) =>
-                              prev.map((x) => (x.id === f.id ? { ...x, comentarioGestor: v } : x)),
+                              prev.map((x) =>
+                                x.id === f.id
+                                  ? {
+                                      ...x,
+                                      comentariosGestor: {
+                                        ...(x.comentariosGestor ?? {}),
+                                        [perfil.id]: v,
+                                      },
+                                    }
+                                  : x,
+                              ),
                             );
                           }}
                         />
@@ -1101,9 +1205,7 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
                                         ? {
                                             ...x,
                                             status: e.target.value as
-                                              | "em-andamento"
-                                              | "concluido"
-                                              | "cancelado",
+                                              "em-andamento" | "concluido" | "cancelado",
                                             statusAlteradoEm: Date.now(),
                                           }
                                         : x,
@@ -1126,12 +1228,20 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
                                 type="text"
                                 className="w-full rounded-lg border border-border bg-transparent px-2 py-1 text-xs text-muted-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-kt/30"
                                 placeholder="Adicionar comentário..."
-                                value={f.comentarioGestor ?? ""}
+                                value={f.comentariosGestor?.[perfil.id] ?? f.comentarioGestor ?? ""}
                                 onChange={(e) => {
                                   const v = e.target.value;
                                   setFeedbacks((prev) =>
                                     prev.map((x) =>
-                                      x.id === f.id ? { ...x, comentarioGestor: v } : x,
+                                      x.id === f.id
+                                        ? {
+                                            ...x,
+                                            comentariosGestor: {
+                                              ...(x.comentariosGestor ?? {}),
+                                              [perfil.id]: v,
+                                            },
+                                          }
+                                        : x,
                                     ),
                                   );
                                 }}
@@ -1188,7 +1298,6 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
             <EmptyState>Nenhuma sugestão registrada ainda.</EmptyState>
           ) : (
             <div className="hidden overflow-x-auto rounded-2xl border border-border md:block">
-
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border bg-muted/40">
@@ -1262,11 +1371,7 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
                     value={s.status ?? ""}
                     onChange={(e) => {
                       const v = e.target.value as
-                        | "enviado-rh"
-                        | "desconsiderado"
-                        | "considerar-depois"
-                        | "para-socios"
-                        | "";
+                        "enviado-rh" | "desconsiderado" | "considerar-depois" | "para-socios" | "";
                       setSugestoes((prev) =>
                         prev.map((x) =>
                           x.id === s.id
@@ -1286,7 +1391,6 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
               ))}
             </div>
           )}
-
         </Section>
 
         <Section

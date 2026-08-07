@@ -1,8 +1,18 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
-import { Check, Copy, Download, ExternalLink, Plus, Trash2, Upload, UserPlus2 } from "lucide-react";
+import {
+  Check,
+  Copy,
+  Download,
+  ExternalLink,
+  Plus,
+  Trash2,
+  Upload,
+  UserMinus,
+  UserPlus2,
+} from "lucide-react";
 import { AppShell, BackLink } from "@/components/kt/app-shell";
 import { EmptyState, Section } from "@/components/kt/section";
 import { Mural } from "@/components/kt/mural";
@@ -43,7 +53,7 @@ import {
 } from "@/lib/kt-store";
 import { type KtPerfil, useKtAuth } from "@/lib/kt-auth";
 import { supabase } from "@/lib/supabase";
-import { criarGestorFn } from "@/lib/server-fns";
+import { criarGestorFn, desativarGestorFn, listarGestoresFn } from "@/lib/server-fns";
 
 // ─── Helpers de importação CSV ───────────────────────────────────────────────
 
@@ -495,9 +505,30 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
   const [gNome, setGNome] = useState("");
   const [gEmail, setGEmail] = useState("");
   const [gFilial, setGFilial] = useState<"cristo-rei" | "champagnat">(FILIAIS[0].id);
+  const [gCpf3, setGCpf3] = useState("");
+  const [gCargo, setGCargo] = useState("");
+  const [gNascimento, setGNascimento] = useState("");
+  const [gAdmissao, setGAdmissao] = useState("");
   const [gCriando, setGCriando] = useState(false);
   const [gErro, setGErro] = useState("");
   const [gSucesso, setGSucesso] = useState<{ email: string; senha: string } | null>(null);
+
+  // lista de gestores existentes
+  type GestorItem = {
+    id: string;
+    nome: string;
+    email: string;
+    filial: string | null;
+    created_at: string;
+  };
+  const [gestoresLista, setGestoresLista] = useState<GestorItem[]>([]);
+  const [desativandoId, setDesativandoId] = useState<string | null>(null);
+
+  useEffect(() => {
+    listarGestoresFn()
+      .then(setGestoresLista)
+      .catch(() => {});
+  }, []);
 
   function processarCsv(arquivo: File) {
     setCsvErro("");
@@ -1527,6 +1558,8 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
                                                 id: uid(),
                                                 pedidoId: a.id,
                                                 texto: novaAnotacaoTexto.trim(),
+                                                gestorId: perfil.id,
+                                                gestorNome: perfil.nome,
                                                 ...(novaAnotacaoCanal
                                                   ? {
                                                       canal: novaAnotacaoCanal as
@@ -2142,6 +2175,10 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
                 setGNome("");
                 setGEmail("");
                 setGFilial(FILIAIS[0].id);
+                setGCpf3("");
+                setGCargo("");
+                setGNascimento("");
+                setGAdmissao("");
                 setGErro("");
               }
             }}
@@ -2201,6 +2238,10 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
                       setGNome("");
                       setGEmail("");
                       setGFilial(FILIAIS[0].id);
+                      setGCpf3("");
+                      setGCargo("");
+                      setGNascimento("");
+                      setGAdmissao("");
                     }}
                   >
                     <UserPlus2 className="h-4 w-4" /> Criar outro acesso
@@ -2246,6 +2287,49 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
                       ))}
                     </div>
                   </div>
+                  <p className="text-xs font-semibold text-muted-foreground">
+                    Dados do colaborador (para aniversários, tempo de casa etc.)
+                  </p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="grid gap-2">
+                      <Label htmlFor="g-cpf3">3 últimos do CPF</Label>
+                      <Input
+                        id="g-cpf3"
+                        placeholder="Ex.: 123"
+                        value={gCpf3}
+                        onChange={(e) => setGCpf3(e.target.value.replace(/\D/g, "").slice(0, 3))}
+                        maxLength={3}
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="g-cargo">Cargo</Label>
+                      <Input
+                        id="g-cargo"
+                        placeholder="Ex.: Gerente"
+                        value={gCargo}
+                        onChange={(e) => setGCargo(e.target.value)}
+                        maxLength={60}
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="g-nasc">Nascimento</Label>
+                      <Input
+                        id="g-nasc"
+                        type="date"
+                        value={gNascimento}
+                        onChange={(e) => setGNascimento(e.target.value)}
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="g-adm">Admissão</Label>
+                      <Input
+                        id="g-adm"
+                        type="date"
+                        value={gAdmissao}
+                        onChange={(e) => setGAdmissao(e.target.value)}
+                      />
+                    </div>
+                  </div>
                   {gErro ? <p className="text-sm font-medium text-destructive">{gErro}</p> : null}
                   <Button
                     className="rounded-full"
@@ -2255,12 +2339,51 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
                       setGErro("");
                       try {
                         const result = await criarGestorFn({
-                          data: { nome: gNome, email: gEmail, filial: gFilial },
+                          data: {
+                            nome: gNome,
+                            email: gEmail,
+                            filial: gFilial,
+                            cpf3: gCpf3 || undefined,
+                            cargo: gCargo || undefined,
+                            nascimento: gNascimento || undefined,
+                            admissao: gAdmissao || undefined,
+                          },
                         });
+                        // Adicionar como colaborador se dados completos
+                        if (gCpf3 && gCargo && gNascimento && gAdmissao) {
+                          setColaboradores((prev) => {
+                            const existe = prev.some(
+                              (c) => c.nome === gNome.trim() && c.filial === gFilial,
+                            );
+                            if (existe) return prev;
+                            return [
+                              ...prev,
+                              {
+                                id: uid(),
+                                nome: gNome.trim(),
+                                cpf3: gCpf3,
+                                cargo: gCargo.trim(),
+                                filial: gFilial,
+                                nascimento: gNascimento,
+                                admissao: gAdmissao,
+                              },
+                            ];
+                          });
+                        }
                         setGSucesso({
                           email: gEmail.trim().toLowerCase(),
                           senha: result.senhaTemp,
                         });
+                        setGestoresLista((prev) => [
+                          ...prev,
+                          {
+                            id: "pendente",
+                            nome: gNome.trim(),
+                            email: gEmail.trim().toLowerCase(),
+                            filial: gFilial,
+                            created_at: new Date().toISOString(),
+                          },
+                        ]);
                       } catch (e) {
                         setGErro((e as Error).message);
                       } finally {
@@ -2274,6 +2397,55 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
               )}
             </DialogContent>
           </Dialog>
+
+          {/* Lista de gestores existentes com opção de desativar */}
+          {gestoresLista.length > 0 && (
+            <div className="mt-4">
+              <p className="mb-2 text-xs font-semibold text-muted-foreground">
+                Gestores criados ({gestoresLista.length})
+              </p>
+              <div className="grid gap-2">
+                {gestoresLista.map((g) => (
+                  <div
+                    key={g.id}
+                    className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-card px-4 py-3"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold">{g.nome}</p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {g.email} · {g.filial === "cristo-rei" ? "Cristo Rei" : "Champagnat"}
+                      </p>
+                    </div>
+                    <button
+                      disabled={desativandoId === g.id || g.id === "pendente"}
+                      onClick={async () => {
+                        if (
+                          !confirm(
+                            `Desativar acesso de ${g.nome}? Esta ação não pode ser desfeita.`,
+                          )
+                        )
+                          return;
+                        setDesativandoId(g.id);
+                        try {
+                          await desativarGestorFn({ data: { userId: g.id } });
+                          setGestoresLista((prev) => prev.filter((x) => x.id !== g.id));
+                          toast.success(`Acesso de ${g.nome} desativado.`);
+                        } catch (e) {
+                          toast.error((e as Error).message);
+                        } finally {
+                          setDesativandoId(null);
+                        }
+                      }}
+                      className="shrink-0 rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive disabled:opacity-40"
+                      title="Desativar acesso"
+                    >
+                      <UserMinus className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </AppShell>

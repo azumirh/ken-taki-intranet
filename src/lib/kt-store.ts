@@ -86,7 +86,14 @@ export type CheckIn = {
   ts: number;
   recado?: string | undefined;
 };
-export type Assinatura = { politica: string; nome: string; filial: string; ts: number };
+export type Assinatura = {
+  politica: string;
+  nome: string;
+  filial: string;
+  ts: number;
+  cpfConfirmado?: string | undefined;
+  protocolo?: string | undefined;
+};
 export type Sugestao = {
   id: string;
   categoria: string;
@@ -108,7 +115,9 @@ export type Feedback = {
   ts: number;
   status?: "em-andamento" | "concluido" | "cancelado" | undefined;
   statusAlteradoEm?: number | undefined;
-  comentarioGestor?: string | undefined;
+  gestorQueMudouStatus?: string | undefined; // gestorId de quem alterou o status por último
+  comentarioGestor?: string | undefined; // legado — mantido pra não quebrar dados existentes
+  comentariosGestor?: Record<string, string> | undefined; // gestorId → comentário individual
 };
 export type Vaga = { id: string; cargo: string; filial: string; motivo: string; ts: number };
 export type Pesquisa = {
@@ -137,6 +146,8 @@ export type AnotacaoApoio = {
   texto: string;
   canal?: "WhatsApp" | "E-mail" | "Presencial" | undefined;
   consultor?: string | undefined;
+  gestorId?: string | undefined; // ID do perfil Supabase de quem registrou
+  gestorNome?: string | undefined; // nome do consultor/gestor que registrou
   envolveGestor?: boolean | undefined;
   nomeGestor?: string | undefined;
   criadoEm: number;
