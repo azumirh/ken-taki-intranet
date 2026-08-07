@@ -636,14 +636,14 @@ function Painel() {
               defaultOpen={false}
             >
               <div className="grid gap-3">
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <Label htmlFor="hist-data">Filtrar por data</Label>
                   <input
                     id="hist-data"
                     type="date"
                     value={histFiltroData}
                     onChange={(e) => setHistFiltroData(e.target.value)}
-                    className="rounded-lg border border-border bg-card px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-kt/30"
+                    className="min-w-0 flex-1 rounded-lg border border-border bg-card px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-kt/30 sm:flex-none"
                   />
                   {histFiltroData && (
                     <button
@@ -657,8 +657,49 @@ function Painel() {
                 {filtrados.length === 0 ? (
                   <EmptyState>Nenhum check-in nessa data.</EmptyState>
                 ) : (
-                  <div className="overflow-x-auto rounded-2xl border border-border">
+                  <>
+                  {/* Mobile: lista */}
+                  <div className="grid gap-2 sm:hidden">
+                    {filtrados.map((c) => {
+                      const h = HUMORES.find((x) => x.id === c.humor);
+                      return (
+                        <div key={c.id} className="rounded-xl border border-border p-3">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <span
+                              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${
+                                h?.categoria === "positiva"
+                                  ? "bg-success-soft text-success"
+                                  : h?.categoria === "negativa"
+                                    ? "bg-destructive/10 text-destructive"
+                                    : "bg-warn-soft text-warn"
+                              }`}
+                            >
+                              {h?.emoji} {h?.label}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {new Date(c.ts).toLocaleDateString("pt-BR", {
+                                day: "2-digit",
+                                month: "short",
+                              })}
+                              {" · "}
+                              {new Date(c.ts).toLocaleTimeString("pt-BR", {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </span>
+                          </div>
+                          {c.recado && (
+                            <p className="mt-2 text-sm text-muted-foreground">
+                              <em>"{c.recado}"</em>
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="hidden overflow-x-auto rounded-2xl border border-border sm:block">
                     <table className="w-full text-sm">
+
                       <thead>
                         <tr className="border-b border-border bg-muted/40">
                           <th className="px-4 py-3 text-left font-semibold">Humor</th>
