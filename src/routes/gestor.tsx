@@ -953,7 +953,7 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
                       setFbFiltroColab(e.target.value);
                       setFbPagina(0);
                     }}
-                    className="h-9 w-48 text-sm"
+                    className="h-9 w-full text-sm sm:w-48"
                   />
                 </div>
                 {(fbFiltroMes !== "Todos" || fbFiltroColab) && (
@@ -974,7 +974,67 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
                 <EmptyState>Nenhum feedback corresponde aos filtros.</EmptyState>
               ) : (
                 <>
-                  <div className="overflow-x-auto rounded-2xl border border-border">
+                  {/* Mobile: cards */}
+                  <div className="grid gap-3 md:hidden">
+                    {fbPaginado.map((f) => (
+                      <div key={f.id} className="rounded-2xl border border-border p-4">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="rounded-full bg-kt-soft px-2.5 py-1 text-xs font-semibold text-kt">
+                            {f.tipo}
+                          </span>
+                          <span className="text-xs text-muted-foreground">{fmtData(f.ts)}</span>
+                        </div>
+                        <p className="mt-2 text-sm font-semibold">{f.autor}</p>
+                        <p className="mt-1 text-sm text-muted-foreground">{f.mensagem}</p>
+                        <div className="mt-3 grid gap-2">
+                          <select
+                            className={`w-full rounded-full border px-3 py-1.5 text-xs font-medium focus:outline-none ${
+                              f.status === "concluido"
+                                ? "border-success/30 bg-success-soft text-success"
+                                : f.status === "cancelado"
+                                  ? "border-destructive/30 bg-destructive/10 text-destructive"
+                                  : "border-warn/30 bg-warn-soft text-warn"
+                            }`}
+                            value={f.status ?? "em-andamento"}
+                            onChange={(e) =>
+                              setFeedbacks((prev) =>
+                                prev.map((x) =>
+                                  x.id === f.id
+                                    ? {
+                                        ...x,
+                                        status: e.target.value as
+                                          | "em-andamento"
+                                          | "concluido"
+                                          | "cancelado",
+                                        statusAlteradoEm: Date.now(),
+                                      }
+                                    : x,
+                                ),
+                              )
+                            }
+                          >
+                            <option value="em-andamento">Em andamento</option>
+                            <option value="concluido">Concluído</option>
+                            <option value="cancelado">Cancelado</option>
+                          </select>
+                          <input
+                            type="text"
+                            className="w-full rounded-lg border border-border bg-transparent px-3 py-2 text-xs text-muted-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-kt/30"
+                            placeholder="Adicionar comentário..."
+                            value={f.comentarioGestor ?? ""}
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              setFeedbacks((prev) =>
+                                prev.map((x) => (x.id === f.id ? { ...x, comentarioGestor: v } : x)),
+                              );
+                            }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="hidden overflow-x-auto rounded-2xl border border-border md:block">
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b border-border bg-muted/40">
@@ -1018,7 +1078,9 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
                                         ? {
                                             ...x,
                                             status: e.target.value as
-                                              "em-andamento" | "concluido" | "cancelado",
+                                              | "em-andamento"
+                                              | "concluido"
+                                              | "cancelado",
                                             statusAlteradoEm: Date.now(),
                                           }
                                         : x,
@@ -1057,6 +1119,7 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
                       </tbody>
                     </table>
                   </div>
+
                   {fbTotalPags > 1 && (
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-muted-foreground">
