@@ -1,7 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
-import { Check, Copy, ExternalLink, Trash2, UserPlus2 } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { Check, Copy, Download, ExternalLink, Plus, Trash2, Upload, UserPlus2 } from "lucide-react";
 import { AppShell, BackLink } from "@/components/kt/app-shell";
 import { EmptyState, Section } from "@/components/kt/section";
 import { Mural } from "@/components/kt/mural";
@@ -9,6 +10,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import capaPadrao from "@/assets/capa-padrao-politicas.jpg";
 import {
   FILIAIS,
@@ -46,7 +55,7 @@ function normalizarFilial(txt: string): FilialId | null {
 
 function parsearCsv(texto: string): Array<Record<string, string>> {
   const linhas = texto.trim().split(/\r?\n/).filter(Boolean);
-  if (linhas.length < 2) return [];
+  if (linhas.length < 2 || !linhas[0]) return [];
   const cabs = linhas[0].split(",").map((h) => h.trim().toLowerCase().replace(/\s+/g, "_"));
   return linhas.slice(1).map((linha) => {
     const campos: string[] = [];
@@ -336,11 +345,64 @@ function diasRestantes(prazo: string): number {
   return Math.ceil((new Date(prazo + "T00:00:00").getTime() - hoje.getTime()) / 86400000);
 }
 
+// assuntos que representam pedido explícito de apoio do colaborador
+const ASSUNTOS_APOIO = new Set([
+  "Apoio - check-in neutro",
+  "Apoio - check-in negativo",
+  "Apoio registrado (intranet)",
+  "WhatsApp - apoio",
+  "Alerta crítico — 2+ negativos no dia",
+  "Apoio pelo WhatsApp",
+]);
+
+function isPedidoApoio(assunto: string) {
+  if (ASSUNTOS_APOIO.has(assunto)) return true;
+  if (assunto.startsWith("WhatsApp pós check-in negativo")) return true;
+  return false;
+}
+
 function labelAssunto(assunto: string): string {
-  if (assunto === "suporte-checkin") return "Apoio via check-in";
-  if (assunto === "crise-checkin") return "Situação crítica";
-  if (assunto === "whatsapp-gestor") return "Contato do gestor";
+  if (assunto === "suporte-checkin" || assunto === "Apoio - check-in neutro")
+    return "Check-in neutro";
+  if (assunto === "crise-checkin" || assunto === "Apoio - check-in negativo")
+    return "Check-in negativo";
+  if (assunto.startsWith("WhatsApp pós")) return "WhatsApp pós check-in";
+  if (assunto === "Apoio registrado (intranet)") return "Intranet";
+  if (assunto === "WhatsApp - apoio") return "WhatsApp";
+  if (assunto === "Alerta crítico — 2+ negativos no dia") return "Alerta crítico";
+  if (assunto === "Apoio pelo WhatsApp") return "WhatsApp";
   return assunto;
+}
+
+function badgeAssunto(assunto: string): string {
+  if (assunto.includes("Alerta crítico") || assunto === "crise-checkin")
+    return "bg-destructive/10 text-destructive";
+  if (assunto.includes("negativo")) return "bg-warn-soft text-warn";
+  return "bg-az-soft text-az";
+}
+
+function baixarCsvClima(checkins: ReturnType<typeof useCheckins>[0], filialFiltro: string) {
+  const dados = filialFiltro ? checkins.filter((c) => c.filial === filialFiltro) : checkins;
+  const linhas = [
+    "nome,filial,humor,data,hora",
+    ...dados.map((c) => {
+      const d = new Date(c.ts);
+      return [
+        c.nome,
+        c.filial,
+        c.humor,
+        d.toLocaleDateString("pt-BR"),
+        d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
+      ].join(",");
+    }),
+  ];
+  const blob = new Blob([linhas.join("\n")], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `clima-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => void }) {
@@ -354,8 +416,9 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
   const [colaboradores, setColaboradores] = useColaboradores();
   const [documentos, setDocumentos] = useDocumentos();
 
-  // ─── Estado: formulário de documento ────────────────────────────────────────
+  // document upload state
   const docInputRef = useRef<HTMLInputElement>(null);
+  const [docOpen, setDocOpen] = useState(false);
   const [docTitulo, setDocTitulo] = useState("");
   const [docFilial, setDocFilial] = useState<FilialId | "todas">("todas");
   const [docCorTag, setDocCorTag] = useState("#8a2058");
@@ -363,31 +426,47 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
   const [docUploading, setDocUploading] = useState(false);
   const [docErro, setDocErro] = useState("");
 
+  // notícia state
+  const nFotoInputRef = useRef<HTMLInputElement>(null);
+  const [nTitulo, setNTitulo] = useState("");
+  const [nResumo, setNResumo] = useState("");
+  const [nVideo, setNVideo] = useState("");
+  const [nData, setNData] = useState("");
+  const [nFotoUrl, setNFotoUrl] = useState("");
+  const [nFotoUploading, setNFotoUploading] = useState(false);
+
+  // pesquisa state
   const [pTitulo, setPTitulo] = useState("");
   const [pDesc, setPDesc] = useState("");
   const [pLink, setPLink] = useState("");
   const [pPrazo, setPPrazo] = useState("");
 
-  const [nTitulo, setNTitulo] = useState("");
-  const [nResumo, setNResumo] = useState("");
-  const [nVideo, setNVideo] = useState("");
-  const [nData, setNData] = useState("");
+  // clima chart state
+  const [climaPeriodo, setClimaPeriodo] = useState<"7d" | "30d" | "mes">("7d");
+  const [climaFilial, setClimaFilial] = useState<string>("todas");
+  const [drillDia, setDrillDia] = useState<string | null>(null);
 
+  // pedidos de apoio state
   const [filtroAjuda, setFiltroAjuda] = useState<string>("Todas");
+  const [filtroStatus, setFiltroStatus] = useState<string>("Todos");
 
-  const [gNome, setGNome] = useState("");
-  const [gEmail, setGEmail] = useState("");
-  const [gFilial, setGFilial] = useState<"cristo-rei" | "champagnat">(FILIAIS[0].id);
-  const [gCriando, setGCriando] = useState(false);
-  const [gErro, setGErro] = useState("");
-  const [gSucesso, setGSucesso] = useState<{ email: string; senha: string } | null>(null);
-
+  // CSV import state (now in Dialog)
+  const [csvOpen, setCsvOpen] = useState(false);
   const csvInputRef = useRef<HTMLInputElement>(null);
   const [csvPreview, setCsvPreview] = useState<{
     adicionar: Colaborador[];
     atualizar: Colaborador[];
   } | null>(null);
   const [csvErro, setCsvErro] = useState("");
+
+  // criar gestor state (now in Dialog)
+  const [gestorOpen, setGestorOpen] = useState(false);
+  const [gNome, setGNome] = useState("");
+  const [gEmail, setGEmail] = useState("");
+  const [gFilial, setGFilial] = useState<"cristo-rei" | "champagnat">(FILIAIS[0].id);
+  const [gCriando, setGCriando] = useState(false);
+  const [gErro, setGErro] = useState("");
+  const [gSucesso, setGSucesso] = useState<{ email: string; senha: string } | null>(null);
 
   function processarCsv(arquivo: File) {
     setCsvErro("");
@@ -425,7 +504,7 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
     reader.readAsText(arquivo, "utf-8");
   }
 
-  async function realizarUpload(file: File) {
+  async function realizarUploadDoc(file: File) {
     if (!docTitulo.trim() || !docTextoTag.trim()) {
       setDocErro("Preencha título e etiqueta antes de enviar.");
       return;
@@ -457,6 +536,7 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
       setDocTextoTag("");
       setDocCorTag("#8a2058");
       setDocFilial("todas");
+      setDocOpen(false);
       toast.success("Documento publicado com sucesso.");
     } catch (e) {
       setDocErro(`Erro ao enviar: ${(e as Error).message}`);
@@ -464,6 +544,73 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
       setDocUploading(false);
     }
   }
+
+  async function uploadFotoNoticia(file: File) {
+    setNFotoUploading(true);
+    try {
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const path = `fotos/${Date.now()}-${safeName}`;
+      const { data, error } = await supabase.storage.from("kt-documentos").upload(path, file, {
+        cacheControl: "86400",
+        upsert: false,
+      });
+      if (error) throw error;
+      const { data: urlData } = supabase.storage.from("kt-documentos").getPublicUrl(data.path);
+      setNFotoUrl(urlData.publicUrl);
+    } catch (e) {
+      toast.error(`Erro ao enviar foto: ${(e as Error).message}`);
+    } finally {
+      setNFotoUploading(false);
+    }
+  }
+
+  // climate chart data
+  function getDias() {
+    if (climaPeriodo === "7d") return 7;
+    if (climaPeriodo === "30d") return 30;
+    return new Date().getDate(); // dias do mês atual
+  }
+
+  const numDias = getDias();
+  const climaCheckins =
+    climaFilial === "todas" ? checkins : checkins.filter((c) => c.filial === climaFilial);
+
+  const dadosCli = Array.from({ length: numDias }, (_, i) => {
+    const d = new Date();
+    if (climaPeriodo === "mes") {
+      d.setDate(i + 1);
+    } else {
+      d.setDate(d.getDate() - (numDias - 1 - i));
+    }
+    const ds = d.toDateString();
+    const doDia = climaCheckins.filter((c) => new Date(c.ts).toDateString() === ds);
+    return {
+      data: d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }),
+      dataStr: ds,
+      Pos: doDia.filter((c) => HUMORES.find((h) => h.id === c.humor)?.categoria === "positiva")
+        .length,
+      Neu: doDia.filter((c) => HUMORES.find((h) => h.id === c.humor)?.categoria === "neutra")
+        .length,
+      Neg: doDia.filter((c) => HUMORES.find((h) => h.id === c.humor)?.categoria === "negativa")
+        .length,
+    };
+  });
+
+  const drillCheckins = drillDia
+    ? climaCheckins.filter((c) => new Date(c.ts).toDateString() === drillDia)
+    : [];
+
+  // pedidos de apoio
+  const pedidosReais = ajuda.filter((a) => isPedidoApoio(a.assunto));
+  const pedidosFiltrados = pedidosReais
+    .filter((a) => filtroAjuda === "Todas" || filialNome(a.filial) === filtroAjuda)
+    .filter((a) => {
+      if (filtroStatus === "Todos") return true;
+      if (filtroStatus === "Em andamento") return !a.status || a.status === "em-andamento";
+      if (filtroStatus === "Resolvidos") return a.status === "resolvido";
+      return true;
+    })
+    .sort((a, b) => b.ts - a.ts);
 
   return (
     <AppShell onLogout={onLogout}>
@@ -479,7 +626,7 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
           {[
             { label: "Check-ins", valor: checkins.length },
             { label: "Assinaturas", valor: assinaturas.length },
-            { label: "Pedidos de apoio", valor: ajuda.length },
+            { label: "Pedidos de apoio", valor: pedidosReais.length },
           ].map((k) => (
             <div key={k.label} className="surface p-5">
               <p className="text-3xl font-extrabold text-union">{k.valor}</p>
@@ -488,75 +635,264 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
           ))}
         </div>
 
+        {/* Gráfico de clima */}
         <Section
           titulo="Clima por unidade"
-          intro="Distribuição dos check-ins de humor nas duas unidades."
+          intro="Distribuição dos check-ins de humor. Clique em uma barra para ver os detalhes do dia."
+          contagem={`${checkins.length} check-ins`}
+          collapsible
+          defaultOpen={checkins.length > 0}
         >
-          <div className="grid gap-4 md:grid-cols-2">
-            {FILIAIS.map((f) => {
-              const dados = checkins.filter((c) => c.filial === f.id);
-              return (
-                <div key={f.id} className="rounded-2xl border border-border bg-card p-4">
-                  <p className="font-semibold">{f.nome}</p>
-                  <p className="text-xs text-muted-foreground">{dados.length} respostas</p>
-                  <div className="mt-3 grid grid-cols-5 gap-2 text-center">
-                    {HUMORES.map((h) => (
-                      <div key={h.id} className="rounded-xl bg-muted py-2">
-                        <span className="text-lg">{h.emoji}</span>
-                        <p className="text-sm font-bold">
-                          {dados.filter((c) => c.humor === h.id).length}
-                        </p>
-                      </div>
+          <div className="grid gap-4">
+            {/* Emoji totais por filial */}
+            <div className="grid gap-4 md:grid-cols-2">
+              {FILIAIS.map((f) => {
+                const dados = checkins.filter((c) => c.filial === f.id);
+                return (
+                  <div key={f.id} className="rounded-2xl border border-border bg-card p-4">
+                    <p className="font-semibold">{f.nome}</p>
+                    <p className="text-xs text-muted-foreground">{dados.length} respostas</p>
+                    <div className="mt-3 grid grid-cols-5 gap-2 text-center">
+                      {HUMORES.map((h) => (
+                        <div key={h.id} className="rounded-xl bg-muted py-2">
+                          <span className="text-lg">{h.emoji}</span>
+                          <p className="text-sm font-bold">
+                            {dados.filter((c) => c.humor === h.id).length}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Filtros do gráfico */}
+            {checkins.length > 0 && (
+              <div className="grid gap-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex flex-wrap gap-2">
+                    {(
+                      [
+                        { v: "7d", l: "7 dias" },
+                        { v: "30d", l: "30 dias" },
+                        { v: "mes", l: "Este mês" },
+                      ] as const
+                    ).map(({ v, l }) => (
+                      <button
+                        key={v}
+                        onClick={() => {
+                          setClimaPeriodo(v);
+                          setDrillDia(null);
+                        }}
+                        className={`rounded-full border px-3 py-1 text-sm font-medium transition-colors ${
+                          climaPeriodo === v
+                            ? "border-kt bg-kt-soft text-kt"
+                            : "border-border text-muted-foreground hover:border-foreground"
+                        }`}
+                      >
+                        {l}
+                      </button>
+                    ))}
+                    <span className="h-6 w-px bg-border" />
+                    {["todas", ...FILIAIS.map((f) => f.id)].map((fid) => (
+                      <button
+                        key={fid}
+                        onClick={() => {
+                          setClimaFilial(fid);
+                          setDrillDia(null);
+                        }}
+                        className={`rounded-full border px-3 py-1 text-sm font-medium transition-colors ${
+                          climaFilial === fid
+                            ? "border-az bg-az-soft text-az"
+                            : "border-border text-muted-foreground hover:border-foreground"
+                        }`}
+                      >
+                        {fid === "todas" ? "Todas" : filialNome(fid as FilialId)}
+                      </button>
                     ))}
                   </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="rounded-full"
+                    onClick={() =>
+                      baixarCsvClima(checkins, climaFilial === "todas" ? "" : climaFilial)
+                    }
+                  >
+                    <Download className="h-3.5 w-3.5" /> CSV
+                  </Button>
                 </div>
-              );
-            })}
+
+                <div className="h-52 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={dadosCli} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
+                      <XAxis dataKey="data" tick={{ fontSize: 10 }} />
+                      <YAxis allowDecimals={false} tick={{ fontSize: 10 }} />
+                      <Tooltip />
+                      <Bar
+                        dataKey="Pos"
+                        name="Positivos"
+                        stackId="a"
+                        fill="#22c55e"
+                        style={{ cursor: "pointer" }}
+                        onClick={(d) => setDrillDia(d.dataStr === drillDia ? null : d.dataStr)}
+                      />
+                      <Bar
+                        dataKey="Neu"
+                        name="Neutros"
+                        stackId="a"
+                        fill="#f59e0b"
+                        style={{ cursor: "pointer" }}
+                        onClick={(d) => setDrillDia(d.dataStr === drillDia ? null : d.dataStr)}
+                      />
+                      <Bar
+                        dataKey="Neg"
+                        name="Negativos"
+                        stackId="a"
+                        fill="#ef4444"
+                        radius={[3, 3, 0, 0]}
+                        style={{ cursor: "pointer" }}
+                        onClick={(d) => setDrillDia(d.dataStr === drillDia ? null : d.dataStr)}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Drill-down */}
+                {drillDia && drillCheckins.length > 0 && (
+                  <div className="rounded-2xl border border-border bg-muted/50 p-4">
+                    <p className="mb-3 text-sm font-semibold">
+                      {new Date(drillDia).toLocaleDateString("pt-BR", {
+                        weekday: "long",
+                        day: "2-digit",
+                        month: "long",
+                      })}{" "}
+                      · {drillCheckins.length} check-in{drillCheckins.length > 1 ? "s" : ""}
+                    </p>
+                    <div className="grid gap-2">
+                      {drillCheckins.map((c) => {
+                        const h = HUMORES.find((x) => x.id === c.humor);
+                        return (
+                          <div key={c.id} className="flex items-center gap-2 text-sm">
+                            <span className="text-base">{h?.emoji}</span>
+                            <span className="font-medium">{c.nome}</span>
+                            <span className="text-muted-foreground">·</span>
+                            <span className="text-muted-foreground">{filialNome(c.filial)}</span>
+                            <span className="ml-auto text-xs text-muted-foreground">
+                              {new Date(c.ts).toLocaleTimeString("pt-BR", {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </span>
+                            {c.recado && (
+                              <span className="ml-1 text-xs text-muted-foreground">
+                                "{c.recado}"
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <button
+                      className="mt-3 text-xs text-muted-foreground underline-offset-2 hover:underline"
+                      onClick={() => setDrillDia(null)}
+                    >
+                      Fechar
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </Section>
 
-        <Section
-          titulo="Publicar notícia ou vídeo"
-          intro="Cole o link do YouTube e o vídeo aparece direto no painel do colaborador."
-          contagem={`${noticias.length} publicados`}
-        >
-          <div className="grid max-w-2xl gap-3">
-            <Input
-              placeholder="Título"
-              value={nTitulo}
-              onChange={(e) => setNTitulo(e.target.value)}
-            />
-            <Textarea
-              rows={2}
-              placeholder="Resumo"
-              value={nResumo}
-              onChange={(e) => setNResumo(e.target.value)}
-            />
-            <Input
-              placeholder="Link do vídeo (YouTube)"
-              value={nVideo}
-              onChange={(e) => setNVideo(e.target.value)}
-            />
-            <div className="grid gap-2">
-              <Label htmlFor="n-data">Data de publicação</Label>
+        {/* Notícia + Pesquisa — lado a lado */}
+        <div className="grid gap-5 md:grid-cols-2">
+          <Section
+            titulo="Publicar notícia ou vídeo"
+            intro="Cole o link do YouTube e o vídeo aparece no painel do colaborador."
+            contagem={`${noticias.length} publicados`}
+            collapsible
+            defaultOpen
+          >
+            <div className="grid gap-3">
               <Input
-                id="n-data"
-                type="date"
-                value={nData}
-                onChange={(e) => setNData(e.target.value)}
+                placeholder="Título"
+                value={nTitulo}
+                onChange={(e) => setNTitulo(e.target.value)}
               />
-            </div>
-            {nVideo && youtubeEmbed(nVideo) ? (
-              <div className="aspect-video w-full overflow-hidden rounded-xl">
-                <iframe
-                  src={youtubeEmbed(nVideo)!}
-                  title="Prévia"
-                  className="h-full w-full"
-                  allowFullScreen
+              <Textarea
+                rows={2}
+                placeholder="Resumo"
+                value={nResumo}
+                onChange={(e) => setNResumo(e.target.value)}
+              />
+              <Input
+                placeholder="Link do vídeo (YouTube)"
+                value={nVideo}
+                onChange={(e) => setNVideo(e.target.value)}
+              />
+              <div className="grid gap-2">
+                <Label htmlFor="n-data">Data de publicação</Label>
+                <Input
+                  id="n-data"
+                  type="date"
+                  value={nData}
+                  onChange={(e) => setNData(e.target.value)}
                 />
               </div>
-            ) : null}
-            <div>
+              {/* Foto da notícia */}
+              <div className="grid gap-2">
+                <Label>Foto (opcional)</Label>
+                <input
+                  ref={nFotoInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const f = e.target.files?.[0];
+                    if (f) await uploadFotoNoticia(f);
+                    e.target.value = "";
+                  }}
+                />
+                {nFotoUrl ? (
+                  <div className="relative overflow-hidden rounded-xl">
+                    <img
+                      src={nFotoUrl}
+                      alt="Foto da notícia"
+                      className="h-32 w-full object-cover"
+                    />
+                    <button
+                      className="absolute right-2 top-2 rounded-full bg-destructive/80 p-1 text-white hover:bg-destructive"
+                      onClick={() => setNFotoUrl("")}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ) : (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-fit rounded-full"
+                    disabled={nFotoUploading}
+                    onClick={() => nFotoInputRef.current?.click()}
+                  >
+                    <Upload className="h-3.5 w-3.5" />
+                    {nFotoUploading ? "Enviando..." : "Adicionar foto"}
+                  </Button>
+                )}
+              </div>
+              {nVideo && youtubeEmbed(nVideo) ? (
+                <div className="aspect-video w-full overflow-hidden rounded-xl">
+                  <iframe
+                    src={youtubeEmbed(nVideo)!}
+                    title="Prévia"
+                    className="h-full w-full"
+                    allowFullScreen
+                  />
+                </div>
+              ) : null}
               <Button
                 className="rounded-full"
                 disabled={!nTitulo.trim()}
@@ -567,6 +903,7 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
                       titulo: nTitulo.trim(),
                       resumo: nResumo.trim(),
                       videoUrl: nVideo.trim() || undefined,
+                      imagemUrl: nFotoUrl || undefined,
                       data: nData || new Date().toISOString().slice(0, 10),
                     },
                     ...noticias,
@@ -575,94 +912,95 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
                   setNResumo("");
                   setNVideo("");
                   setNData("");
+                  setNFotoUrl("");
                   toast.success("Notícia publicada para todas as unidades.");
                 }}
               >
                 Publicar
               </Button>
             </div>
-          </div>
-        </Section>
+          </Section>
 
-        <Section
-          titulo="Pesquisa de clima"
-          intro="Abra uma pesquisa e ela aparece no painel de colaboradores e gestores."
-          contagem={pesquisa?.ativa ? "Ativa" : "Nenhuma ativa"}
-        >
-          <div className="grid max-w-2xl gap-3">
-            {pesquisa?.ativa && (
-              <div className="rounded-2xl border border-az bg-az-soft p-4">
-                <div className="flex flex-wrap items-start justify-between gap-2">
-                  <div>
-                    <p className="font-bold">{pesquisa.titulo}</p>
-                    {pesquisa.descricao && (
-                      <p className="mt-0.5 text-sm text-muted-foreground">{pesquisa.descricao}</p>
+          <Section
+            titulo="Pesquisa de clima"
+            intro="Abra uma pesquisa e ela aparece no painel de colaboradores e gestores."
+            contagem={pesquisa?.ativa ? "Ativa" : "Nenhuma ativa"}
+            collapsible
+            defaultOpen
+          >
+            <div className="grid gap-3">
+              {pesquisa?.ativa && (
+                <div className="rounded-2xl border border-az bg-az-soft p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div>
+                      <p className="font-bold">{pesquisa.titulo}</p>
+                      {pesquisa.descricao && (
+                        <p className="mt-0.5 text-sm text-muted-foreground">{pesquisa.descricao}</p>
+                      )}
+                    </div>
+                    {pesquisa.prazo && (
+                      <span
+                        className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-bold ${
+                          diasRestantes(pesquisa.prazo) <= 2
+                            ? "bg-destructive/10 text-destructive"
+                            : diasRestantes(pesquisa.prazo) <= 5
+                              ? "bg-warn-soft text-warn"
+                              : "bg-success-soft text-success"
+                        }`}
+                      >
+                        {diasRestantes(pesquisa.prazo) > 0
+                          ? `${diasRestantes(pesquisa.prazo)} dias restantes`
+                          : "Prazo encerrado"}
+                      </span>
                     )}
                   </div>
-                  {pesquisa.prazo && (
-                    <span
-                      className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-bold ${
-                        diasRestantes(pesquisa.prazo) <= 2
-                          ? "bg-destructive/10 text-destructive"
-                          : diasRestantes(pesquisa.prazo) <= 5
-                            ? "bg-warn-soft text-warn"
-                            : "bg-success-soft text-success"
-                      }`}
+                  {pesquisa.link && (
+                    <a
+                      href={pesquisa.link}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-2 inline-flex items-center gap-1 text-xs text-az underline underline-offset-2"
                     >
-                      {diasRestantes(pesquisa.prazo) > 0
-                        ? `${diasRestantes(pesquisa.prazo)} dias restantes`
-                        : "Prazo encerrado"}
-                    </span>
+                      Ver formulário <ExternalLink className="h-3 w-3" />
+                    </a>
                   )}
-                </div>
-                {pesquisa.link && (
-                  <a
-                    href={pesquisa.link}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="mt-2 inline-flex items-center gap-1 text-xs text-az underline underline-offset-2"
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-3 rounded-full"
+                    onClick={() => setPesquisa(null)}
                   >
-                    Ver formulário <ExternalLink className="h-3 w-3" />
-                  </a>
-                )}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="mt-3 rounded-full"
-                  onClick={() => setPesquisa(null)}
-                >
-                  Encerrar pesquisa
-                </Button>
-              </div>
-            )}
-            {!pesquisa?.ativa && (
-              <>
-                <Input
-                  placeholder="Título da pesquisa"
-                  value={pTitulo}
-                  onChange={(e) => setPTitulo(e.target.value)}
-                />
-                <Textarea
-                  rows={2}
-                  placeholder="Descrição"
-                  value={pDesc}
-                  onChange={(e) => setPDesc(e.target.value)}
-                />
-                <Input
-                  placeholder="Link do formulário"
-                  value={pLink}
-                  onChange={(e) => setPLink(e.target.value)}
-                />
-                <div className="grid gap-2">
-                  <Label htmlFor="p-prazo">Prazo de resposta (opcional)</Label>
-                  <Input
-                    id="p-prazo"
-                    type="date"
-                    value={pPrazo}
-                    onChange={(e) => setPPrazo(e.target.value)}
-                  />
+                    Encerrar pesquisa
+                  </Button>
                 </div>
-                <div>
+              )}
+              {!pesquisa?.ativa && (
+                <>
+                  <Input
+                    placeholder="Título da pesquisa"
+                    value={pTitulo}
+                    onChange={(e) => setPTitulo(e.target.value)}
+                  />
+                  <Textarea
+                    rows={2}
+                    placeholder="Descrição"
+                    value={pDesc}
+                    onChange={(e) => setPDesc(e.target.value)}
+                  />
+                  <Input
+                    placeholder="Link do formulário"
+                    value={pLink}
+                    onChange={(e) => setPLink(e.target.value)}
+                  />
+                  <div className="grid gap-2">
+                    <Label htmlFor="p-prazo">Prazo de resposta (opcional)</Label>
+                    <Input
+                      id="p-prazo"
+                      type="date"
+                      value={pPrazo}
+                      onChange={(e) => setPPrazo(e.target.value)}
+                    />
+                  </div>
                   <Button
                     className="rounded-full"
                     disabled={!pTitulo.trim()}
@@ -685,20 +1023,23 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
                   >
                     Publicar pesquisa
                   </Button>
-                </div>
-              </>
-            )}
-          </div>
-        </Section>
+                </>
+              )}
+            </div>
+          </Section>
+        </div>
 
-        <Mural filial="todas" autorPadrao="Equipe Azumi RH" />
+        <Mural filial="todas" autorPadrao="Equipe Azumi RH" collapsible defaultOpen />
 
+        {/* Pedidos de apoio — somente pedidos explícitos */}
         <Section
           titulo="Pedidos de apoio"
-          intro="Histórico de acionamentos da Azumi RH via intranet. Adicione notas internas em cada registro."
-          contagem={`${ajuda.length} registros`}
+          intro="Registros de colaboradores que solicitaram suporte explicitamente."
+          contagem={`${pedidosReais.length} registros`}
+          collapsible
+          defaultOpen={pedidosReais.length > 0}
         >
-          {ajuda.length === 0 ? (
+          {pedidosReais.length === 0 ? (
             <EmptyState>Nenhum pedido de apoio registrado ainda.</EmptyState>
           ) : (
             <div className="grid gap-4">
@@ -710,34 +1051,54 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
                     className={`rounded-full border px-3 py-1 text-sm font-medium transition-colors ${
                       filtroAjuda === f
                         ? "border-kt bg-kt-soft text-kt"
-                        : "border-border text-muted-foreground hover:border-foreground hover:text-foreground"
+                        : "border-border text-muted-foreground hover:border-foreground"
                     }`}
                   >
                     {f}
                   </button>
                 ))}
+                <span className="h-6 w-px bg-border" />
+                {["Todos", "Em andamento", "Resolvidos"].map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => setFiltroStatus(s)}
+                    className={`rounded-full border px-3 py-1 text-sm font-medium transition-colors ${
+                      filtroStatus === s
+                        ? "border-success bg-success-soft text-success"
+                        : "border-border text-muted-foreground hover:border-foreground"
+                    }`}
+                  >
+                    {s}
+                  </button>
+                ))}
               </div>
               <div className="grid gap-3">
-                {ajuda
-                  .filter((a) => filtroAjuda === "Todas" || filialNome(a.filial) === filtroAjuda)
-                  .map((a) => (
+                {pedidosFiltrados.length === 0 ? (
+                  <EmptyState>Nenhum registro com estes filtros.</EmptyState>
+                ) : (
+                  pedidosFiltrados.map((a) => (
                     <div
                       key={a.id}
-                      className="rounded-2xl border border-border bg-card p-4 text-sm"
+                      className={`rounded-2xl border bg-card p-4 text-sm ${
+                        a.status === "resolvido" ? "border-success/30 opacity-70" : "border-border"
+                      }`}
                     >
                       <div className="flex flex-wrap items-center gap-2">
                         <span
-                          className={`rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide ${
-                            a.assunto === "crise-checkin"
-                              ? "bg-destructive/10 text-destructive"
-                              : a.assunto === "suporte-checkin"
-                                ? "bg-warn-soft text-warn"
-                                : "bg-az-soft text-az"
-                          }`}
+                          className={`rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide ${badgeAssunto(a.assunto)}`}
                         >
                           {labelAssunto(a.assunto)}
                         </span>
-                        <span className="text-muted-foreground">
+                        {a.status === "resolvido" ? (
+                          <span className="flex items-center gap-1 rounded-full bg-success-soft px-2.5 py-1 text-[11px] font-bold text-success">
+                            <Check className="h-3 w-3" /> Resolvido
+                          </span>
+                        ) : (
+                          <span className="rounded-full bg-warn-soft px-2.5 py-1 text-[11px] font-bold text-warn">
+                            Em andamento
+                          </span>
+                        )}
+                        <span className="font-semibold">
                           {a.nome} · {filialNome(a.filial)}
                         </span>
                         <span className="ml-auto text-xs text-muted-foreground">
@@ -752,127 +1113,175 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
                       <Textarea
                         className="mt-3 text-xs"
                         rows={2}
-                        placeholder="Nota interna (visível só para a Azumi RH)..."
+                        placeholder="Nota interna / ação tomada (visível só para a Azumi RH)..."
                         value={a.nota ?? ""}
                         onChange={(e) => {
                           const nota = e.target.value;
                           setAjuda((prev) => prev.map((x) => (x.id === a.id ? { ...x, nota } : x)));
                         }}
                       />
+                      {a.status !== "resolvido" && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="mt-2 rounded-full border-success text-success hover:bg-success-soft"
+                          onClick={() =>
+                            setAjuda((prev) =>
+                              prev.map((x) =>
+                                x.id === a.id ? { ...x, status: "resolvido" as const } : x,
+                              ),
+                            )
+                          }
+                        >
+                          <Check className="h-3.5 w-3.5" /> Registrar ação tomada
+                        </Button>
+                      )}
                     </div>
-                  ))}
+                  ))
+                )}
               </div>
             </div>
           )}
         </Section>
 
+        {/* Documentos */}
         <Section
           titulo="Documentos e políticas"
-          intro="Publique documentos para colaboradores e gestores. Upload de PDF direto no sistema."
+          intro="Documentos publicados para colaboradores e gestores."
           contagem={`${documentos.length} publicados`}
-        >
-          {/* Formulário de novo documento */}
-          <div className="grid max-w-2xl gap-3">
-            <div className="grid gap-2">
-              <Label htmlFor="doc-titulo">Título do documento</Label>
-              <Input
-                id="doc-titulo"
-                placeholder="Ex: Código de Ética e Conduta"
-                value={docTitulo}
-                onChange={(e) => setDocTitulo(e.target.value)}
-                maxLength={100}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label>Filial</Label>
-              <div className="flex flex-wrap gap-2">
-                {(["todas", ...FILIAIS.map((f) => f.id)] as const).map((f) => (
-                  <button
-                    key={f}
-                    onClick={() => setDocFilial(f)}
-                    className={`rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors ${
-                      docFilial === f ? "border-kt bg-kt-soft text-kt" : "border-border bg-card"
-                    }`}
-                  >
-                    {f === "todas" ? "Todas as unidades" : filialNome(f)}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="grid gap-2">
-                <Label htmlFor="doc-texto-tag">Etiqueta (texto)</Label>
-                <Input
-                  id="doc-texto-tag"
-                  placeholder="Ex: Ética, Segurança"
-                  value={docTextoTag}
-                  onChange={(e) => setDocTextoTag(e.target.value)}
-                  maxLength={20}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="doc-cor-tag">Cor da etiqueta</Label>
-                <div className="flex items-center gap-2">
+          collapsible
+          defaultOpen={documentos.length > 0}
+          acao={
+            <Dialog
+              open={docOpen}
+              onOpenChange={(o) => {
+                setDocOpen(o);
+                if (!o) {
+                  setDocTitulo("");
+                  setDocTextoTag("");
+                  setDocCorTag("#8a2058");
+                  setDocFilial("todas");
+                  setDocErro("");
+                }
+              }}
+            >
+              <DialogTrigger asChild>
+                <Button size="sm" className="rounded-full">
+                  <Plus className="h-3.5 w-3.5" /> Publicar documento
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-lg">
+                <DialogHeader>
+                  <DialogTitle>Publicar documento</DialogTitle>
+                  <DialogDescription>
+                    Upload de PDF — aparece no painel dos colaboradores e gestores.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-3">
+                  <div className="grid gap-2">
+                    <Label htmlFor="doc-titulo">Título</Label>
+                    <Input
+                      id="doc-titulo"
+                      placeholder="Ex: Código de Ética e Conduta"
+                      value={docTitulo}
+                      onChange={(e) => setDocTitulo(e.target.value)}
+                      maxLength={100}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label>Filial</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {(["todas", ...FILIAIS.map((f) => f.id)] as const).map((f) => (
+                        <button
+                          key={f}
+                          onClick={() => setDocFilial(f)}
+                          className={`rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors ${
+                            docFilial === f
+                              ? "border-kt bg-kt-soft text-kt"
+                              : "border-border bg-card"
+                          }`}
+                        >
+                          {f === "todas" ? "Todas" : filialNome(f)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="grid gap-2">
+                      <Label htmlFor="doc-texto-tag">Etiqueta</Label>
+                      <Input
+                        id="doc-texto-tag"
+                        placeholder="Ex: Ética"
+                        value={docTextoTag}
+                        onChange={(e) => setDocTextoTag(e.target.value)}
+                        maxLength={20}
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="doc-cor-tag">Cor</Label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          id="doc-cor-tag"
+                          type="color"
+                          value={docCorTag}
+                          onChange={(e) => setDocCorTag(e.target.value)}
+                          className="h-10 w-12 cursor-pointer rounded border border-border p-1"
+                        />
+                        <span className="text-xs text-muted-foreground">{docCorTag}</span>
+                      </div>
+                    </div>
+                  </div>
                   <input
-                    id="doc-cor-tag"
-                    type="color"
-                    value={docCorTag}
-                    onChange={(e) => setDocCorTag(e.target.value)}
-                    className="h-10 w-12 cursor-pointer rounded border border-border p-1"
+                    ref={docInputRef}
+                    type="file"
+                    accept=".pdf,.doc,.docx"
+                    className="hidden"
                   />
-                  <span className="text-xs text-muted-foreground">{docCorTag}</span>
+                  {docErro ? (
+                    <p className="text-sm font-medium text-destructive">{docErro}</p>
+                  ) : null}
+                  <Button
+                    className="rounded-full"
+                    disabled={!docTitulo.trim() || !docTextoTag.trim() || docUploading}
+                    onClick={async () => {
+                      docInputRef.current?.click();
+                      docInputRef.current!.onchange = async () => {
+                        const f = docInputRef.current?.files?.[0];
+                        if (!f) return;
+                        await realizarUploadDoc(f);
+                        if (docInputRef.current) docInputRef.current.value = "";
+                      };
+                    }}
+                  >
+                    {docUploading ? "Enviando..." : "Selecionar arquivo e publicar"}
+                  </Button>
                 </div>
-              </div>
-            </div>
-            <input ref={docInputRef} type="file" accept=".pdf,.doc,.docx" className="hidden" />
-            {docErro ? <p className="text-sm font-medium text-destructive">{docErro}</p> : null}
-            <div className="flex flex-wrap gap-2">
-              <Button
-                className="rounded-full"
-                disabled={!docTitulo.trim() || !docTextoTag.trim() || docUploading}
-                onClick={async () => {
-                  const file = docInputRef.current?.files?.[0];
-                  if (!file) {
-                    // No file selected: open picker first
-                    docInputRef.current?.click();
-                    docInputRef.current!.onchange = async () => {
-                      const f = docInputRef.current?.files?.[0];
-                      if (!f) return;
-                      await realizarUpload(f);
-                      if (docInputRef.current) docInputRef.current.value = "";
-                    };
-                    return;
-                  }
-                  await realizarUpload(file);
-                  if (docInputRef.current) docInputRef.current.value = "";
-                }}
-              >
-                {docUploading ? "Enviando..." : "Selecionar arquivo e publicar"}
-              </Button>
-            </div>
-          </div>
-
-          {/* Lista de documentos existentes */}
-          {documentos.length > 0 && (
-            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              </DialogContent>
+            </Dialog>
+          }
+        >
+          {documentos.length === 0 ? (
+            <EmptyState>Nenhum documento publicado ainda.</EmptyState>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2">
               {documentos.map((doc) => {
                 const totalAssinaturas = assinaturas.filter((a) => a.politica === doc.id).length;
                 const totalLeituras = leituras.filter((l) => l.documentoId === doc.id).length;
                 return (
                   <div
                     key={doc.id}
-                    className="overflow-hidden rounded-2xl border border-border bg-card"
+                    className="flex flex-col overflow-hidden rounded-2xl border border-border bg-card"
                   >
                     <div className="relative">
-                      <img src={capaPadrao} alt="" className="h-16 w-full object-cover" />
+                      <img src={capaPadrao} alt="" className="h-28 w-full object-cover" />
                       <span
-                        className="absolute left-2 top-2 rounded-full px-2 py-0.5 text-[10px] font-bold text-white"
+                        className="absolute left-3 top-3 rounded-full px-2.5 py-1 text-[11px] font-bold text-white"
                         style={{ backgroundColor: doc.corTag }}
                       >
                         {doc.textoTag}
                       </span>
                     </div>
-                    <div className="p-3">
+                    <div className="flex flex-1 flex-col p-4">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
                           <p className="truncate text-sm font-semibold">{doc.titulo}</p>
@@ -888,13 +1297,12 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
                             target="_blank"
                             rel="noreferrer"
                             className="rounded-full p-1.5 hover:bg-muted"
-                            title="Abrir documento"
+                            title="Abrir"
                           >
                             <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
                           </a>
                           <button
                             className="rounded-full p-1.5 text-destructive hover:bg-destructive/10"
-                            title="Remover documento"
                             onClick={() =>
                               setDocumentos((prev) => prev.filter((d) => d.id !== doc.id))
                             }
@@ -903,7 +1311,7 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
                           </button>
                         </div>
                       </div>
-                      <div className="mt-2 flex gap-2 text-xs text-muted-foreground">
+                      <div className="mt-auto flex gap-2 pt-3 text-xs text-muted-foreground">
                         <span className="flex items-center gap-1 rounded-full bg-success-soft px-2 py-0.5 text-success">
                           <Check className="h-3 w-3" /> {totalAssinaturas}
                         </span>
@@ -919,194 +1327,256 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
           )}
         </Section>
 
-        <Section
-          titulo="Importar colaboradores (CSV)"
-          intro="Importe a planilha com os colaboradores das unidades. Cabeçalhos esperados: nome_completo, ultimos_3_digitos_cpf, cargo, filial, data_nascimento, data_admissao."
-          contagem={`${colaboradores.length} cadastrados`}
-        >
-          <input
-            ref={csvInputRef}
-            type="file"
-            accept=".csv"
-            className="hidden"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) processarCsv(file);
-              e.target.value = "";
+        {/* Ações administrativas — botões que abrem popups */}
+        <div className="grid gap-3 sm:grid-cols-2">
+          {/* Importar CSV */}
+          <Dialog
+            open={csvOpen}
+            onOpenChange={(o) => {
+              setCsvOpen(o);
+              if (!o) {
+                setCsvPreview(null);
+                setCsvErro("");
+              }
             }}
-          />
-          {csvErro ? <p className="mb-3 text-sm font-medium text-destructive">{csvErro}</p> : null}
-          {!csvPreview ? (
-            <Button className="rounded-full" onClick={() => csvInputRef.current?.click()}>
-              Selecionar arquivo CSV
-            </Button>
-          ) : (
-            <div className="grid max-w-2xl gap-4">
-              <div className="rounded-2xl bg-muted px-4 py-4 text-sm">
-                <p className="font-semibold">Prévia da importação</p>
-                <p className="mt-1 text-muted-foreground">
-                  {csvPreview.adicionar.length > 0
-                    ? `${csvPreview.adicionar.length} colaborador${csvPreview.adicionar.length > 1 ? "es" : ""} serão adicionados`
-                    : "Nenhum novo colaborador"}
-                  {csvPreview.atualizar.length > 0
-                    ? ` · ${csvPreview.atualizar.length} serão atualizados`
-                    : ""}
-                  .
-                </p>
-                {csvPreview.adicionar.length > 0 ? (
-                  <ul className="mt-2 grid gap-0.5 text-xs text-muted-foreground">
-                    {csvPreview.adicionar.slice(0, 6).map((c) => (
-                      <li key={c.id}>
-                        + {c.nome} · {filialNome(c.filial)}
-                      </li>
-                    ))}
-                    {csvPreview.adicionar.length > 6 ? (
-                      <li>…e mais {csvPreview.adicionar.length - 6}</li>
+          >
+            <DialogTrigger asChild>
+              <button className="flex items-center gap-3 rounded-2xl border border-border bg-card px-5 py-4 text-left text-sm transition-colors hover:bg-muted">
+                <Upload className="h-5 w-5 shrink-0 text-muted-foreground" />
+                <div>
+                  <p className="font-bold">Importar colaboradores (CSV)</p>
+                  <p className="text-xs text-muted-foreground">
+                    {colaboradores.length} cadastrados
+                  </p>
+                </div>
+              </button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Importar colaboradores (CSV)</DialogTitle>
+                <DialogDescription>
+                  Cabeçalhos esperados: nome_completo, ultimos_3_digitos_cpf, cargo, filial,
+                  data_nascimento, data_admissao.
+                </DialogDescription>
+              </DialogHeader>
+              <input
+                ref={csvInputRef}
+                type="file"
+                accept=".csv"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) processarCsv(file);
+                  e.target.value = "";
+                }}
+              />
+              {csvErro ? <p className="text-sm font-medium text-destructive">{csvErro}</p> : null}
+              {!csvPreview ? (
+                <Button className="rounded-full" onClick={() => csvInputRef.current?.click()}>
+                  Selecionar arquivo CSV
+                </Button>
+              ) : (
+                <div className="grid gap-4">
+                  <div className="rounded-2xl bg-muted px-4 py-4 text-sm">
+                    <p className="font-semibold">Prévia da importação</p>
+                    <p className="mt-1 text-muted-foreground">
+                      {csvPreview.adicionar.length > 0
+                        ? `${csvPreview.adicionar.length} colaborador${csvPreview.adicionar.length > 1 ? "es" : ""} serão adicionados`
+                        : "Nenhum novo colaborador"}
+                      {csvPreview.atualizar.length > 0
+                        ? ` · ${csvPreview.atualizar.length} serão atualizados`
+                        : ""}
+                      .
+                    </p>
+                    {csvPreview.adicionar.length > 0 ? (
+                      <ul className="mt-2 grid gap-0.5 text-xs text-muted-foreground">
+                        {csvPreview.adicionar.slice(0, 6).map((c) => (
+                          <li key={c.id}>
+                            + {c.nome} · {filialNome(c.filial)}
+                          </li>
+                        ))}
+                        {csvPreview.adicionar.length > 6 ? (
+                          <li>…e mais {csvPreview.adicionar.length - 6}</li>
+                        ) : null}
+                      </ul>
                     ) : null}
-                  </ul>
-                ) : null}
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  className="rounded-full"
-                  onClick={() => {
-                    const idsAtualizar = new Set(csvPreview.atualizar.map((c) => c.id));
-                    const base = colaboradores.filter((c) => !idsAtualizar.has(c.id));
-                    setColaboradores([...base, ...csvPreview.atualizar, ...csvPreview.adicionar]);
-                    toast.success(
-                      `${csvPreview.adicionar.length} adicionados, ${csvPreview.atualizar.length} atualizados.`,
-                    );
-                    setCsvPreview(null);
-                  }}
-                >
-                  Confirmar importação
-                </Button>
-                <Button
-                  variant="outline"
-                  className="rounded-full"
-                  onClick={() => setCsvPreview(null)}
-                >
-                  Cancelar
-                </Button>
-              </div>
-            </div>
-          )}
-        </Section>
-
-        <Section
-          titulo="Criar acesso de gestor"
-          intro="Provisiona login e senha temporária para um novo gestor. O gestor cria a senha definitiva no primeiro acesso."
-        >
-          {gSucesso ? (
-            <div className="grid max-w-2xl gap-4">
-              <div className="rounded-2xl border border-success bg-success-soft p-5">
-                <p className="font-bold text-success">Acesso criado com sucesso!</p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Comunique as credenciais abaixo por WhatsApp ou pessoalmente. O gestor precisará
-                  criar uma nova senha no primeiro acesso.
-                </p>
-                <div className="mt-4 grid gap-2">
-                  <div className="flex items-center justify-between gap-2 rounded-xl bg-card px-4 py-2.5 text-sm">
-                    <span className="text-muted-foreground">E-mail</span>
-                    <span className="font-mono font-semibold">{gSucesso.email}</span>
                   </div>
-                  <div className="flex items-center justify-between gap-2 rounded-xl bg-card px-4 py-2.5 text-sm">
-                    <span className="text-muted-foreground">Senha temporária</span>
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono font-semibold tracking-wider">
-                        {gSucesso.senha}
-                      </span>
-                      <button
-                        onClick={() => {
-                          navigator.clipboard.writeText(gSucesso!.senha);
-                          toast.success("Senha copiada!");
-                        }}
-                        className="rounded-full p-1 hover:bg-muted"
-                        title="Copiar senha"
-                      >
-                        <Copy className="h-3.5 w-3.5 text-muted-foreground" />
-                      </button>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      className="rounded-full"
+                      onClick={() => {
+                        const idsAtualizar = new Set(csvPreview.atualizar.map((c) => c.id));
+                        const base = colaboradores.filter((c) => !idsAtualizar.has(c.id));
+                        setColaboradores([
+                          ...base,
+                          ...csvPreview.atualizar,
+                          ...csvPreview.adicionar,
+                        ]);
+                        toast.success(
+                          `${csvPreview.adicionar.length} adicionados, ${csvPreview.atualizar.length} atualizados.`,
+                        );
+                        setCsvPreview(null);
+                        setCsvOpen(false);
+                      }}
+                    >
+                      Confirmar importação
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="rounded-full"
+                      onClick={() => setCsvPreview(null)}
+                    >
+                      Cancelar
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
+
+          {/* Criar acesso de gestor */}
+          <Dialog
+            open={gestorOpen}
+            onOpenChange={(o) => {
+              setGestorOpen(o);
+              if (!o) {
+                setGSucesso(null);
+                setGNome("");
+                setGEmail("");
+                setGFilial(FILIAIS[0].id);
+                setGErro("");
+              }
+            }}
+          >
+            <DialogTrigger asChild>
+              <button className="flex items-center gap-3 rounded-2xl border border-border bg-card px-5 py-4 text-left text-sm transition-colors hover:bg-muted">
+                <UserPlus2 className="h-5 w-5 shrink-0 text-muted-foreground" />
+                <div>
+                  <p className="font-bold">Criar acesso de gestor</p>
+                  <p className="text-xs text-muted-foreground">Provisiona login temporário</p>
+                </div>
+              </button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Criar acesso de gestor</DialogTitle>
+                <DialogDescription>
+                  O gestor cria a senha definitiva no primeiro acesso.
+                </DialogDescription>
+              </DialogHeader>
+              {gSucesso ? (
+                <div className="grid gap-4">
+                  <div className="rounded-2xl border border-success bg-success-soft p-5">
+                    <p className="font-bold text-success">Acesso criado com sucesso!</p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Comunique as credenciais por WhatsApp ou pessoalmente.
+                    </p>
+                    <div className="mt-4 grid gap-2">
+                      <div className="flex items-center justify-between gap-2 rounded-xl bg-card px-4 py-2.5 text-sm">
+                        <span className="text-muted-foreground">E-mail</span>
+                        <span className="font-mono font-semibold">{gSucesso.email}</span>
+                      </div>
+                      <div className="flex items-center justify-between gap-2 rounded-xl bg-card px-4 py-2.5 text-sm">
+                        <span className="text-muted-foreground">Senha temporária</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-semibold tracking-wider">
+                            {gSucesso.senha}
+                          </span>
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(gSucesso!.senha);
+                              toast.success("Senha copiada!");
+                            }}
+                            className="rounded-full p-1 hover:bg-muted"
+                          >
+                            <Copy className="h-3.5 w-3.5 text-muted-foreground" />
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   </div>
+                  <Button
+                    variant="outline"
+                    className="w-fit rounded-full"
+                    onClick={() => {
+                      setGSucesso(null);
+                      setGNome("");
+                      setGEmail("");
+                      setGFilial(FILIAIS[0].id);
+                    }}
+                  >
+                    <UserPlus2 className="h-4 w-4" /> Criar outro acesso
+                  </Button>
                 </div>
-              </div>
-              <Button
-                variant="outline"
-                className="w-fit rounded-full"
-                onClick={() => {
-                  setGSucesso(null);
-                  setGNome("");
-                  setGEmail("");
-                  setGFilial(FILIAIS[0].id);
-                }}
-              >
-                <UserPlus2 className="h-4 w-4" /> Criar outro acesso
-              </Button>
-            </div>
-          ) : (
-            <div className="grid max-w-2xl gap-3">
-              <div className="grid gap-2">
-                <Label htmlFor="g-nome">Nome completo</Label>
-                <Input
-                  id="g-nome"
-                  placeholder="Ex.: Marcos Tanaka"
-                  value={gNome}
-                  onChange={(e) => setGNome(e.target.value)}
-                  maxLength={80}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="g-email">E-mail de acesso</Label>
-                <Input
-                  id="g-email"
-                  type="email"
-                  placeholder="gestor@email.com"
-                  value={gEmail}
-                  onChange={(e) => setGEmail(e.target.value)}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label>Unidade</Label>
-                <div className="flex flex-wrap gap-2">
-                  {FILIAIS.map((f) => (
-                    <button
-                      key={f.id}
-                      onClick={() => setGFilial(f.id)}
-                      className={`rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors ${
-                        gFilial === f.id ? "border-kt bg-kt-soft text-kt" : "border-border bg-card"
-                      }`}
-                    >
-                      {f.nome}
-                    </button>
-                  ))}
+              ) : (
+                <div className="grid gap-3">
+                  <div className="grid gap-2">
+                    <Label htmlFor="g-nome">Nome completo</Label>
+                    <Input
+                      id="g-nome"
+                      placeholder="Ex.: Marcos Tanaka"
+                      value={gNome}
+                      onChange={(e) => setGNome(e.target.value)}
+                      maxLength={80}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="g-email">E-mail de acesso</Label>
+                    <Input
+                      id="g-email"
+                      type="email"
+                      placeholder="gestor@email.com"
+                      value={gEmail}
+                      onChange={(e) => setGEmail(e.target.value)}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label>Unidade</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {FILIAIS.map((f) => (
+                        <button
+                          key={f.id}
+                          onClick={() => setGFilial(f.id)}
+                          className={`rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors ${
+                            gFilial === f.id
+                              ? "border-kt bg-kt-soft text-kt"
+                              : "border-border bg-card"
+                          }`}
+                        >
+                          {f.nome}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  {gErro ? <p className="text-sm font-medium text-destructive">{gErro}</p> : null}
+                  <Button
+                    className="rounded-full"
+                    disabled={!gNome.trim() || !gEmail.trim() || gCriando}
+                    onClick={async () => {
+                      setGCriando(true);
+                      setGErro("");
+                      try {
+                        const result = await criarGestorFn({
+                          data: { nome: gNome, email: gEmail, filial: gFilial },
+                        });
+                        setGSucesso({
+                          email: gEmail.trim().toLowerCase(),
+                          senha: result.senhaTemp,
+                        });
+                      } catch (e) {
+                        setGErro((e as Error).message);
+                      } finally {
+                        setGCriando(false);
+                      }
+                    }}
+                  >
+                    {gCriando ? "Criando acesso..." : "Criar acesso de gestor"}
+                  </Button>
                 </div>
-              </div>
-              {gErro ? <p className="text-sm font-medium text-destructive">{gErro}</p> : null}
-              <div>
-                <Button
-                  className="rounded-full"
-                  disabled={!gNome.trim() || !gEmail.trim() || gCriando}
-                  onClick={async () => {
-                    setGCriando(true);
-                    setGErro("");
-                    try {
-                      const result = await criarGestorFn({
-                        data: { nome: gNome, email: gEmail, filial: gFilial },
-                      });
-                      setGSucesso({ email: gEmail.trim().toLowerCase(), senha: result.senhaTemp });
-                    } catch (e) {
-                      setGErro((e as Error).message);
-                    } finally {
-                      setGCriando(false);
-                    }
-                  }}
-                >
-                  {gCriando ? "Criando acesso..." : "Criar acesso de gestor"}
-                </Button>
-              </div>
-            </div>
-          )}
-        </Section>
+              )}
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
     </AppShell>
   );

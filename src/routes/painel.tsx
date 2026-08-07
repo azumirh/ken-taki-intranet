@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { MessageCircle } from "lucide-react";
+import { MessageCircle, Lightbulb } from "lucide-react";
 import { AppShell } from "@/components/kt/app-shell";
 import { Avatar, EmptyState, Section } from "@/components/kt/section";
 import { CheckIn } from "@/components/kt/checkin";
@@ -14,6 +14,7 @@ import {
   AZUMI_CONTACT,
   COLABORADORES,
   FEEDBACK_TIPOS,
+  HUMORES,
   SUGESTAO_CATEGORIAS,
   diaMes,
   filialNome,
@@ -24,9 +25,11 @@ import {
   uid,
   useAjuda,
   useAssinaturas,
+  useCheckins,
   useDocumentos,
   useFeedbacks,
   useLeituras,
+  useMural,
   useNoticias,
   usePesquisa,
   useSession,
@@ -51,6 +54,20 @@ export const Route = createFileRoute("/painel")({
   }),
   component: Painel,
 });
+
+const SUG_DICAS: Record<string, string> = {
+  Gestão: "Ex.: liderança, comunicação, processos internos",
+  Operação: "Ex.: fluxo de trabalho, materiais, espaço físico",
+  "Colaboradores / time": "Ex.: clima entre colegas, integração, reconhecimento",
+  "Equipe Azumi RH": "Ex.: suporte de RH, benefícios, treinamentos",
+};
+
+const FB_DESC: Record<string, string> = {
+  Elogio: "Reconheça algo ou alguém que fez a diferença",
+  Crítica: "Aponte algo que pode melhorar — construtivo e bem-vindo",
+  Dúvida: "Uma pergunta que ainda não tem resposta",
+  "Situação urgente": "Algo que precisa de atenção imediata da gestão",
+};
 
 function Chips({
   opcoes,
@@ -86,6 +103,8 @@ function Painel() {
   const [pesquisa] = usePesquisa();
   const [noticias] = useNoticias();
   const [ajuda, setAjuda] = useAjuda();
+  const [checkins] = useCheckins();
+  const [mural] = useMural();
 
   const [documentos] = useDocumentos();
   const [assinaturas] = useAssinaturas();
@@ -103,17 +122,150 @@ function Painel() {
 
   if (!session || session.tipo !== "colaborador") return null;
 
+  const hoje = new Date().toDateString();
+  const hojeNegativas = checkins.filter(
+    (c) =>
+      c.nome === session.nome &&
+      new Date(c.ts).toDateString() === hoje &&
+      HUMORES.find((h) => h.id === c.humor)?.categoria === "negativa",
+  );
+  const alertaCritico = hojeNegativas.length >= 2;
+
   const mes = new Date().getMonth();
   const aniversariantes = COLABORADORES.filter(
     (c) => c.filial === session.filial && new Date(c.nascimento + "T00:00:00").getMonth() === mes,
   ).sort((a, b) => a.nascimento.slice(5).localeCompare(b.nascimento.slice(5)));
 
+  const docsFilial = documentos.filter((d) => d.filial === session.filial || d.filial === "todas");
+
+  const itensFilial = mural.filter(
+    (m) => !m.filial || m.filial === "todas" || m.filial === session.filial,
+  );
+
   return (
     <AppShell>
       <div className="grid gap-5">
-        <p className="text-sm text-muted-foreground">
-          Ken Taki · unidade {filialNome(session.filial)} · CPF ***{session.cpf3}
-        </p>
+        {/* Header — nome + unidade em destaque */}
+        <div>
+          <h1 className="text-2xl font-extrabold sm:text-3xl">{session.nome.split(" ")[0]}</h1>
+          <p className="text-sm text-muted-foreground">
+            <strong className="text-foreground">Ken Taki · {filialNome(session.filial)}</strong> ·
+            CPF ***{session.cpf3}
+          </p>
+        </div>
+
+        {/* Precisa de apoio — movida para o topo */}
+        <div className="surface overflow-hidden">
+          <div className="flex items-center gap-3 border-b border-border px-5 py-4 sm:px-7">
+            <MessageCircle className="h-5 w-5 shrink-0 text-az" />
+            <div>
+              <h2 className="font-bold">Precisa de apoio?</h2>
+              <p className="text-xs text-muted-foreground">
+                Fale com a equipe Azumi RH — seu gestor não é identificado.
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-3 px-5 py-4 sm:px-7">
+            <Button
+              variant="outline"
+              className="rounded-full border-az text-az hover:bg-az-soft"
+              onClick={() => {
+                setAjuda([
+                  {
+                    id: uid(),
+                    nome: session.nome,
+                    filial: session.filial,
+                    assunto: "Apoio registrado (intranet)",
+                    ts: Date.now(),
+                  },
+                  ...ajuda,
+                ]);
+                toast.success("Pedido registrado. A equipe Azumi entrará em contato.");
+              }}
+            >
+              Registrar pedido de apoio
+            </Button>
+            <a
+              href={`https://wa.me/${AZUMI_CONTACT.whatsapp}?text=${encodeURIComponent(
+                `Olá, equipe Azumi RH! Sou do Ken Taki, unidade ${filialNome(session.filial)}, e gostaria de conversar.`,
+              )}`}
+              target="_blank"
+              rel="noreferrer"
+              onClick={() =>
+                setAjuda([
+                  {
+                    id: uid(),
+                    nome: session.nome,
+                    filial: session.filial,
+                    assunto: "WhatsApp - apoio",
+                    ts: Date.now(),
+                  },
+                  ...ajuda,
+                ])
+              }
+              className="inline-flex items-center gap-2 rounded-full border border-success px-4 py-2 text-sm font-medium text-success transition-colors hover:bg-success-soft"
+            >
+              <MessageCircle className="h-4 w-4" /> WhatsApp Azumi
+            </a>
+          </div>
+        </div>
+
+        {/* Alerta persistente: 2+ check-ins negativos no mesmo dia */}
+        {alertaCritico && (
+          <div className="rounded-2xl border border-destructive bg-destructive/5 px-5 py-4">
+            <p className="font-bold text-destructive">
+              Você está tendo um dia muito difícil — isso importa.
+            </p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Registramos que hoje está sendo pesado. Você não precisa enfrentar isso sozinho(a).
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                className="rounded-full"
+                onClick={() => {
+                  setFeedbacks([
+                    {
+                      id: uid(),
+                      tipo: "Situação urgente",
+                      mensagem: `${session.nome} sinalizou múltiplos momentos difíceis hoje e gostaria de conversar com o gestor.`,
+                      anonimo: false,
+                      autor: session.nome,
+                      filial: session.filial,
+                      ts: Date.now(),
+                    },
+                    ...feedbacks,
+                  ]);
+                  toast.success("Seu gestor foi notificado.");
+                }}
+              >
+                Avisar meu gestor
+              </Button>
+              <a
+                href={`https://wa.me/${AZUMI_CONTACT.whatsapp}?text=${encodeURIComponent(
+                  `Olá, equipe Azumi RH! Sou ${session.nome} do Ken Taki, unidade ${filialNome(session.filial)}. Estou passando por um dia muito difícil e preciso de apoio.`,
+                )}`}
+                target="_blank"
+                rel="noreferrer"
+                onClick={() =>
+                  setAjuda([
+                    {
+                      id: uid(),
+                      nome: session.nome,
+                      filial: session.filial,
+                      assunto: "Alerta crítico — 2+ negativos no dia",
+                      ts: Date.now(),
+                    },
+                    ...ajuda,
+                  ])
+                }
+                className="inline-flex items-center gap-2 rounded-full border border-az px-4 py-2 text-sm font-medium text-az transition-colors hover:bg-az-soft"
+              >
+                <MessageCircle className="h-4 w-4" /> Falar com a Azumi agora
+              </a>
+            </div>
+          </div>
+        )}
 
         <CheckIn session={session} />
 
@@ -147,14 +299,21 @@ function Painel() {
           );
         })()}
 
-        <Documentos session={session} />
+        <Documentos session={session} collapsible defaultOpen={docsFilial.length > 0} />
 
-        <Mural filial={session.filial} autorPadrao={session.nome} />
+        <Mural
+          filial={session.filial}
+          autorPadrao={session.nome}
+          collapsible
+          defaultOpen={itensFilial.length > 0}
+        />
 
         <Section
           titulo="Pesquisa de clima"
           intro="Publicada pela Azumi RH. Quando houver uma pesquisa ativa, ela aparece aqui."
           contagem={pesquisa?.ativa ? "1 ativa" : "Nenhuma ativa"}
+          collapsible
+          defaultOpen={!!pesquisa?.ativa}
         >
           {pesquisa?.ativa ? (
             <div className="rounded-2xl border border-az bg-az-soft p-5">
@@ -200,6 +359,8 @@ function Painel() {
           titulo="Aniversariantes do mês"
           intro={`Quem faz aniversário este mês na unidade ${filialNome(session.filial)}.`}
           contagem={`${aniversariantes.length} este mês`}
+          collapsible
+          defaultOpen={aniversariantes.length > 0}
         >
           {aniversariantes.length === 0 ? (
             <EmptyState>Ninguém faz aniversário este mês por aqui.</EmptyState>
@@ -231,6 +392,8 @@ function Painel() {
           titulo="Notícias e vídeos"
           intro="Conteúdos publicados pela Azumi RH para todas as unidades."
           contagem={`${noticias.length} publicados`}
+          collapsible
+          defaultOpen={noticias.length > 0}
         >
           {noticias.length === 0 ? (
             <EmptyState>Nenhuma notícia publicada ainda.</EmptyState>
@@ -253,6 +416,12 @@ function Painel() {
                           allowFullScreen
                         />
                       </div>
+                    ) : n.imagemUrl ? (
+                      <img
+                        src={n.imagemUrl}
+                        alt={n.titulo}
+                        className="aspect-video w-full object-cover"
+                      />
                     ) : null}
                     <div className="p-4">
                       <h3 className="text-sm font-bold">{n.titulo}</h3>
@@ -265,15 +434,42 @@ function Painel() {
           )}
         </Section>
 
+        {/* Caixinha de sugestão */}
         <Section
           titulo="Caixinha de sugestão"
           intro="Sem identificação. Sua unidade fica registrada só para direcionar para a área certa."
           contagem="Anônima"
+          collapsible
+          defaultOpen
         >
           <div className="grid max-w-2xl gap-4">
+            <div className="rounded-xl border border-border bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
+              <Lightbulb className="mb-1 h-4 w-4 text-warn" />
+              Sua sugestão é completamente anônima — nenhum dado pessoal é vinculado ao envio.
+              Usamos a unidade só para entender o contexto.
+            </div>
             <div className="grid gap-2">
               <Label>Sua sugestão é sobre:</Label>
-              <Chips opcoes={SUGESTAO_CATEGORIAS} valor={sugCat} onChange={setSugCat} />
+              <div className="flex flex-wrap gap-2">
+                {SUGESTAO_CATEGORIAS.map((cat) => (
+                  <div key={cat} className="flex flex-col items-start gap-0.5">
+                    <button
+                      onClick={() => setSugCat(cat)}
+                      title={SUG_DICAS[cat]}
+                      className={`rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors ${
+                        sugCat === cat
+                          ? "border-kt bg-kt-soft text-kt"
+                          : "border-border bg-card hover:bg-muted"
+                      }`}
+                    >
+                      {cat}
+                    </button>
+                    {sugCat === cat && SUG_DICAS[cat] && (
+                      <p className="px-1 text-xs text-muted-foreground">{SUG_DICAS[cat]}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
             <Textarea
               rows={4}
@@ -307,23 +503,60 @@ function Painel() {
           </div>
         </Section>
 
+        {/* Feedback ao gestor */}
         <Section
           titulo="Feedback ao gestor"
           intro="Elogio, crítica, dúvida ou uma situação pontual — você escolhe se assina ou não."
           contagem={fbAnon ? "Anônimo" : "Com meu nome"}
+          collapsible
+          defaultOpen
         >
           <div className="grid max-w-2xl gap-4">
             <div className="grid gap-2">
               <Label>Você quer se identificar?</Label>
-              <Chips
-                opcoes={["Anônimo", "Com meu nome"]}
-                valor={fbAnon ? "Anônimo" : "Com meu nome"}
-                onChange={(v) => setFbAnon(v === "Anônimo")}
-              />
+              <div className="flex flex-wrap gap-2">
+                {(["Anônimo", "Com meu nome"] as const).map((op) => (
+                  <div key={op} className="flex flex-col gap-0.5">
+                    <button
+                      onClick={() => setFbAnon(op === "Anônimo")}
+                      className={`rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors ${
+                        (op === "Anônimo") === fbAnon
+                          ? "border-kt bg-kt-soft text-kt"
+                          : "border-border bg-card hover:bg-muted"
+                      }`}
+                    >
+                      {op}
+                    </button>
+                    {op === "Com meu nome" && !fbAnon && (
+                      <p className="px-1 text-xs text-muted-foreground">
+                        O gestor verá seu nome vinculado ao feedback.
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
             <div className="grid gap-2">
               <Label>Tipo de feedback</Label>
-              <Chips opcoes={FEEDBACK_TIPOS} valor={fbTipo} onChange={setFbTipo} />
+              <div className="flex flex-wrap gap-2">
+                {FEEDBACK_TIPOS.map((tipo) => (
+                  <div key={tipo} className="flex flex-col gap-0.5">
+                    <button
+                      onClick={() => setFbTipo(tipo)}
+                      className={`rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors ${
+                        fbTipo === tipo
+                          ? "border-kt bg-kt-soft text-kt"
+                          : "border-border bg-card hover:bg-muted"
+                      }`}
+                    >
+                      {tipo}
+                    </button>
+                    {fbTipo === tipo && FB_DESC[tipo] && (
+                      <p className="px-1 text-xs text-muted-foreground">{FB_DESC[tipo]}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
             <Textarea
               rows={4}
@@ -357,38 +590,6 @@ function Painel() {
               </Button>
             </div>
           </div>
-        </Section>
-
-        <Section
-          titulo="Precisa de apoio?"
-          intro="Fale direto com a equipe Azumi RH pelo WhatsApp. Seu gestor não é identificado nessa conversa."
-          contagem={`${ajuda.length} pedidos registrados`}
-        >
-          <Button
-            variant="outline"
-            className="rounded-full border-az text-az hover:bg-az-soft"
-            onClick={() => {
-              setAjuda([
-                {
-                  id: uid(),
-                  nome: session.nome,
-                  filial: session.filial,
-                  assunto: "Apoio pelo WhatsApp",
-                  ts: Date.now(),
-                },
-                ...ajuda,
-              ]);
-              window.open(
-                `https://wa.me/${AZUMI_CONTACT.whatsapp}?text=${encodeURIComponent(
-                  `Olá, equipe Azumi RH! Sou do Ken Taki, unidade ${filialNome(session.filial)}, e gostaria de conversar.`,
-                )}`,
-                "_blank",
-              );
-              toast.success("Pedido registrado. Abrindo o WhatsApp da Azumi.");
-            }}
-          >
-            <MessageCircle className="h-4 w-4" /> Falar com a equipe Azumi
-          </Button>
         </Section>
       </div>
     </AppShell>

@@ -120,6 +120,7 @@ export type AjudaClick = {
   assunto: string;
   ts: number;
   nota?: string | undefined;
+  status?: "em-andamento" | "resolvido" | undefined;
 };
 export type Leitura = { documentoId: string; nome: string; filial: string; ts: number };
 

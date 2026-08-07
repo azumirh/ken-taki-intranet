@@ -14,7 +14,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { EMOJIS, MURAL_TIPO_LABEL, type MuralTipo } from "@/lib/kt-data";
+import { EMOJIS, MURAL_TIPO_LABEL, iniciais, type MuralTipo } from "@/lib/kt-data";
 import { fmtData, uid, useMural } from "@/lib/kt-store";
 
 const TIPO_ESTILO: Record<MuralTipo, string> = {
@@ -23,6 +23,15 @@ const TIPO_ESTILO: Record<MuralTipo, string> = {
   data: "bg-warn-soft text-warn",
   aniversario: "bg-success-soft text-success",
 };
+
+const POST_IT_BG: Record<MuralTipo, string> = {
+  recado: "bg-kt-soft/60 border-kt/20",
+  novidade: "bg-az-soft/60 border-az/20",
+  data: "bg-warn-soft/60 border-warn/20",
+  aniversario: "bg-success-soft/60 border-success/20",
+};
+
+const ROTACOES = ["-rotate-1", "rotate-0", "rotate-1"] as const;
 
 function fmtEvento(iso: string) {
   const d = new Date(iso);
@@ -38,10 +47,14 @@ export function Mural({
   filial,
   autorPadrao,
   podePublicar = true,
+  collapsible,
+  defaultOpen,
 }: {
   filial: string;
   autorPadrao: string;
   podePublicar?: boolean;
+  collapsible?: boolean | undefined;
+  defaultOpen?: boolean | undefined;
 }) {
   const [mural, setMural] = useMural();
   const [open, setOpen] = useState(false);
@@ -68,6 +81,8 @@ export function Mural({
       titulo="Mural da equipe"
       intro="Recados, novidades da Azumi RH e datas comemorativas da sua unidade."
       contagem={`${itens.length} publicações`}
+      collapsible={collapsible}
+      defaultOpen={defaultOpen}
       acao={
         podePublicar ? (
           <Dialog
@@ -194,19 +209,28 @@ export function Mural({
           O mural ainda está vazio. Seja a primeira pessoa a deixar um recado.
         </EmptyState>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {itens.map((m) => (
+        <div className="grid gap-5 py-1 md:grid-cols-2 xl:grid-cols-3">
+          {itens.map((m, idx) => (
             <article
               key={m.id}
-              className="flex flex-col rounded-2xl border border-border bg-card p-4"
+              className={`relative flex flex-col rounded-2xl border p-5 transition-transform hover:scale-[1.01] ${POST_IT_BG[m.tipo]} ${ROTACOES[idx % 3]}`}
             >
+              {/* decorative pin */}
+              <div className="absolute left-1/2 top-0 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-foreground/40 shadow-sm" />
+              {/* author — prominent */}
+              <div className="mb-3 flex items-center gap-2">
+                <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-[11px] font-bold text-primary-foreground gradient-union">
+                  {iniciais(m.autor)}
+                </span>
+                <span className="text-sm font-bold">{m.autor}</span>
+              </div>
               <span
-                className={`inline-flex w-fit items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide ${TIPO_ESTILO[m.tipo]}`}
+                className={`mb-2 inline-flex w-fit items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide ${TIPO_ESTILO[m.tipo]}`}
               >
                 <span aria-hidden>{m.emoji}</span> {MURAL_TIPO_LABEL[m.tipo]}
               </span>
-              <h3 className="mt-3 text-sm font-bold">{m.titulo}</h3>
-              <p className="mt-1 flex-1 text-sm text-muted-foreground">{m.mensagem}</p>
+              <h3 className="text-sm font-bold">{m.titulo}</h3>
+              <p className="mt-1 flex-1 text-sm">{m.mensagem}</p>
               {m.eventoData && (
                 <div className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
                   <CalendarDays className="h-3.5 w-3.5 shrink-0" />
@@ -223,9 +247,7 @@ export function Mural({
                   )}
                 </div>
               )}
-              <p className="mt-3 text-xs text-muted-foreground">
-                {m.autor} · {fmtData(m.data)}
-              </p>
+              <p className="mt-3 text-xs text-muted-foreground">{fmtData(m.data)}</p>
             </article>
           ))}
         </div>

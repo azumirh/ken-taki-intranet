@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { Check, ExternalLink, MessageCircle, UserPlus, Briefcase, UserMinus } from "lucide-react";
 import capaPadrao from "@/assets/capa-padrao-politicas.jpg";
 import { AppShell, BackLink } from "@/components/kt/app-shell";
@@ -39,7 +40,6 @@ import {
   useLeituras,
   usePesquisa,
   useSugestoes,
-  useVagas,
 } from "@/lib/kt-store";
 import { type KtPerfil, useKtAuth } from "@/lib/kt-auth";
 
@@ -61,12 +61,6 @@ export const Route = createFileRoute("/gestor")({
   }),
   component: GestorPage,
 });
-
-const LINKS_GESTOR = [
-  { label: "Drive de documentos da unidade", url: "https://drive.google.com" },
-  { label: "Escala e ponto", url: "https://drive.google.com" },
-  { label: "Manual de processos Ken Taki", url: "https://drive.google.com" },
-];
 
 function GestorPage() {
   const { state, login, logout, esqueceuSenha, trocarSenha } = useKtAuth();
@@ -318,22 +312,16 @@ function TrocarSenhaObrigatoria({
 
 function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => void }) {
   const [checkins] = useCheckins();
-  const [assinaturas] = useAssinaturas();
-  const [leituras] = useLeituras();
+  const [assinaturas, setAssinaturas] = useAssinaturas();
+  const [leituras, setLeituras] = useLeituras();
   const [sugestoes] = useSugestoes();
   const [feedbacks] = useFeedbacks();
   const [pesquisa] = usePesquisa();
-  const [vagas, setVagas] = useVagas();
   const [colaboradores, setColaboradores] = useColaboradores();
   const [documentos] = useDocumentos();
   const [ajuda, setAjuda] = useAjuda();
 
   const [desligarTarget, setDesligarTarget] = useState<Colaborador | null>(null);
-
-  const [vagaOpen, setVagaOpen] = useState(false);
-  const [cargo, setCargo] = useState("");
-  const [motivo, setMotivo] = useState("");
-
   const [cadastrarOpen, setCadastrarOpen] = useState(false);
   const [filtroCargoEquipe, setFiltroCargoEquipe] = useState("Todos");
   const [nomeCol, setNomeCol] = useState("");
@@ -343,6 +331,17 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
   const [admissaoCol, setAdmissaoCol] = useState("");
   const [erroCol, setErroCol] = useState("");
 
+  // clima chart
+  const [climaPeriodo, setClimaPeriodo] = useState<"7d" | "30d">("7d");
+
+  // feedback filters
+  const [fbPagina, setFbPagina] = useState(0);
+  const [fbFiltroMes, setFbFiltroMes] = useState("Todos");
+  const [fbFiltroColab, setFbFiltroColab] = useState("");
+
+  // documento categoria filter
+  const [filtroDocTag, setFiltroDocTag] = useState("Todos");
+
   const session = { nome: perfil.nome, filial: perfil.filial! };
   const daUnidade = <T extends { filial: string }>(arr: T[]) =>
     arr.filter((i) => i.filial === session.filial);
@@ -351,6 +350,81 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
   const cargosUnicos = ["Todos", ...Array.from(new Set(equipe.map((c) => c.cargo))).sort()];
   const equipeFiltrada =
     filtroCargoEquipe === "Todos" ? equipe : equipe.filter((c) => c.cargo === filtroCargoEquipe);
+
+  // climate chart data
+  const numDias = climaPeriodo === "7d" ? 7 : 30;
+  const dadosCli = Array.from({ length: numDias }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (numDias - 1 - i));
+    const ds = d.toDateString();
+    const doDia = meusCheckins.filter((c) => new Date(c.ts).toDateString() === ds);
+    return {
+      data: d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }),
+      Pos: doDia.filter((c) => HUMORES.find((h) => h.id === c.humor)?.categoria === "positiva")
+        .length,
+      Neu: doDia.filter((c) => HUMORES.find((h) => h.id === c.humor)?.categoria === "neutra")
+        .length,
+      Neg: doDia.filter((c) => HUMORES.find((h) => h.id === c.humor)?.categoria === "negativa")
+        .length,
+    };
+  });
+
+  const recadosRecentes = meusCheckins
+    .filter((c) => c.recado)
+    .sort((a, b) => b.ts - a.ts)
+    .slice(0, 5);
+
+  // feedback filtered + paginated
+  const mesesFB = [
+    "Todos",
+    ...Array.from(
+      new Set(
+        daUnidade(feedbacks).map((f) =>
+          new Date(f.ts).toLocaleDateString("pt-BR", { month: "long", year: "numeric" }),
+        ),
+      ),
+    ),
+  ];
+  const fbFiltrado = daUnidade(feedbacks)
+    .filter((f) => {
+      const mesOk =
+        fbFiltroMes === "Todos" ||
+        new Date(f.ts).toLocaleDateString("pt-BR", { month: "long", year: "numeric" }) ===
+          fbFiltroMes;
+      const colabOk =
+        !fbFiltroColab.trim() || f.autor.toLowerCase().includes(fbFiltroColab.toLowerCase());
+      return mesOk && colabOk;
+    })
+    .sort((a, b) => b.ts - a.ts);
+  const FB_POR_PAG = 10;
+  const fbPaginado = fbFiltrado.slice(fbPagina * FB_POR_PAG, (fbPagina + 1) * FB_POR_PAG);
+  const fbTotalPags = Math.max(1, Math.ceil(fbFiltrado.length / FB_POR_PAG));
+
+  // documento helpers
+  const docsFilial = documentos.filter((d) => d.filial === session.filial || d.filial === "todas");
+  const tagsUnicas = ["Todos", ...Array.from(new Set(docsFilial.map((d) => d.textoTag))).sort()];
+  const docsFiltrados =
+    filtroDocTag === "Todos" ? docsFilial : docsFilial.filter((d) => d.textoTag === filtroDocTag);
+
+  const assinou = (docId: string, nome: string) =>
+    assinaturas.some((a) => a.politica === docId && a.nome === nome);
+  const leu = (docId: string, nome: string) =>
+    leituras.some((l) => l.documentoId === docId && l.nome === nome);
+
+  const assinarDocGestor = (docId: string) => {
+    if (assinou(docId, session.nome)) return;
+    if (!leu(docId, session.nome)) {
+      setLeituras((prev) => [
+        { documentoId: docId, nome: session.nome, filial: session.filial, ts: Date.now() },
+        ...prev,
+      ]);
+    }
+    setAssinaturas((prev) => [
+      ...prev,
+      { politica: docId, nome: session.nome, filial: session.filial, ts: Date.now() },
+    ]);
+    toast.success("Documento assinado.");
+  };
 
   return (
     <AppShell onLogout={onLogout}>
@@ -376,95 +450,18 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
-          <Dialog
-            open={vagaOpen}
-            onOpenChange={(o) => {
-              setVagaOpen(o);
-              if (!o) {
-                setCargo("");
-                setMotivo("");
-              }
-            }}
+          <a
+            href="https://portal.azumirh.com.br/vaga"
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center gap-3 rounded-2xl bg-kt px-5 py-4 text-primary-foreground transition-colors hover:bg-kt/90"
           >
-            <DialogTrigger asChild>
-              <Button
-                size="lg"
-                className="w-full justify-start gap-3 rounded-2xl px-5 py-4 text-left h-auto"
-              >
-                <Briefcase className="h-5 w-5 shrink-0" />
-                <div>
-                  <p className="font-bold">Solicitar vaga</p>
-                  <p className="text-xs font-normal opacity-80">
-                    Abra uma solicitação com a Azumi RH
-                  </p>
-                </div>
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle>Solicitar vaga</DialogTitle>
-                <DialogDescription>
-                  Precisa de reforço? A Azumi RH receberá o pedido e entrará em contato.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-3">
-                <div className="grid gap-2">
-                  <Label htmlFor="vaga-cargo">Cargo desejado</Label>
-                  <Input
-                    id="vaga-cargo"
-                    placeholder="Ex.: Atendente"
-                    value={cargo}
-                    onChange={(e) => setCargo(e.target.value)}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="vaga-motivo">Motivo (opcional)</Label>
-                  <Textarea
-                    id="vaga-motivo"
-                    rows={3}
-                    placeholder="Substituição, aumento de quadro, sazonalidade..."
-                    value={motivo}
-                    onChange={(e) => setMotivo(e.target.value)}
-                  />
-                </div>
-                {daUnidade(vagas).length > 0 && (
-                  <div className="grid gap-2">
-                    <p className="text-xs font-semibold text-muted-foreground">
-                      Solicitações anteriores
-                    </p>
-                    {daUnidade(vagas).map((v) => (
-                      <div key={v.id} className="rounded-xl bg-muted px-3 py-2 text-sm">
-                        <strong>{v.cargo}</strong> · {fmtData(v.ts)}
-                        {v.motivo ? <p className="text-muted-foreground">{v.motivo}</p> : null}
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <Button
-                  className="w-full rounded-full"
-                  disabled={!cargo.trim()}
-                  onClick={() => {
-                    setVagas([
-                      {
-                        id: uid(),
-                        cargo: cargo.trim(),
-                        motivo: motivo.trim(),
-                        filial: session.filial,
-                        ts: Date.now(),
-                      },
-                      ...vagas,
-                    ]);
-                    setCargo("");
-                    setMotivo("");
-                    setVagaOpen(false);
-                    toast.success("Solicitação enviada à Azumi RH.");
-                  }}
-                >
-                  Enviar solicitação
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+            <Briefcase className="h-5 w-5 shrink-0" />
+            <div>
+              <p className="font-bold">Solicitar vaga</p>
+              <p className="text-xs font-normal opacity-80">Abrir portal de vagas Azumi RH</p>
+            </div>
+          </a>
 
           <a
             href={`https://wa.me/${AZUMI_CONTACT.whatsapp}?text=${encodeURIComponent(`Olá, sou ${session.nome}, gestor(a) da unidade ${filialNome(session.filial)}. Gostaria de falar com o consultor Azumi RH.`)}`}
@@ -494,135 +491,337 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
           </a>
         </div>
 
+        {/* Clima — gráfico + resumo */}
         <Section
           titulo="Clima da equipe"
           intro="Como o time respondeu ao check-in diário nesta unidade."
           contagem={`${meusCheckins.length} respostas`}
+          collapsible
+          defaultOpen={meusCheckins.length > 0}
         >
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-            {HUMORES.map((h) => {
-              const n = meusCheckins.filter((c) => c.humor === h.id).length;
-              return (
-                <div
-                  key={h.id}
-                  className="rounded-2xl border border-border bg-card p-4 text-center"
-                >
-                  <span className="text-2xl">{h.emoji}</span>
-                  <p className="mt-1 text-lg font-bold">{n}</p>
-                  <p className="text-xs text-muted-foreground">{h.label}</p>
+          <div className="grid gap-5">
+            {/* Emoji totais */}
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+              {HUMORES.map((h) => {
+                const n = meusCheckins.filter((c) => c.humor === h.id).length;
+                return (
+                  <div
+                    key={h.id}
+                    className="rounded-2xl border border-border bg-card p-4 text-center"
+                  >
+                    <span className="text-2xl">{h.emoji}</span>
+                    <p className="mt-1 text-lg font-bold">{n}</p>
+                    <p className="text-xs text-muted-foreground">{h.label}</p>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Gráfico por dia */}
+            {meusCheckins.length > 0 && (
+              <div className="grid gap-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-sm font-medium">Período:</span>
+                  {(["7d", "30d"] as const).map((p) => (
+                    <button
+                      key={p}
+                      onClick={() => setClimaPeriodo(p)}
+                      className={`rounded-full border px-3 py-1 text-sm font-medium transition-colors ${
+                        climaPeriodo === p
+                          ? "border-kt bg-kt-soft text-kt"
+                          : "border-border text-muted-foreground hover:border-foreground"
+                      }`}
+                    >
+                      {p === "7d" ? "7 dias" : "30 dias"}
+                    </button>
+                  ))}
                 </div>
-              );
-            })}
+                <div className="h-44 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={dadosCli} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
+                      <XAxis dataKey="data" tick={{ fontSize: 10 }} />
+                      <YAxis allowDecimals={false} tick={{ fontSize: 10 }} />
+                      <Tooltip />
+                      <Bar dataKey="Pos" name="Positivos" stackId="a" fill="#22c55e" />
+                      <Bar dataKey="Neu" name="Neutros" stackId="a" fill="#f59e0b" />
+                      <Bar
+                        dataKey="Neg"
+                        name="Negativos"
+                        stackId="a"
+                        fill="#ef4444"
+                        radius={[3, 3, 0, 0]}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            )}
+
+            {/* Comentários recentes */}
+            {recadosRecentes.length > 0 && (
+              <div className="grid gap-2">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                  Comentários recentes
+                </p>
+                {recadosRecentes.map((c) => (
+                  <div key={c.id} className="rounded-xl bg-muted px-3 py-2 text-sm">
+                    <p className="text-foreground">{c.recado}</p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      {c.nome} · {fmtData(c.ts)}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </Section>
 
+        {/* Documentos e políticas */}
         <Section
           titulo="Documentos e políticas"
-          intro="Documentos publicados para esta unidade. Veja quem assinou e quem está pendente."
-          contagem={`${documentos.filter((d) => d.filial === session.filial || d.filial === "todas").length} documentos`}
+          intro="Documentos publicados para esta unidade. Você também pode assinar como gestor(a)."
+          contagem={`${docsFilial.length} documentos`}
+          collapsible
+          defaultOpen={docsFilial.length > 0}
         >
-          {documentos.filter((d) => d.filial === session.filial || d.filial === "todas").length ===
-          0 ? (
+          {docsFilial.length === 0 ? (
             <EmptyState>Nenhum documento publicado para esta unidade ainda.</EmptyState>
           ) : (
             <div className="grid gap-5">
-              {documentos
-                .filter((d) => d.filial === session.filial || d.filial === "todas")
-                .map((doc) => {
-                  const assinantes = daUnidade(assinaturas).filter((a) => a.politica === doc.id);
-                  const leram = daUnidade(leituras).filter((l) => l.documentoId === doc.id);
-                  const nomesAssinantes = new Set(assinantes.map((a) => a.nome));
-                  const pendentes = equipe.filter(
-                    (c) => !nomesAssinantes.has(c.nome) && leram.some((l) => l.nome === c.nome),
-                  );
-                  return (
-                    <div
-                      key={doc.id}
-                      className="overflow-hidden rounded-2xl border border-border bg-card"
+              {/* Filtro por tag/categoria */}
+              {tagsUnicas.length > 2 && (
+                <div className="flex flex-wrap gap-2">
+                  {tagsUnicas.map((tag) => (
+                    <button
+                      key={tag}
+                      onClick={() => setFiltroDocTag(tag)}
+                      className={`rounded-full border px-3 py-1 text-sm font-medium transition-colors ${
+                        filtroDocTag === tag
+                          ? "border-kt bg-kt-soft text-kt"
+                          : "border-border text-muted-foreground hover:border-foreground"
+                      }`}
                     >
-                      <div className="relative">
-                        <img
-                          src={capaPadrao}
-                          alt=""
-                          width={1024}
-                          height={256}
-                          loading="lazy"
-                          className="h-20 w-full object-cover"
-                        />
-                        <span
-                          className="absolute left-3 top-3 rounded-full px-2.5 py-1 text-[11px] font-bold text-white"
-                          style={{ backgroundColor: doc.corTag }}
-                        >
-                          {doc.textoTag}
+                      {tag}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {docsFiltrados.map((doc) => {
+                const assinantes = assinaturas.filter((a) => a.politica === doc.id);
+                const leram = leituras.filter(
+                  (l) =>
+                    l.documentoId === doc.id &&
+                    (l.filial === session.filial || doc.filial === "todas"),
+                );
+                const nomesAssinantes = new Set(assinantes.map((a) => a.nome));
+                const pendentes = equipe.filter(
+                  (c) => !nomesAssinantes.has(c.nome) && leram.some((l) => l.nome === c.nome),
+                );
+                const gestorJaAssinou = assinou(doc.id, session.nome);
+                return (
+                  <div
+                    key={doc.id}
+                    className="overflow-hidden rounded-2xl border border-border bg-card"
+                  >
+                    <div className="relative">
+                      <img
+                        src={capaPadrao}
+                        alt=""
+                        width={1024}
+                        height={256}
+                        loading="lazy"
+                        className="h-20 w-full object-cover"
+                      />
+                      <span
+                        className="absolute left-3 top-3 rounded-full px-2.5 py-1 text-[11px] font-bold text-white"
+                        style={{ backgroundColor: doc.corTag }}
+                      >
+                        {doc.textoTag}
+                      </span>
+                      {gestorJaAssinou && (
+                        <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-success px-2.5 py-1 text-[11px] font-semibold text-primary-foreground">
+                          <Check className="h-3 w-3" /> Assinado
                         </span>
+                      )}
+                    </div>
+                    <div className="p-4">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <h3 className="font-semibold">{doc.titulo}</h3>
+                        <a
+                          href={doc.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" /> Abrir
+                        </a>
                       </div>
-                      <div className="p-4">
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <h3 className="font-semibold">{doc.titulo}</h3>
-                          <a
-                            href={doc.url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-                          >
-                            <ExternalLink className="h-3.5 w-3.5" /> Abrir
-                          </a>
-                        </div>
-                        <div className="mt-3 flex flex-wrap gap-3 text-xs text-muted-foreground">
-                          <span className="flex items-center gap-1 rounded-full bg-success-soft px-2.5 py-1 text-success">
-                            <Check className="h-3 w-3" /> {assinantes.length} assinaturas
-                          </span>
+                      <div className="mt-3 flex flex-wrap gap-2 text-xs">
+                        <span className="flex items-center gap-1 rounded-full bg-success-soft px-2.5 py-1 text-success">
+                          <Check className="h-3 w-3" /> {assinantes.length} assinaturas
+                        </span>
+                        {pendentes.length > 0 && (
                           <span className="rounded-full bg-warn-soft px-2.5 py-1 text-warn">
                             {pendentes.length} leram e não assinaram
                           </span>
-                        </div>
-                        {pendentes.length > 0 && (
-                          <div className="mt-3">
-                            <p className="text-xs font-medium text-muted-foreground">
-                              Pendentes de assinatura:
-                            </p>
-                            <div className="mt-1 flex flex-wrap gap-1.5">
-                              {pendentes.map((c) => (
-                                <span
-                                  key={c.id}
-                                  className="rounded-full bg-muted px-2.5 py-1 text-xs"
-                                >
-                                  {c.nome.split(" ")[0]}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
                         )}
                       </div>
+                      {pendentes.length > 0 && (
+                        <div className="mt-3">
+                          <p className="text-xs font-medium text-muted-foreground">
+                            Pendentes de assinatura:
+                          </p>
+                          <div className="mt-1 flex flex-wrap gap-1.5">
+                            {pendentes.map((c) => (
+                              <span
+                                key={c.id}
+                                className="rounded-full bg-muted px-2.5 py-1 text-xs"
+                              >
+                                {c.nome.split(" ")[0]}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {!gestorJaAssinou && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="mt-3 rounded-full"
+                          onClick={() => assinarDocGestor(doc.id)}
+                        >
+                          <Check className="h-3.5 w-3.5" /> Assinar como gestor(a)
+                        </Button>
+                      )}
                     </div>
-                  );
-                })}
+                  </div>
+                );
+              })}
             </div>
           )}
         </Section>
 
+        {/* Feedbacks — tabela com paginação */}
         <Section
           titulo="Feedbacks da equipe"
           intro="Elogios, críticas, dúvidas e situações registradas pelo time."
           contagem={`${daUnidade(feedbacks).length} recebidos`}
+          collapsible
+          defaultOpen={daUnidade(feedbacks).length > 0}
         >
           {daUnidade(feedbacks).length === 0 ? (
             <EmptyState>Nenhum feedback recebido ainda.</EmptyState>
           ) : (
-            <div className="grid gap-3">
-              {daUnidade(feedbacks).map((f) => (
-                <div key={f.id} className="rounded-2xl border border-border bg-card p-4">
-                  <div className="flex flex-wrap items-center gap-2 text-xs">
-                    <span className="rounded-full bg-kt-soft px-2.5 py-1 font-semibold text-kt">
-                      {f.tipo}
-                    </span>
-                    <span className="text-muted-foreground">
-                      {f.autor} · {fmtData(f.ts)}
-                    </span>
-                  </div>
-                  <p className="mt-2 text-sm text-muted-foreground">{f.mensagem}</p>
+            <div className="grid gap-4">
+              {/* Filtros */}
+              <div className="flex flex-wrap items-end gap-3">
+                <div className="grid gap-1">
+                  <label className="text-xs font-medium text-muted-foreground">Mês</label>
+                  <select
+                    value={fbFiltroMes}
+                    onChange={(e) => {
+                      setFbFiltroMes(e.target.value);
+                      setFbPagina(0);
+                    }}
+                    className="rounded-lg border border-border bg-card px-3 py-1.5 text-sm"
+                  >
+                    {mesesFB.map((m) => (
+                      <option key={m} value={m}>
+                        {m}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-              ))}
+                <div className="grid gap-1">
+                  <label className="text-xs font-medium text-muted-foreground">Colaborador</label>
+                  <Input
+                    placeholder="Filtrar por nome..."
+                    value={fbFiltroColab}
+                    onChange={(e) => {
+                      setFbFiltroColab(e.target.value);
+                      setFbPagina(0);
+                    }}
+                    className="h-9 w-48 text-sm"
+                  />
+                </div>
+                {(fbFiltroMes !== "Todos" || fbFiltroColab) && (
+                  <button
+                    onClick={() => {
+                      setFbFiltroMes("Todos");
+                      setFbFiltroColab("");
+                      setFbPagina(0);
+                    }}
+                    className="text-xs text-muted-foreground underline-offset-2 hover:underline"
+                  >
+                    Limpar filtros
+                  </button>
+                )}
+              </div>
+
+              {fbFiltrado.length === 0 ? (
+                <EmptyState>Nenhum feedback corresponde aos filtros.</EmptyState>
+              ) : (
+                <>
+                  <div className="overflow-x-auto rounded-2xl border border-border">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-border bg-muted/40">
+                          <th className="px-4 py-3 text-left font-semibold">Tipo</th>
+                          <th className="px-4 py-3 text-left font-semibold">Autor</th>
+                          <th className="px-4 py-3 text-left font-semibold">Data</th>
+                          <th className="px-4 py-3 text-left font-semibold">Mensagem</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {fbPaginado.map((f) => (
+                          <tr key={f.id} className="border-b border-border last:border-0">
+                            <td className="px-4 py-3">
+                              <span className="rounded-full bg-kt-soft px-2.5 py-1 text-xs font-semibold text-kt">
+                                {f.tipo}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-muted-foreground">{f.autor}</td>
+                            <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">
+                              {fmtData(f.ts)}
+                            </td>
+                            <td className="px-4 py-3 text-muted-foreground max-w-xs">
+                              {f.mensagem}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  {fbTotalPags > 1 && (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">
+                        {fbFiltrado.length} resultado{fbFiltrado.length > 1 ? "s" : ""} · página{" "}
+                        {fbPagina + 1} de {fbTotalPags}
+                      </span>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="rounded-full"
+                          disabled={fbPagina === 0}
+                          onClick={() => setFbPagina((p) => p - 1)}
+                        >
+                          Anterior
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="rounded-full"
+                          disabled={fbPagina >= fbTotalPags - 1}
+                          onClick={() => setFbPagina((p) => p + 1)}
+                        >
+                          Próxima
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           )}
         </Section>
@@ -631,6 +830,8 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
           titulo="Caixinha de sugestão"
           intro="Sugestões anônimas do time desta unidade."
           contagem={`${daUnidade(sugestoes).length} sugestões`}
+          collapsible
+          defaultOpen={daUnidade(sugestoes).length > 0}
         >
           {daUnidade(sugestoes).length === 0 ? (
             <EmptyState>Nenhuma sugestão registrada ainda.</EmptyState>
@@ -655,6 +856,8 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
           titulo="Pesquisa de clima"
           intro="Pesquisas publicadas pela Azumi RH aparecem aqui e no painel do time."
           contagem={pesquisa?.ativa ? "1 ativa" : "Nenhuma ativa"}
+          collapsible
+          defaultOpen={!!pesquisa?.ativa}
         >
           {pesquisa?.ativa ? (
             <div className="rounded-2xl border border-az bg-az-soft p-5">
@@ -699,12 +902,19 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
           )}
         </Section>
 
-        <Mural filial={session.filial} autorPadrao={`${session.nome} (gestão)`} />
+        <Mural
+          filial={session.filial}
+          autorPadrao={`${session.nome} (gestão)`}
+          collapsible
+          defaultOpen
+        />
 
         <Section
           titulo="Equipe da unidade"
           intro="Time cadastrado nesta unidade."
           contagem={`${equipe.length} pessoas`}
+          collapsible
+          defaultOpen={equipe.length > 0}
           acao={
             <Dialog
               open={cadastrarOpen}
@@ -930,26 +1140,6 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
             </div>
           </DialogContent>
         </Dialog>
-
-        <Section
-          titulo="Documentos e processos"
-          intro="Atalhos para as pastas e materiais da unidade."
-        >
-          <div className="grid gap-3 sm:grid-cols-3">
-            {LINKS_GESTOR.map((l) => (
-              <a
-                key={l.label}
-                href={l.url}
-                target="_blank"
-                rel="noreferrer"
-                className="flex items-center justify-between gap-2 rounded-2xl border border-border bg-card px-4 py-3 text-sm font-medium transition-colors hover:bg-muted"
-              >
-                <span className="min-w-0 truncate">{l.label}</span>
-                <ExternalLink className="h-4 w-4 shrink-0 text-muted-foreground" />
-              </a>
-            ))}
-          </div>
-        </Section>
       </div>
     </AppShell>
   );

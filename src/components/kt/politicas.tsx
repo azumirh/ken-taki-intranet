@@ -6,7 +6,15 @@ import { useAssinaturas, useDocumentos, useLeituras, type Session } from "@/lib/
 
 type ColabSession = Extract<Session, { tipo: "colaborador" }>;
 
-export function Documentos({ session }: { session: ColabSession }) {
+export function Documentos({
+  session,
+  collapsible,
+  defaultOpen,
+}: {
+  session: ColabSession;
+  collapsible?: boolean | undefined;
+  defaultOpen?: boolean | undefined;
+}) {
   const [documentos] = useDocumentos();
   const [assinaturas, setAssinaturas] = useAssinaturas();
   const [leituras, setLeituras] = useLeituras();
@@ -42,6 +50,8 @@ export function Documentos({ session }: { session: ColabSession }) {
       titulo="Documentos e políticas"
       intro="Leia cada documento e assine para confirmar que recebeu."
       contagem={`${totalAssinados} de ${docs.length} assinados`}
+      collapsible={collapsible}
+      defaultOpen={defaultOpen}
     >
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {docs.map((doc) => {

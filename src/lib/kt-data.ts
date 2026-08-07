@@ -242,6 +242,7 @@ export type Noticia = {
   titulo: string;
   resumo: string;
   videoUrl?: string | undefined;
+  imagemUrl?: string | undefined;
   data: string;
 };
 
