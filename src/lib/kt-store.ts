@@ -110,7 +110,8 @@ export type Feedback = {
   autor: string;
   filial: string;
   ts: number;
-  status?: "em-andamento" | "concluido" | undefined;
+  status?: "em-andamento" | "concluido" | "cancelado" | undefined;
+  statusAlteradoEm?: number | undefined;
   comentarioGestor?: string | undefined;
 };
 export type Vaga = { id: string; cargo: string; filial: string; motivo: string; ts: number };

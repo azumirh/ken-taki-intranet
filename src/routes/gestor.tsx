@@ -326,12 +326,13 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
   const [leituras, setLeituras] = useLeituras();
   const [sugestoes, setSugestoes] = useSugestoes();
   const [feedbacks, setFeedbacks] = useFeedbacks();
-  const [pesquisa] = usePesquisa();
+  const [pesquisa, setPesquisa] = usePesquisa();
   const [colaboradores, setColaboradores] = useColaboradores();
   const [documentos] = useDocumentos();
   const [ajuda, setAjuda] = useAjuda();
   const [mural, setMural] = useMural();
 
+  const [editandoPesquisa, setEditandoPesquisa] = useState(false);
   const [desligarTarget, setDesligarTarget] = useState<Colaborador | null>(null);
   const [cadastrarOpen, setCadastrarOpen] = useState(false);
   const [editarTarget, setEditarTarget] = useState<Colaborador | null>(null);
@@ -774,123 +775,125 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
                   ))}
                 </div>
               )}
-              {docsFiltrados.map((doc) => {
-                const assinantes = assinaturas.filter((a) => a.politica === doc.id);
-                const leram = leituras.filter(
-                  (l) =>
-                    l.documentoId === doc.id &&
-                    (l.filial === session.filial || doc.filial === "todas"),
-                );
-                const nomesAssinantes = new Set(assinantes.map((a) => a.nome));
-                const nomesLeram = new Set(leram.map((l) => l.nome));
-                const pendentes = equipe.filter(
-                  (c) => !nomesAssinantes.has(c.nome) && nomesLeram.has(c.nome),
-                );
-                const nuncaAbriram = equipe.filter(
-                  (c) => !nomesAssinantes.has(c.nome) && !nomesLeram.has(c.nome),
-                );
-                const gestorJaAssinou = assinou(doc.id, session.nome);
-                return (
-                  <div
-                    key={doc.id}
-                    className="overflow-hidden rounded-2xl border border-border bg-card"
-                  >
-                    <div className="relative">
-                      <img
-                        src={capaPadrao}
-                        alt=""
-                        width={1024}
-                        height={256}
-                        loading="lazy"
-                        className="h-20 w-full object-cover"
-                      />
-                      <span
-                        className="absolute left-3 top-3 rounded-full px-2.5 py-1 text-[11px] font-bold text-white"
-                        style={{ backgroundColor: doc.corTag }}
-                      >
-                        {doc.textoTag}
-                      </span>
-                      {gestorJaAssinou && (
-                        <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-success px-2.5 py-1 text-[11px] font-semibold text-primary-foreground">
-                          <Check className="h-3 w-3" /> Assinado
-                        </span>
-                      )}
-                    </div>
-                    <div className="p-4">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <h3 className="font-semibold">{doc.titulo}</h3>
-                        <a
-                          href={doc.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+              <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                {docsFiltrados.map((doc) => {
+                  const assinantes = assinaturas.filter((a) => a.politica === doc.id);
+                  const leram = leituras.filter(
+                    (l) =>
+                      l.documentoId === doc.id &&
+                      (l.filial === session.filial || doc.filial === "todas"),
+                  );
+                  const nomesAssinantes = new Set(assinantes.map((a) => a.nome));
+                  const nomesLeram = new Set(leram.map((l) => l.nome));
+                  const pendentes = equipe.filter(
+                    (c) => !nomesAssinantes.has(c.nome) && nomesLeram.has(c.nome),
+                  );
+                  const nuncaAbriram = equipe.filter(
+                    (c) => !nomesAssinantes.has(c.nome) && !nomesLeram.has(c.nome),
+                  );
+                  const gestorJaAssinou = assinou(doc.id, session.nome);
+                  return (
+                    <div
+                      key={doc.id}
+                      className="overflow-hidden rounded-2xl border border-border bg-card"
+                    >
+                      <div className="relative">
+                        <img
+                          src={capaPadrao}
+                          alt=""
+                          width={1024}
+                          height={256}
+                          loading="lazy"
+                          className="h-28 w-full object-cover"
+                        />
+                        <span
+                          className="absolute left-3 top-3 rounded-full px-2.5 py-1 text-[11px] font-bold text-white"
+                          style={{ backgroundColor: doc.corTag }}
                         >
-                          <ExternalLink className="h-3.5 w-3.5" /> Abrir
-                        </a>
-                      </div>
-                      <div className="mt-3 flex flex-wrap gap-2 text-xs">
-                        <span className="flex items-center gap-1 rounded-full bg-success-soft px-2.5 py-1 text-success">
-                          <Check className="h-3 w-3" /> {assinantes.length} assinaram
+                          {doc.textoTag}
                         </span>
-                        {pendentes.length > 0 && (
-                          <span className="rounded-full bg-warn-soft px-2.5 py-1 text-warn">
-                            {pendentes.length} leram, não assinaram
+                        {gestorJaAssinou && (
+                          <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-success px-2.5 py-1 text-[11px] font-semibold text-primary-foreground">
+                            <Check className="h-3 w-3" /> Assinado
                           </span>
+                        )}
+                      </div>
+                      <div className="p-4">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <h3 className="font-semibold">{doc.titulo}</h3>
+                          <a
+                            href={doc.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                          >
+                            <ExternalLink className="h-3.5 w-3.5" /> Abrir
+                          </a>
+                        </div>
+                        <div className="mt-3 flex flex-wrap gap-2 text-xs">
+                          <span className="flex items-center gap-1 rounded-full bg-success-soft px-2.5 py-1 text-success">
+                            <Check className="h-3 w-3" /> {assinantes.length} assinaram
+                          </span>
+                          {pendentes.length > 0 && (
+                            <span className="rounded-full bg-warn-soft px-2.5 py-1 text-warn">
+                              {pendentes.length} leram, não assinaram
+                            </span>
+                          )}
+                          {nuncaAbriram.length > 0 && (
+                            <span className="rounded-full bg-muted px-2.5 py-1 text-muted-foreground">
+                              {nuncaAbriram.length} nunca abriram
+                            </span>
+                          )}
+                        </div>
+                        {pendentes.length > 0 && (
+                          <div className="mt-3">
+                            <p className="text-xs font-medium text-muted-foreground">
+                              Leram, pendentes de assinatura:
+                            </p>
+                            <div className="mt-1 flex flex-wrap gap-1.5">
+                              {pendentes.map((c) => (
+                                <span
+                                  key={c.id}
+                                  className="rounded-full bg-warn-soft px-2.5 py-1 text-xs text-warn"
+                                >
+                                  {c.nome.split(" ")[0]}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
                         )}
                         {nuncaAbriram.length > 0 && (
-                          <span className="rounded-full bg-muted px-2.5 py-1 text-muted-foreground">
-                            {nuncaAbriram.length} nunca abriram
-                          </span>
+                          <div className="mt-2">
+                            <p className="text-xs font-medium text-muted-foreground">
+                              Nunca abriram:
+                            </p>
+                            <div className="mt-1 flex flex-wrap gap-1.5">
+                              {nuncaAbriram.map((c) => (
+                                <span
+                                  key={c.id}
+                                  className="rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground"
+                                >
+                                  {c.nome.split(" ")[0]}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {!gestorJaAssinou && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="mt-3 rounded-full"
+                            onClick={() => assinarDocGestor(doc.id)}
+                          >
+                            <Check className="h-3.5 w-3.5" /> Assinar como gestor(a)
+                          </Button>
                         )}
                       </div>
-                      {pendentes.length > 0 && (
-                        <div className="mt-3">
-                          <p className="text-xs font-medium text-muted-foreground">
-                            Leram, pendentes de assinatura:
-                          </p>
-                          <div className="mt-1 flex flex-wrap gap-1.5">
-                            {pendentes.map((c) => (
-                              <span
-                                key={c.id}
-                                className="rounded-full bg-warn-soft px-2.5 py-1 text-xs text-warn"
-                              >
-                                {c.nome.split(" ")[0]}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      {nuncaAbriram.length > 0 && (
-                        <div className="mt-2">
-                          <p className="text-xs font-medium text-muted-foreground">
-                            Nunca abriram:
-                          </p>
-                          <div className="mt-1 flex flex-wrap gap-1.5">
-                            {nuncaAbriram.map((c) => (
-                              <span
-                                key={c.id}
-                                className="rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground"
-                              >
-                                {c.nome.split(" ")[0]}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      {!gestorJaAssinou && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="mt-3 rounded-full"
-                          onClick={() => assinarDocGestor(doc.id)}
-                        >
-                          <Check className="h-3.5 w-3.5" /> Assinar como gestor(a)
-                        </Button>
-                      )}
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
           )}
         </Section>
@@ -988,7 +991,9 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
                                 className={`rounded-full border px-2 py-1 text-[11px] font-medium focus:outline-none ${
                                   f.status === "concluido"
                                     ? "border-success/30 bg-success-soft text-success"
-                                    : "border-warn/30 bg-warn-soft text-warn"
+                                    : f.status === "cancelado"
+                                      ? "border-destructive/30 bg-destructive/10 text-destructive"
+                                      : "border-warn/30 bg-warn-soft text-warn"
                                 }`}
                                 value={f.status ?? "em-andamento"}
                                 onChange={(e) =>
@@ -997,7 +1002,9 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
                                       x.id === f.id
                                         ? {
                                             ...x,
-                                            status: e.target.value as "em-andamento" | "concluido",
+                                            status: e.target.value as
+                                              "em-andamento" | "concluido" | "cancelado",
+                                            statusAlteradoEm: Date.now(),
                                           }
                                         : x,
                                     ),
@@ -1006,7 +1013,13 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
                               >
                                 <option value="em-andamento">Em andamento</option>
                                 <option value="concluido">Concluído</option>
+                                <option value="cancelado">Cancelado</option>
                               </select>
+                              {f.statusAlteradoEm && (
+                                <p className="mt-0.5 text-[10px] text-muted-foreground">
+                                  {fmtData(f.statusAlteradoEm)}
+                                </p>
+                              )}
                             </td>
                             <td className="px-4 py-2 min-w-[160px]">
                               <input
@@ -1142,40 +1155,124 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
         >
           {pesquisa?.ativa ? (
             <div className="rounded-2xl border border-az bg-az-soft p-5">
-              <div className="flex flex-wrap items-start justify-between gap-2">
-                <h3 className="font-bold">{pesquisa.titulo}</h3>
-                {pesquisa.prazo &&
-                  (() => {
-                    const dias = Math.ceil(
-                      (new Date(pesquisa.prazo + "T00:00:00").getTime() -
-                        new Date().setHours(0, 0, 0, 0)) /
-                        86400000,
-                    );
-                    return (
-                      <span
-                        className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-bold ${
-                          dias <= 2
-                            ? "bg-destructive/10 text-destructive"
-                            : dias <= 5
-                              ? "bg-warn-soft text-warn"
-                              : "bg-success-soft text-success"
-                        }`}
+              {editandoPesquisa ? (
+                <div className="grid gap-3">
+                  <div className="grid gap-1">
+                    <label className="text-xs font-medium text-muted-foreground">Título</label>
+                    <input
+                      className="rounded-lg border border-border bg-card px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-az"
+                      value={pesquisa.titulo}
+                      onChange={(e) => setPesquisa({ ...pesquisa, titulo: e.target.value })}
+                    />
+                  </div>
+                  <div className="grid gap-1">
+                    <label className="text-xs font-medium text-muted-foreground">Link</label>
+                    <input
+                      className="rounded-lg border border-border bg-card px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-az"
+                      value={pesquisa.link}
+                      onChange={(e) => setPesquisa({ ...pesquisa, link: e.target.value })}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="grid gap-1">
+                      <label className="text-xs font-medium text-muted-foreground">Prazo</label>
+                      <input
+                        type="date"
+                        className="rounded-lg border border-border bg-card px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-az"
+                        value={pesquisa.prazo ?? ""}
+                        onChange={(e) =>
+                          setPesquisa({
+                            ...pesquisa,
+                            prazo: e.target.value !== "" ? e.target.value : undefined,
+                          })
+                        }
+                      />
+                    </div>
+                    <div className="grid gap-1">
+                      <label className="text-xs font-medium text-muted-foreground">Categoria</label>
+                      <input
+                        className="rounded-lg border border-border bg-card px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-az"
+                        value={pesquisa.categoria ?? ""}
+                        onChange={(e) =>
+                          setPesquisa({
+                            ...pesquisa,
+                            categoria: e.target.value !== "" ? e.target.value : undefined,
+                          })
+                        }
+                      />
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      className="rounded-full bg-az text-primary-foreground hover:bg-az/90"
+                      onClick={() => setEditandoPesquisa(false)}
+                    >
+                      Salvar
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="rounded-full"
+                      onClick={() => setEditandoPesquisa(false)}
+                    >
+                      Cancelar
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="font-bold">{pesquisa.titulo}</h3>
+                      {pesquisa.categoria && (
+                        <span className="rounded-full bg-az/15 px-2.5 py-0.5 text-xs font-medium text-az">
+                          {pesquisa.categoria}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      {pesquisa.prazo &&
+                        (() => {
+                          const dias = Math.ceil(
+                            (new Date(pesquisa.prazo + "T00:00:00").getTime() -
+                              new Date().setHours(0, 0, 0, 0)) /
+                              86400000,
+                          );
+                          return (
+                            <span
+                              className={`rounded-full px-2.5 py-1 text-xs font-bold ${
+                                dias <= 2
+                                  ? "bg-destructive/10 text-destructive"
+                                  : dias <= 5
+                                    ? "bg-warn-soft text-warn"
+                                    : "bg-success-soft text-success"
+                              }`}
+                            >
+                              {dias > 0 ? `${dias} dias restantes` : "Prazo encerrado"}
+                            </span>
+                          );
+                        })()}
+                      <button
+                        onClick={() => setEditandoPesquisa(true)}
+                        className="rounded-full border border-az/30 px-2.5 py-1 text-xs font-medium text-az hover:bg-az/10"
                       >
-                        {dias > 0 ? `${dias} dias restantes` : "Prazo encerrado"}
-                      </span>
-                    );
-                  })()}
-              </div>
-              <p className="mt-1 text-sm text-muted-foreground">{pesquisa.descricao}</p>
-              {pesquisa.link && (
-                <a
-                  href={pesquisa.link}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="mt-3 inline-flex items-center gap-1 rounded-full bg-az px-3 py-1.5 text-xs font-semibold text-primary-foreground"
-                >
-                  Responder pesquisa <ExternalLink className="h-3 w-3" />
-                </a>
+                        Editar
+                      </button>
+                    </div>
+                  </div>
+                  <p className="mt-3 text-sm text-muted-foreground">{pesquisa.descricao}</p>
+                  {pesquisa.link && (
+                    <a
+                      href={pesquisa.link}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-4 inline-flex items-center gap-1 rounded-full bg-az px-3 py-1.5 text-xs font-semibold text-primary-foreground"
+                    >
+                      Responder pesquisa <ExternalLink className="h-3 w-3" />
+                    </a>
+                  )}
+                </>
               )}
             </div>
           ) : (

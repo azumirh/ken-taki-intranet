@@ -382,6 +382,11 @@ function badgeAssunto(assunto: string): string {
   return "bg-az-soft text-az";
 }
 
+function canalApoio(assunto: string): string {
+  if (assunto.toLowerCase().includes("whatsapp")) return "WhatsApp";
+  return "App";
+}
+
 function baixarCsvClima(checkins: ReturnType<typeof useCheckins>[0], filialFiltro: string) {
   const dados = filialFiltro ? checkins.filter((c) => c.filial === filialFiltro) : checkins;
   const linhas = [
@@ -449,11 +454,13 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
   const [climaPeriodo, setClimaPeriodo] = useState<"7d" | "30d" | "mes">("7d");
   const [climaFilial, setClimaFilial] = useState<string>("todas");
   const [drillDia, setDrillDia] = useState<string | null>(null);
+  const [drillBusca, setDrillBusca] = useState("");
 
   // pedidos de apoio state
   const [filtroAjuda, setFiltroAjuda] = useState<string>("Todas");
   const [filtroStatus, setFiltroStatus] = useState<string>("Todos");
   const [anotandoId, setAnotandoId] = useState<string | null>(null);
+  const [expandedApoioId, setExpandedApoioId] = useState<string | null>(null);
   const [novaAnotacaoTexto, setNovaAnotacaoTexto] = useState("");
   const [novaAnotacaoCanal, setNovaAnotacaoCanal] = useState<
     "WhatsApp" | "E-mail" | "Presencial" | ""
@@ -778,44 +785,79 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
                 {/* Drill-down */}
                 {drillDia && drillCheckins.length > 0 && (
                   <div className="rounded-2xl border border-border bg-muted/50 p-4">
-                    <p className="mb-3 text-sm font-semibold">
-                      {new Date(drillDia).toLocaleDateString("pt-BR", {
-                        weekday: "long",
-                        day: "2-digit",
-                        month: "long",
-                      })}{" "}
-                      · {drillCheckins.length} check-in{drillCheckins.length > 1 ? "s" : ""}
-                    </p>
-                    <div className="grid gap-2">
-                      {drillCheckins.map((c) => {
-                        const h = HUMORES.find((x) => x.id === c.humor);
-                        return (
-                          <div key={c.id} className="flex items-center gap-2 text-sm">
-                            <span className="text-base">{h?.emoji}</span>
-                            <span className="font-medium">{c.nome}</span>
-                            <span className="text-muted-foreground">·</span>
-                            <span className="text-muted-foreground">{filialNome(c.filial)}</span>
-                            <span className="ml-auto text-xs text-muted-foreground">
-                              {new Date(c.ts).toLocaleTimeString("pt-BR", {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}
-                            </span>
-                            {c.recado && (
-                              <span className="ml-1 text-xs text-muted-foreground">
-                                "{c.recado}"
-                              </span>
-                            )}
-                          </div>
-                        );
-                      })}
+                    <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                      <p className="text-sm font-semibold">
+                        {new Date(drillDia).toLocaleDateString("pt-BR", {
+                          weekday: "long",
+                          day: "2-digit",
+                          month: "long",
+                        })}{" "}
+                        · {drillCheckins.length} check-in{drillCheckins.length > 1 ? "s" : ""}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          placeholder="Buscar nome..."
+                          value={drillBusca}
+                          onChange={(e) => setDrillBusca(e.target.value)}
+                          className="h-8 w-40 text-xs"
+                        />
+                        <button
+                          className="text-xs text-muted-foreground underline-offset-2 hover:underline"
+                          onClick={() => {
+                            setDrillDia(null);
+                            setDrillBusca("");
+                          }}
+                        >
+                          Fechar
+                        </button>
+                      </div>
                     </div>
-                    <button
-                      className="mt-3 text-xs text-muted-foreground underline-offset-2 hover:underline"
-                      onClick={() => setDrillDia(null)}
-                    >
-                      Fechar
-                    </button>
+                    <div className="overflow-x-auto rounded-xl border border-border">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-border bg-muted/40">
+                            <th className="px-3 py-2 text-left font-semibold">Humor</th>
+                            <th className="px-3 py-2 text-left font-semibold">Nome</th>
+                            <th className="px-3 py-2 text-left font-semibold">Filial</th>
+                            <th className="px-3 py-2 text-left font-semibold">Hora</th>
+                            <th className="px-3 py-2 text-left font-semibold">Recado</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {drillCheckins
+                            .filter(
+                              (c) =>
+                                !drillBusca ||
+                                c.nome.toLowerCase().includes(drillBusca.toLowerCase()),
+                            )
+                            .map((c) => {
+                              const h = HUMORES.find((x) => x.id === c.humor);
+                              return (
+                                <tr key={c.id} className="border-b border-border last:border-0">
+                                  <td className="px-3 py-2">
+                                    <span className="text-base" title={h?.label}>
+                                      {h?.emoji}
+                                    </span>
+                                  </td>
+                                  <td className="px-3 py-2 font-medium">{c.nome}</td>
+                                  <td className="px-3 py-2 text-muted-foreground">
+                                    {filialNome(c.filial)}
+                                  </td>
+                                  <td className="px-3 py-2 whitespace-nowrap text-xs text-muted-foreground">
+                                    {new Date(c.ts).toLocaleTimeString("pt-BR", {
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    })}
+                                  </td>
+                                  <td className="px-3 py-2 text-xs text-muted-foreground max-w-[200px]">
+                                    {c.recado && `"${c.recado}"`}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 )}
               </div>
@@ -1110,167 +1152,223 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
                   </button>
                 ))}
               </div>
-              <div className="grid gap-3">
-                {pedidosFiltrados.length === 0 ? (
-                  <EmptyState>Nenhum registro com estes filtros.</EmptyState>
-                ) : (
-                  pedidosFiltrados.map((a) => (
-                    <div
-                      key={a.id}
-                      className={`rounded-2xl border bg-card p-4 text-sm ${
-                        a.status === "resolvido" ? "border-success/30 opacity-70" : "border-border"
-                      }`}
-                    >
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span
-                          className={`rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide ${badgeAssunto(a.assunto)}`}
-                        >
-                          {labelAssunto(a.assunto)}
-                        </span>
-                        {/* Status selector */}
-                        <select
-                          className={`rounded-full border px-2.5 py-1 text-[11px] font-bold focus:outline-none ${
-                            a.status === "resolvido"
-                              ? "border-success/30 bg-success-soft text-success"
-                              : "border-warn/30 bg-warn-soft text-warn"
-                          }`}
-                          value={a.status ?? "em-andamento"}
-                          onChange={(e) =>
-                            setAjuda((prev) =>
-                              prev.map((x) =>
-                                x.id === a.id
-                                  ? {
-                                      ...x,
-                                      status: e.target.value as "em-andamento" | "resolvido",
-                                    }
-                                  : x,
-                              ),
-                            )
-                          }
-                        >
-                          <option value="em-andamento">Em andamento</option>
-                          <option value="resolvido">Resolvido</option>
-                        </select>
-                        <span className="font-semibold">
-                          {a.nome} · {filialNome(a.filial)}
-                        </span>
-                        {a.assunto.includes("gestor") && (
-                          <span className="rounded-full bg-warn-soft px-2 py-0.5 text-[11px] font-medium text-warn">
-                            envolveu gestor
-                          </span>
-                        )}
-                        <span className="ml-auto text-xs text-muted-foreground">
-                          {new Date(a.ts).toLocaleString("pt-BR", {
-                            day: "2-digit",
-                            month: "short",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </span>
-                      </div>
-                      {/* Annotation history */}
-                      {anotacoes.filter((n) => n.pedidoId === a.id).length > 0 && (
-                        <div className="mt-3 grid gap-1.5">
-                          {anotacoes
-                            .filter((n) => n.pedidoId === a.id)
-                            .sort((x, y) => x.criadoEm - y.criadoEm)
-                            .map((n) => (
-                              <div key={n.id} className="rounded-xl bg-muted px-3 py-2 text-xs">
-                                <p className="text-foreground">{n.texto}</p>
-                                <p className="mt-0.5 text-muted-foreground">
-                                  {n.canal && <span className="mr-1 font-medium">{n.canal} ·</span>}
-                                  {new Date(n.criadoEm).toLocaleString("pt-BR", {
-                                    day: "2-digit",
-                                    month: "short",
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                  })}
-                                </p>
-                              </div>
-                            ))}
-                        </div>
-                      )}
-                      {/* Add annotation */}
-                      {anotandoId === a.id ? (
-                        <div className="mt-3 grid gap-2">
-                          <Textarea
-                            className="text-xs"
-                            rows={2}
-                            autoFocus
-                            placeholder="Descreva a ação tomada..."
-                            value={novaAnotacaoTexto}
-                            onChange={(e) => setNovaAnotacaoTexto(e.target.value)}
-                          />
-                          <div className="flex flex-wrap gap-1.5">
-                            {(["WhatsApp", "E-mail", "Presencial"] as const).map((c) => (
-                              <button
-                                key={c}
-                                onClick={() =>
-                                  setNovaAnotacaoCanal((prev) => (prev === c ? "" : c))
-                                }
-                                className={`rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors ${
-                                  novaAnotacaoCanal === c
-                                    ? "border-az bg-az-soft text-az"
-                                    : "border-border"
-                                }`}
+              {pedidosFiltrados.length === 0 ? (
+                <EmptyState>Nenhum registro com estes filtros.</EmptyState>
+              ) : (
+                <div className="overflow-x-auto rounded-2xl border border-border">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-border bg-muted/40">
+                        <th className="px-4 py-3 text-left font-semibold">Nome</th>
+                        <th className="px-4 py-3 text-left font-semibold">Canal</th>
+                        <th className="px-4 py-3 text-left font-semibold">Status</th>
+                        <th className="px-4 py-3 text-left font-semibold">Anotações</th>
+                        <th className="px-4 py-3 text-left font-semibold">Data/Hora</th>
+                        <th className="px-4 py-3 text-left font-semibold">Gestor</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pedidosFiltrados.map((a) => {
+                        const anotacoesRow = anotacoes
+                          .filter((n) => n.pedidoId === a.id)
+                          .sort((x, y) => x.criadoEm - y.criadoEm);
+                        const isExpanded = expandedApoioId === a.id;
+                        return (
+                          <>
+                            <tr
+                              key={a.id}
+                              className={`border-b border-border last:border-0 cursor-pointer hover:bg-muted/30 ${a.status === "resolvido" ? "opacity-60" : ""}`}
+                              onClick={() => setExpandedApoioId(isExpanded ? null : a.id)}
+                            >
+                              <td className="px-4 py-3">
+                                <div className="font-medium">{a.nome}</div>
+                                <div className="text-xs text-muted-foreground">
+                                  {filialNome(a.filial)}
+                                </div>
+                              </td>
+                              <td className="px-4 py-3">
+                                <span
+                                  className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${badgeAssunto(a.assunto)}`}
+                                >
+                                  {canalApoio(a.assunto)}
+                                </span>
+                              </td>
+                              <td className="px-4 py-2">
+                                <select
+                                  className={`rounded-full border px-2 py-1 text-[11px] font-bold focus:outline-none ${
+                                    a.status === "resolvido"
+                                      ? "border-success/30 bg-success-soft text-success"
+                                      : "border-warn/30 bg-warn-soft text-warn"
+                                  }`}
+                                  value={a.status ?? "em-andamento"}
+                                  onClick={(e) => e.stopPropagation()}
+                                  onChange={(e) =>
+                                    setAjuda((prev) =>
+                                      prev.map((x) =>
+                                        x.id === a.id
+                                          ? {
+                                              ...x,
+                                              status: e.target.value as
+                                                "em-andamento" | "resolvido",
+                                            }
+                                          : x,
+                                      ),
+                                    )
+                                  }
+                                >
+                                  <option value="em-andamento">Em andamento</option>
+                                  <option value="resolvido">Resolvido</option>
+                                </select>
+                              </td>
+                              <td className="px-4 py-3">
+                                <button
+                                  className="text-xs text-az underline-offset-2 hover:underline"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setExpandedApoioId(isExpanded ? null : a.id);
+                                  }}
+                                >
+                                  {anotacoesRow.length > 0
+                                    ? `${anotacoesRow.length} anotaç${anotacoesRow.length === 1 ? "ão" : "ões"}`
+                                    : "Adicionar"}
+                                </button>
+                              </td>
+                              <td className="px-4 py-3 whitespace-nowrap text-xs text-muted-foreground">
+                                {new Date(a.ts).toLocaleString("pt-BR", {
+                                  day: "2-digit",
+                                  month: "short",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}
+                              </td>
+                              <td className="px-4 py-3">
+                                {a.assunto.includes("gestor") && (
+                                  <span className="rounded-full bg-warn-soft px-2 py-0.5 text-[11px] font-medium text-warn">
+                                    sim
+                                  </span>
+                                )}
+                              </td>
+                            </tr>
+                            {isExpanded && (
+                              <tr
+                                key={`${a.id}-expand`}
+                                className="border-b border-border bg-muted/20"
                               >
-                                {c}
-                              </button>
-                            ))}
-                          </div>
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              className="rounded-full"
-                              disabled={!novaAnotacaoTexto.trim()}
-                              onClick={() => {
-                                setAnotacoes((prev) => [
-                                  ...prev,
-                                  {
-                                    id: uid(),
-                                    pedidoId: a.id,
-                                    texto: novaAnotacaoTexto.trim(),
-                                    ...(novaAnotacaoCanal ? { canal: novaAnotacaoCanal } : {}),
-                                    criadoEm: Date.now(),
-                                  },
-                                ]);
-                                setNovaAnotacaoTexto("");
-                                setNovaAnotacaoCanal("");
-                                setAnotandoId(null);
-                              }}
-                            >
-                              Salvar anotação
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="rounded-full"
-                              onClick={() => {
-                                setAnotandoId(null);
-                                setNovaAnotacaoTexto("");
-                                setNovaAnotacaoCanal("");
-                              }}
-                            >
-                              Cancelar
-                            </Button>
-                          </div>
-                        </div>
-                      ) : (
-                        <button
-                          className="mt-2 text-xs text-muted-foreground underline-offset-2 hover:underline"
-                          onClick={() => {
-                            setAnotandoId(a.id);
-                            setNovaAnotacaoTexto("");
-                            setNovaAnotacaoCanal("");
-                          }}
-                        >
-                          + Adicionar anotação
-                        </button>
-                      )}
-                    </div>
-                  ))
-                )}
-              </div>
+                                <td colSpan={6} className="px-4 py-3">
+                                  {anotacoesRow.length > 0 && (
+                                    <div className="mb-2 grid gap-1.5">
+                                      {anotacoesRow.map((n) => (
+                                        <div
+                                          key={n.id}
+                                          className="rounded-xl bg-card px-3 py-2 text-xs"
+                                        >
+                                          <p className="text-foreground">{n.texto}</p>
+                                          <p className="mt-0.5 text-muted-foreground">
+                                            {n.canal && (
+                                              <span className="mr-1 font-medium">{n.canal} ·</span>
+                                            )}
+                                            {new Date(n.criadoEm).toLocaleString("pt-BR", {
+                                              day: "2-digit",
+                                              month: "short",
+                                              hour: "2-digit",
+                                              minute: "2-digit",
+                                            })}
+                                          </p>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                  {anotandoId === a.id ? (
+                                    <div className="grid gap-2">
+                                      <Textarea
+                                        className="text-xs"
+                                        rows={2}
+                                        autoFocus
+                                        placeholder="Descreva a ação tomada..."
+                                        value={novaAnotacaoTexto}
+                                        onChange={(e) => setNovaAnotacaoTexto(e.target.value)}
+                                      />
+                                      <div className="flex flex-wrap gap-1.5">
+                                        {(["WhatsApp", "E-mail", "Presencial"] as const).map(
+                                          (c) => (
+                                            <button
+                                              key={c}
+                                              onClick={() =>
+                                                setNovaAnotacaoCanal((prev) =>
+                                                  prev === c ? "" : c,
+                                                )
+                                              }
+                                              className={`rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors ${novaAnotacaoCanal === c ? "border-az bg-az-soft text-az" : "border-border"}`}
+                                            >
+                                              {c}
+                                            </button>
+                                          ),
+                                        )}
+                                      </div>
+                                      <div className="flex gap-2">
+                                        <Button
+                                          size="sm"
+                                          className="rounded-full"
+                                          disabled={!novaAnotacaoTexto.trim()}
+                                          onClick={() => {
+                                            setAnotacoes((prev) => [
+                                              ...prev,
+                                              {
+                                                id: uid(),
+                                                pedidoId: a.id,
+                                                texto: novaAnotacaoTexto.trim(),
+                                                ...(novaAnotacaoCanal
+                                                  ? {
+                                                      canal: novaAnotacaoCanal as
+                                                        "WhatsApp" | "E-mail" | "Presencial",
+                                                    }
+                                                  : {}),
+                                                criadoEm: Date.now(),
+                                              },
+                                            ]);
+                                            setNovaAnotacaoTexto("");
+                                            setNovaAnotacaoCanal("");
+                                            setAnotandoId(null);
+                                          }}
+                                        >
+                                          Salvar anotação
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          className="rounded-full"
+                                          onClick={() => {
+                                            setAnotandoId(null);
+                                            setNovaAnotacaoTexto("");
+                                            setNovaAnotacaoCanal("");
+                                          }}
+                                        >
+                                          Cancelar
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <button
+                                      className="text-xs text-muted-foreground underline-offset-2 hover:underline"
+                                      onClick={() => {
+                                        setAnotandoId(a.id);
+                                        setNovaAnotacaoTexto("");
+                                        setNovaAnotacaoCanal("");
+                                      }}
+                                    >
+                                      + Adicionar anotação
+                                    </button>
+                                  )}
+                                </td>
+                              </tr>
+                            )}
+                          </>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           )}
         </Section>
@@ -1314,9 +1412,32 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
                           {fmtData(s.ts)}
                         </td>
                         <td className="max-w-xs px-4 py-3 text-muted-foreground">{s.mensagem}</td>
-                        <td className="min-w-[180px] px-4 py-2">
+                        <td className="min-w-[200px] px-4 py-2">
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            {s.status && (
+                              <span
+                                className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
+                                  s.status === "enviado-rh"
+                                    ? "bg-success-soft text-success"
+                                    : s.status === "para-socios"
+                                      ? "bg-az-soft text-az"
+                                      : s.status === "considerar-depois"
+                                        ? "bg-warn-soft text-warn"
+                                        : "bg-muted text-muted-foreground"
+                                }`}
+                              >
+                                {s.status === "enviado-rh"
+                                  ? "Enviado RH"
+                                  : s.status === "para-socios"
+                                    ? "Para sócios"
+                                    : s.status === "considerar-depois"
+                                      ? "Considerar depois"
+                                      : "Desconsiderado"}
+                              </span>
+                            )}
+                          </div>
                           <select
-                            className="w-full rounded-lg border border-border bg-card px-2 py-1 text-xs focus:outline-none"
+                            className="mt-1 w-full rounded-lg border border-border bg-card px-2 py-1 text-xs focus:outline-none"
                             value={s.status ?? ""}
                             onChange={(e) => {
                               const v = e.target.value as
@@ -1340,6 +1461,11 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
                             <option value="considerar-depois">Considerar em outro momento</option>
                             <option value="desconsiderado">Desconsiderado</option>
                           </select>
+                          {s.statusTs && (
+                            <p className="mt-0.5 text-[10px] text-muted-foreground">
+                              {fmtData(s.statusTs)}
+                            </p>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -1487,7 +1613,7 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
           {documentos.length === 0 ? (
             <EmptyState>Nenhum documento publicado ainda.</EmptyState>
           ) : (
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
               {documentos.map((doc) => {
                 const nomesAssinantes = new Set(
                   assinaturas.filter((a) => a.politica === doc.id).map((a) => a.nome),

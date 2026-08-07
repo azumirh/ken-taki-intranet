@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { MessageCircle, Lightbulb } from "lucide-react";
+import { Inbox, Mail, MessageCircle } from "lucide-react";
 import { AppShell } from "@/components/kt/app-shell";
 import { Avatar, EmptyState, Section } from "@/components/kt/section";
 import { CheckIn } from "@/components/kt/checkin";
@@ -12,7 +12,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
   AZUMI_CONTACT,
-  COLABORADORES,
   FEEDBACK_TIPOS,
   HUMORES,
   SUGESTAO_CATEGORIAS,
@@ -26,6 +25,7 @@ import {
   useAjuda,
   useAssinaturas,
   useCheckins,
+  useColaboradores,
   useDocumentos,
   useFeedbacks,
   useLeituras,
@@ -110,8 +110,10 @@ function Painel() {
   const [assinaturas] = useAssinaturas();
   const [leituras] = useLeituras();
 
+  const [colaboradores] = useColaboradores();
   const [sugCat, setSugCat] = useState(SUGESTAO_CATEGORIAS[0]!);
   const [sugMsg, setSugMsg] = useState("");
+  const [sugEnviado, setSugEnviado] = useState(false);
   const [fbTipo, setFbTipo] = useState(FEEDBACK_TIPOS[0]!);
   const [fbAnon, setFbAnon] = useState(true);
   const [fbMsg, setFbMsg] = useState("");
@@ -132,9 +134,11 @@ function Painel() {
   const alertaCritico = hojeNegativas.length >= 2;
 
   const mes = new Date().getMonth();
-  const aniversariantes = COLABORADORES.filter(
-    (c) => c.filial === session.filial && new Date(c.nascimento + "T00:00:00").getMonth() === mes,
-  ).sort((a, b) => a.nascimento.slice(5).localeCompare(b.nascimento.slice(5)));
+  const aniversariantes = colaboradores
+    .filter(
+      (c) => c.filial === session.filial && new Date(c.nascimento + "T00:00:00").getMonth() === mes,
+    )
+    .sort((a, b) => a.nascimento.slice(5).localeCompare(b.nascimento.slice(5)));
 
   const docsFilial = documentos.filter((d) => d.filial === session.filial || d.filial === "todas");
 
@@ -512,63 +516,82 @@ function Painel() {
           defaultOpen
         >
           <div className="grid max-w-2xl gap-4">
-            <div className="rounded-xl border border-border bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
-              <Lightbulb className="mb-1 h-4 w-4 text-warn" />
-              Sua sugestão é completamente anônima — nenhum dado pessoal é vinculado ao envio.
-              Usamos a unidade só para entender o contexto.
-            </div>
-            <div className="grid gap-2">
-              <Label>Sua sugestão é sobre:</Label>
-              <div className="flex flex-wrap gap-2">
-                {SUGESTAO_CATEGORIAS.map((cat) => (
-                  <div key={cat} className="flex flex-col items-start gap-0.5">
-                    <button
-                      onClick={() => setSugCat(cat)}
-                      title={SUG_DICAS[cat]}
-                      className={`rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors ${
-                        sugCat === cat
-                          ? "border-kt bg-kt-soft text-kt"
-                          : "border-border bg-card hover:bg-muted"
-                      }`}
-                    >
-                      {cat}
-                    </button>
-                    {sugCat === cat && SUG_DICAS[cat] && (
-                      <p className="px-1 text-xs text-muted-foreground">{SUG_DICAS[cat]}</p>
-                    )}
-                  </div>
-                ))}
+            {/* icon header */}
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-kt-soft">
+                <Inbox className="h-6 w-6 text-kt" />
               </div>
+              <p className="text-sm text-muted-foreground">
+                Sua sugestão é completamente anônima — nenhum dado pessoal é vinculado ao envio.
+                Usamos a unidade só para entender o contexto.
+              </p>
             </div>
-            <Textarea
-              rows={4}
-              maxLength={800}
-              placeholder="Conte sua ideia, elogio ou observação..."
-              value={sugMsg}
-              onChange={(e) => setSugMsg(e.target.value)}
-            />
-            <div>
-              <Button
-                className="rounded-full"
-                disabled={!sugMsg.trim()}
-                onClick={() => {
-                  setSugestoes([
-                    {
-                      id: uid(),
-                      categoria: sugCat,
-                      mensagem: sugMsg.trim(),
-                      filial: session.filial,
-                      ts: Date.now(),
-                    },
-                    ...sugestoes,
-                  ]);
-                  setSugMsg("");
-                  toast.success("Sugestão enviada anonimamente.");
-                }}
-              >
-                Enviar anonimamente
-              </Button>
-            </div>
+
+            {sugEnviado ? (
+              <div className="flex flex-col items-center gap-3 rounded-2xl border border-kt/30 bg-kt-soft py-8 text-center">
+                <Inbox className="h-10 w-10 animate-bounce text-kt" />
+                <p className="text-lg font-semibold text-kt">📬 Sugestão enviada!</p>
+                <p className="text-sm text-muted-foreground">
+                  Obrigado por contribuir com a equipe.
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="grid gap-2">
+                  <Label>Sua sugestão é sobre:</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {SUGESTAO_CATEGORIAS.map((cat) => (
+                      <div key={cat} className="flex flex-col items-start gap-0.5">
+                        <button
+                          onClick={() => setSugCat(cat)}
+                          title={SUG_DICAS[cat]}
+                          className={`rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors ${
+                            sugCat === cat
+                              ? "border-kt bg-kt-soft text-kt"
+                              : "border-border bg-card hover:bg-muted"
+                          }`}
+                        >
+                          {cat}
+                        </button>
+                        {sugCat === cat && SUG_DICAS[cat] && (
+                          <p className="px-1 text-xs text-muted-foreground">{SUG_DICAS[cat]}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <Textarea
+                  rows={4}
+                  maxLength={800}
+                  placeholder="Conte sua ideia, elogio ou observação..."
+                  value={sugMsg}
+                  onChange={(e) => setSugMsg(e.target.value)}
+                />
+                <div>
+                  <Button
+                    className="rounded-full"
+                    disabled={!sugMsg.trim()}
+                    onClick={() => {
+                      setSugestoes([
+                        {
+                          id: uid(),
+                          categoria: sugCat,
+                          mensagem: sugMsg.trim(),
+                          filial: session.filial,
+                          ts: Date.now(),
+                        },
+                        ...sugestoes,
+                      ]);
+                      setSugMsg("");
+                      setSugEnviado(true);
+                      setTimeout(() => setSugEnviado(false), 2500);
+                    }}
+                  >
+                    Enviar anonimamente
+                  </Button>
+                </div>
+              </>
+            )}
           </div>
         </Section>
 
@@ -581,6 +604,15 @@ function Painel() {
           defaultOpen
         >
           <div className="grid max-w-2xl gap-4">
+            {/* icon header */}
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-muted">
+                <Mail className="h-6 w-6 text-muted-foreground" />
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Seu gestor recebe o feedback pelo painel. Escolha se quer se identificar ou não.
+              </p>
+            </div>
             <div className="grid gap-2">
               <Label>Você quer se identificar?</Label>
               <div className="flex flex-wrap gap-2">
