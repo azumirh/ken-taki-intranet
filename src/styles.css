@@ -118,6 +118,12 @@
     border-color: var(--color-border);
   }
 
+  html,
+  body {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
   body {
     background: var(--gradient-veil);
     background-attachment: fixed;
@@ -125,6 +131,7 @@
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
   }
+
 
   h1,
   h2,
