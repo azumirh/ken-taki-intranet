@@ -1489,8 +1489,19 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
           ) : (
             <div className="grid gap-3 sm:grid-cols-2">
               {documentos.map((doc) => {
-                const totalAssinaturas = assinaturas.filter((a) => a.politica === doc.id).length;
-                const totalLeituras = leituras.filter((l) => l.documentoId === doc.id).length;
+                const nomesAssinantes = new Set(
+                  assinaturas.filter((a) => a.politica === doc.id).map((a) => a.nome),
+                );
+                const nomesLeram = new Set(
+                  leituras.filter((l) => l.documentoId === doc.id).map((l) => l.nome),
+                );
+                const colabsFilial =
+                  doc.filial === "todas"
+                    ? colaboradores
+                    : colaboradores.filter((c) => c.filial === doc.filial);
+                const nuncaAbriram = colabsFilial.filter(
+                  (c) => !nomesAssinantes.has(c.nome) && !nomesLeram.has(c.nome),
+                ).length;
                 return (
                   <div
                     key={doc.id}
@@ -1540,13 +1551,20 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
                           </button>
                         </div>
                       </div>
-                      <div className="mt-auto flex gap-2 pt-3 text-xs text-muted-foreground">
+                      <div className="mt-auto flex flex-wrap gap-2 pt-3 text-xs">
                         <span className="flex items-center gap-1 rounded-full bg-success-soft px-2 py-0.5 text-success">
-                          <Check className="h-3 w-3" /> {totalAssinaturas}
+                          <Check className="h-3 w-3" /> {nomesAssinantes.size} assinaram
                         </span>
-                        <span className="rounded-full bg-muted px-2 py-0.5">
-                          {totalLeituras} leram
-                        </span>
+                        {nomesLeram.size - nomesAssinantes.size > 0 && (
+                          <span className="rounded-full bg-warn-soft px-2 py-0.5 text-warn">
+                            {nomesLeram.size - nomesAssinantes.size} leram, não assinaram
+                          </span>
+                        )}
+                        {nuncaAbriram > 0 && (
+                          <span className="rounded-full bg-muted px-2 py-0.5 text-muted-foreground">
+                            {nuncaAbriram} nunca abriram
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>

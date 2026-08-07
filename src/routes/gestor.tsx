@@ -1,8 +1,16 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
-import { Check, ExternalLink, MessageCircle, UserPlus, Briefcase, UserMinus } from "lucide-react";
+import {
+  Briefcase,
+  Check,
+  ExternalLink,
+  MessageCircle,
+  Upload,
+  UserMinus,
+  UserPlus,
+} from "lucide-react";
 import capaPadrao from "@/assets/capa-padrao-politicas.jpg";
 import { AppShell, BackLink } from "@/components/kt/app-shell";
 import { Avatar, EmptyState, Section } from "@/components/kt/section";
@@ -43,6 +51,7 @@ import {
   useSugestoes,
 } from "@/lib/kt-store";
 import { type KtPerfil, useKtAuth } from "@/lib/kt-auth";
+import { supabase } from "@/lib/supabase";
 
 export const Route = createFileRoute("/gestor")({
   head: () => ({
@@ -332,6 +341,9 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
   const [cargoCol, setCargoCol] = useState("");
   const [nascimentoCol, setNascimentoCol] = useState("");
   const [admissaoCol, setAdmissaoCol] = useState("");
+  const [fotoCol, setFotoCol] = useState("");
+  const [fotoUploading, setFotoUploading] = useState(false);
+  const editFotoRef = useRef<HTMLInputElement>(null);
   const [erroCol, setErroCol] = useState("");
 
   // clima chart
@@ -346,6 +358,25 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
 
   // documento categoria filter
   const [filtroDocTag, setFiltroDocTag] = useState("Todos");
+
+  async function uploadFotoColaborador(file: File) {
+    setFotoUploading(true);
+    try {
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const path = `fotos/${Date.now()}-${safeName}`;
+      const { data, error } = await supabase.storage.from("kt-documentos").upload(path, file, {
+        cacheControl: "86400",
+        upsert: false,
+      });
+      if (error) throw error;
+      const { data: urlData } = supabase.storage.from("kt-documentos").getPublicUrl(data.path);
+      setFotoCol(urlData.publicUrl);
+    } catch (e) {
+      toast.error(`Erro ao enviar foto: ${(e as Error).message}`);
+    } finally {
+      setFotoUploading(false);
+    }
+  }
 
   const session = { nome: perfil.nome, filial: perfil.filial! };
   const daUnidade = <T extends { filial: string }>(arr: T[]) =>
@@ -660,18 +691,14 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
                               if (!drillBusca) return true;
                               const privado = isPrivadoGestor(c);
                               return (
-                                !privado &&
-                                c.nome.toLowerCase().includes(drillBusca.toLowerCase())
+                                !privado && c.nome.toLowerCase().includes(drillBusca.toLowerCase())
                               );
                             })
                             .map((c) => {
                               const h = HUMORES.find((x) => x.id === c.humor);
                               const privado = isPrivadoGestor(c);
                               return (
-                                <tr
-                                  key={c.id}
-                                  className="border-b border-border last:border-0"
-                                >
+                                <tr key={c.id} className="border-b border-border last:border-0">
                                   <td className="px-3 py-2 text-base">{h?.emoji}</td>
                                   <td
                                     className={`px-3 py-2 ${privado ? "italic text-muted-foreground" : "font-medium"}`}
@@ -755,8 +782,12 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
                     (l.filial === session.filial || doc.filial === "todas"),
                 );
                 const nomesAssinantes = new Set(assinantes.map((a) => a.nome));
+                const nomesLeram = new Set(leram.map((l) => l.nome));
                 const pendentes = equipe.filter(
-                  (c) => !nomesAssinantes.has(c.nome) && leram.some((l) => l.nome === c.nome),
+                  (c) => !nomesAssinantes.has(c.nome) && nomesLeram.has(c.nome),
+                );
+                const nuncaAbriram = equipe.filter(
+                  (c) => !nomesAssinantes.has(c.nome) && !nomesLeram.has(c.nome),
                 );
                 const gestorJaAssinou = assinou(doc.id, session.nome);
                 return (
@@ -799,24 +830,46 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
                       </div>
                       <div className="mt-3 flex flex-wrap gap-2 text-xs">
                         <span className="flex items-center gap-1 rounded-full bg-success-soft px-2.5 py-1 text-success">
-                          <Check className="h-3 w-3" /> {assinantes.length} assinaturas
+                          <Check className="h-3 w-3" /> {assinantes.length} assinaram
                         </span>
                         {pendentes.length > 0 && (
                           <span className="rounded-full bg-warn-soft px-2.5 py-1 text-warn">
-                            {pendentes.length} leram e não assinaram
+                            {pendentes.length} leram, não assinaram
+                          </span>
+                        )}
+                        {nuncaAbriram.length > 0 && (
+                          <span className="rounded-full bg-muted px-2.5 py-1 text-muted-foreground">
+                            {nuncaAbriram.length} nunca abriram
                           </span>
                         )}
                       </div>
                       {pendentes.length > 0 && (
                         <div className="mt-3">
                           <p className="text-xs font-medium text-muted-foreground">
-                            Pendentes de assinatura:
+                            Leram, pendentes de assinatura:
                           </p>
                           <div className="mt-1 flex flex-wrap gap-1.5">
                             {pendentes.map((c) => (
                               <span
                                 key={c.id}
-                                className="rounded-full bg-muted px-2.5 py-1 text-xs"
+                                className="rounded-full bg-warn-soft px-2.5 py-1 text-xs text-warn"
+                              >
+                                {c.nome.split(" ")[0]}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {nuncaAbriram.length > 0 && (
+                        <div className="mt-2">
+                          <p className="text-xs font-medium text-muted-foreground">
+                            Nunca abriram:
+                          </p>
+                          <div className="mt-1 flex flex-wrap gap-1.5">
+                            {nuncaAbriram.map((c) => (
+                              <span
+                                key={c.id}
+                                className="rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground"
                               >
                                 {c.nome.split(" ")[0]}
                               </span>
@@ -944,9 +997,7 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
                                       x.id === f.id
                                         ? {
                                             ...x,
-                                            status: e.target.value as
-                                              | "em-andamento"
-                                              | "concluido",
+                                            status: e.target.value as "em-andamento" | "concluido",
                                           }
                                         : x,
                                     ),
@@ -1311,10 +1362,7 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
                               <div>
                                 <span className="font-medium">{c.nome}</span>
                                 {anivEsseMes && (
-                                  <span
-                                    className="ml-1.5 text-sm"
-                                    title="Aniversário este mês 🎉"
-                                  >
+                                  <span className="ml-1.5 text-sm" title="Aniversário este mês 🎉">
                                     🎂
                                   </span>
                                 )}
@@ -1344,6 +1392,7 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
                                   setCargoCol(c.cargo);
                                   setNascimentoCol(c.nascimento);
                                   setAdmissaoCol(c.admissao);
+                                  setFotoCol(c.foto ?? "");
                                   setErroCol("");
                                 }}
                                 title="Editar colaborador"
@@ -1471,6 +1520,40 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
                   />
                 </div>
               </div>
+              <div className="grid gap-1.5">
+                <Label>Foto (opcional)</Label>
+                <input
+                  ref={editFotoRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const f = e.target.files?.[0];
+                    if (f) await uploadFotoColaborador(f);
+                    e.target.value = "";
+                  }}
+                />
+                <div className="flex items-center gap-3">
+                  {fotoCol ? (
+                    <img src={fotoCol} alt="Foto" className="h-12 w-12 rounded-full object-cover" />
+                  ) : (
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted text-lg font-bold text-muted-foreground">
+                      {nomeCol.trim().charAt(0).toUpperCase() || "?"}
+                    </div>
+                  )}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="rounded-full"
+                    disabled={fotoUploading}
+                    onClick={() => editFotoRef.current?.click()}
+                  >
+                    <Upload className="h-3.5 w-3.5" />
+                    {fotoUploading ? "Enviando..." : fotoCol ? "Trocar foto" : "Adicionar foto"}
+                  </Button>
+                </div>
+              </div>
               {erroCol && <p className="text-sm text-destructive">{erroCol}</p>}
             </div>
             <div className="flex justify-end gap-2 pt-2">
@@ -1499,6 +1582,7 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
                             cargo: novosCargo,
                             nascimento: nascimentoCol || c.nascimento,
                             admissao: admissaoCol || c.admissao,
+                            ...(fotoCol ? { foto: fotoCol } : {}),
                           }
                         : c,
                     ),
