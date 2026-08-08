@@ -459,17 +459,18 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
     .slice(0, 5);
 
   // feedback filtered + paginated
+  const feedbacksGestor = daUnidade(feedbacks).filter((f) => f.destino !== "azumi");
   const mesesFB = [
     "Todos",
     ...Array.from(
       new Set(
-        daUnidade(feedbacks).map((f) =>
+        feedbacksGestor.map((f) =>
           new Date(f.ts).toLocaleDateString("pt-BR", { month: "long", year: "numeric" }),
         ),
       ),
     ),
   ];
-  const fbFiltrado = daUnidade(feedbacks)
+  const fbFiltrado = feedbacksGestor
     .filter((f) => {
       const mesOk =
         fbFiltroMes === "Todos" ||
@@ -563,7 +564,7 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
           {[
             { label: "Check-ins registrados", valor: meusCheckins.length },
             { label: "Assinaturas de políticas", valor: daUnidade(assinaturas).length },
-            { label: "Feedbacks recebidos", valor: daUnidade(feedbacks).length },
+            { label: "Feedbacks recebidos", valor: feedbacksGestor.length },
           ].map((k) => (
             <div key={k.label} className="surface p-5">
               <p className="text-3xl font-extrabold text-union">{k.valor}</p>
@@ -1036,11 +1037,11 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
         <Section
           titulo="Feedbacks da equipe"
           intro="Elogios, críticas, dúvidas e situações registradas pelo time."
-          contagem={`${daUnidade(feedbacks).length} recebidos`}
+          contagem={`${feedbacksGestor.length} recebidos`}
           collapsible
-          defaultOpen={daUnidade(feedbacks).length > 0}
+          defaultOpen={feedbacksGestor.length > 0}
         >
-          {daUnidade(feedbacks).length === 0 ? (
+          {feedbacksGestor.length === 0 ? (
             <EmptyState>Nenhum feedback recebido ainda.</EmptyState>
           ) : (
             <div className="grid gap-4">

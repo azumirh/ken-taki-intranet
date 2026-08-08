@@ -70,6 +70,11 @@ const FB_DESC: Record<string, string> = {
   "Situação urgente": "Algo que precisa de atenção imediata da gestão",
 };
 
+function calcDestino(tipo: string, anonimo: boolean): "gestor" | "azumi" {
+  if (anonimo && (tipo === "Crítica" || tipo === "Situação urgente")) return "azumi";
+  return "gestor";
+}
+
 function Chips({
   opcoes,
   valor,
@@ -119,6 +124,10 @@ function Painel() {
   const [fbTipo, setFbTipo] = useState(FEEDBACK_TIPOS[0]!);
   const [fbAnon, setFbAnon] = useState(true);
   const [fbMsg, setFbMsg] = useState("");
+  const [fbEnviado, setFbEnviado] = useState(false);
+  const [fbIdEnviado, setFbIdEnviado] = useState<string | null>(null);
+  const [fbAceitaContato, setFbAceitaContato] = useState<boolean | null>(null);
+  const [fbContatoTexto, setFbContatoTexto] = useState("");
   const [histFiltroData, setHistFiltroData] = useState("");
   const [bdayMsgParaId, setBdayMsgParaId] = useState<string | null>(null);
   const [bdayMsgTexto, setBdayMsgTexto] = useState("");
@@ -888,107 +897,230 @@ function Painel() {
         <Section
           titulo="Feedback ao gestor"
           intro="Elogio, crítica, dúvida ou uma situação pontual — você escolhe se assina ou não."
-          contagem={fbAnon ? "Anônimo" : "Com meu nome"}
+          contagem={fbEnviado ? "Enviado ✓" : fbAnon ? "Anônimo" : "Com meu nome"}
           collapsible
           defaultOpen
         >
-          <div className="grid gap-6 lg:grid-cols-[1fr_auto]">
-            <div className="grid gap-4">
-              {/* icon header */}
-              <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-muted">
-                  <Mail className="h-6 w-6 text-muted-foreground" />
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Seu gestor recebe o feedback pelo painel. Escolha se quer se identificar ou não.
-                </p>
+          {fbEnviado ? (
+            /* ── Pós-envio ── */
+            <div className="grid gap-5">
+              <div className="rounded-2xl border border-success/30 bg-success-soft p-5">
+                <p className="font-semibold text-success">Recebemos sua mensagem.</p>
+                <p className="mt-1 text-sm text-muted-foreground">Vamos analisar com cuidado.</p>
               </div>
-              <div className="grid gap-2">
-                <Label>Você quer se identificar?</Label>
-                <div className="flex flex-wrap gap-2">
-                  {(["Anônimo", "Com meu nome"] as const).map((op) => (
-                    <button
-                      key={op}
-                      onClick={() => setFbAnon(op === "Anônimo")}
-                      className={`rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors ${
-                        (op === "Anônimo") === fbAnon
-                          ? "border-kt bg-kt-soft text-kt"
-                          : "border-border bg-card hover:bg-muted"
-                      }`}
-                    >
-                      {op}
-                    </button>
-                  ))}
-                </div>
-                {fbAnon ? (
-                  <p className="text-xs text-muted-foreground">Sua identidade não será revelada.</p>
-                ) : (
-                  <p className="text-xs text-muted-foreground">
-                    O gestor verá seu nome vinculado ao feedback.
+
+              {/* opt-in contato */}
+              {fbAceitaContato === null && (
+                <div className="rounded-2xl border border-border bg-card p-5">
+                  <p className="text-sm font-medium">
+                    Podemos entrar em contato com você caso seja necessário?
                   </p>
-                )}
-              </div>
-              <div className="grid gap-2">
-                <Label>Tipo de feedback</Label>
-                <div className="flex flex-wrap gap-2">
-                  {FEEDBACK_TIPOS.map((tipo) => (
-                    <button
-                      key={tipo}
-                      onClick={() => setFbTipo(tipo)}
-                      className={`rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors ${
-                        fbTipo === tipo
-                          ? "border-kt bg-kt-soft text-kt"
-                          : "border-border bg-card hover:bg-muted"
-                      }`}
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      className="rounded-full"
+                      onClick={() => setFbAceitaContato(true)}
                     >
-                      {tipo}
-                    </button>
-                  ))}
+                      Sim, pode entrar em contato
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="rounded-full"
+                      onClick={() => {
+                        setFbAceitaContato(false);
+                        if (fbIdEnviado) {
+                          setFeedbacks((prev) =>
+                            prev.map((x) =>
+                              x.id === fbIdEnviado ? { ...x, aceitaContato: false } : x,
+                            ),
+                          );
+                        }
+                      }}
+                    >
+                      Prefiro manter anônimo
+                    </Button>
+                  </div>
                 </div>
-                {FB_DESC[fbTipo] && (
-                  <p className="text-xs text-muted-foreground">{FB_DESC[fbTipo]}</p>
-                )}
+              )}
+
+              {fbAceitaContato === true && (
+                <div className="rounded-2xl border border-border bg-card p-5">
+                  <p className="mb-3 text-sm font-medium">
+                    Deixe um telefone ou nome pra gente conseguir te encontrar:
+                  </p>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Nome, telefone ou outro contato"
+                      value={fbContatoTexto}
+                      onChange={(e) => setFbContatoTexto(e.target.value)}
+                      className="min-w-0 flex-1 rounded-lg border border-border bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-kt/30"
+                      maxLength={100}
+                    />
+                    <Button
+                      size="sm"
+                      className="rounded-full"
+                      disabled={!fbContatoTexto.trim()}
+                      onClick={() => {
+                        if (fbIdEnviado) {
+                          setFeedbacks((prev) =>
+                            prev.map((x) =>
+                              x.id === fbIdEnviado
+                                ? { ...x, aceitaContato: true, contato: fbContatoTexto.trim() }
+                                : x,
+                            ),
+                          );
+                        }
+                        setFbAceitaContato(false);
+                        toast.success("Contato registrado. Obrigado!");
+                      }}
+                    >
+                      Salvar
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {fbAceitaContato === false && (
+                <p className="text-sm text-muted-foreground">
+                  Entendido — seu feedback foi registrado.
+                </p>
+              )}
+
+              {/* LGPD */}
+              <p className="rounded-xl bg-muted/50 px-4 py-3 text-xs text-muted-foreground">
+                Essa informação é tratada com confidencialidade, seguindo a LGPD, e a
+                responsabilidade pela análise é só da equipe Azumi RH. Se em algum momento for
+                necessário envolver outras pessoas na empresa por causa da gravidade da situação,{" "}
+                <strong className="text-foreground">
+                  você será avisado antes disso acontecer.
+                </strong>
+              </p>
+
+              <button
+                className="w-fit text-sm text-muted-foreground underline-offset-2 hover:underline"
+                onClick={() => {
+                  setFbEnviado(false);
+                  setFbIdEnviado(null);
+                  setFbAceitaContato(null);
+                  setFbContatoTexto("");
+                  setFbMsg("");
+                }}
+              >
+                Enviar outro feedback
+              </button>
+            </div>
+          ) : (
+            /* ── Formulário ── */
+            <div className="grid gap-6 lg:grid-cols-[1fr_auto]">
+              <div className="grid gap-4">
+                {/* texto explicativo — roteamento */}
+                <div className="rounded-xl bg-muted/50 px-4 py-3 text-xs text-muted-foreground">
+                  Feedbacks de elogio e dúvida vão direto pro seu gestor. Críticas ou situações
+                  urgentes marcadas como anônimas vão direto pra equipe Azumi RH analisar, sem
+                  passar pelo gestor primeiro.
+                </div>
+
+                <div className="grid gap-2">
+                  <Label>Você quer se identificar?</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {(["Anônimo", "Com meu nome"] as const).map((op) => (
+                      <button
+                        key={op}
+                        onClick={() => setFbAnon(op === "Anônimo")}
+                        className={`rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors ${
+                          (op === "Anônimo") === fbAnon
+                            ? "border-kt bg-kt-soft text-kt"
+                            : "border-border bg-card hover:bg-muted"
+                        }`}
+                      >
+                        {op}
+                      </button>
+                    ))}
+                  </div>
+                  {fbAnon ? (
+                    <p className="text-xs text-muted-foreground">
+                      Sua identidade não será revelada.
+                    </p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      O gestor verá seu nome vinculado ao feedback.
+                    </p>
+                  )}
+                </div>
+                <div className="grid gap-2">
+                  <Label>Tipo de feedback</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {FEEDBACK_TIPOS.map((tipo) => (
+                      <button
+                        key={tipo}
+                        onClick={() => setFbTipo(tipo)}
+                        className={`rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors ${
+                          fbTipo === tipo
+                            ? "border-kt bg-kt-soft text-kt"
+                            : "border-border bg-card hover:bg-muted"
+                        }`}
+                      >
+                        {tipo}
+                      </button>
+                    ))}
+                  </div>
+                  {FB_DESC[fbTipo] && (
+                    <p className="text-xs text-muted-foreground">{FB_DESC[fbTipo]}</p>
+                  )}
+                  {/* destino hint */}
+                  {calcDestino(fbTipo, fbAnon) === "azumi" && (
+                    <p className="text-xs font-medium text-az">
+                      → Esse feedback vai direto pra equipe Azumi RH (anônimo + tipo sensível).
+                    </p>
+                  )}
+                </div>
+                <Textarea
+                  rows={4}
+                  maxLength={800}
+                  placeholder="Escreva para seu gestor..."
+                  value={fbMsg}
+                  onChange={(e) => setFbMsg(e.target.value)}
+                />
+                <div>
+                  <Button
+                    className="rounded-full"
+                    disabled={!fbMsg.trim()}
+                    onClick={() => {
+                      const novoId = uid();
+                      const destino = calcDestino(fbTipo, fbAnon);
+                      setFeedbacks([
+                        {
+                          id: novoId,
+                          tipo: fbTipo,
+                          mensagem: fbMsg.trim(),
+                          anonimo: fbAnon,
+                          autor: fbAnon ? "Anônimo" : session.nome,
+                          filial: session.filial,
+                          ts: Date.now(),
+                          destino,
+                        },
+                        ...feedbacks,
+                      ]);
+                      setFbIdEnviado(novoId);
+                      setFbEnviado(true);
+                      setFbAceitaContato(null);
+                    }}
+                  >
+                    Enviar feedback
+                  </Button>
+                </div>
               </div>
-              <Textarea
-                rows={4}
-                maxLength={800}
-                placeholder="Escreva para seu gestor..."
-                value={fbMsg}
-                onChange={(e) => setFbMsg(e.target.value)}
-              />
-              <div>
-                <Button
-                  className="rounded-full"
-                  disabled={!fbMsg.trim()}
-                  onClick={() => {
-                    setFeedbacks([
-                      {
-                        id: uid(),
-                        tipo: fbTipo,
-                        mensagem: fbMsg.trim(),
-                        anonimo: fbAnon,
-                        autor: fbAnon ? "Anônimo" : session.nome,
-                        filial: session.filial,
-                        ts: Date.now(),
-                      },
-                      ...feedbacks,
-                    ]);
-                    setFbMsg("");
-                    toast.success("Feedback enviado ao seu gestor.");
-                  }}
-                >
-                  Enviar feedback ao gestor
-                </Button>
+              {/* Floating icon */}
+              <div className="hidden items-center justify-center lg:flex">
+                <Mail
+                  className="h-36 w-36 text-muted-foreground/10"
+                  style={{ animation: "kt-icon-float 3.5s ease-in-out infinite" }}
+                />
               </div>
             </div>
-            {/* Floating icon */}
-            <div className="hidden items-center justify-center lg:flex">
-              <Mail
-                className="h-36 w-36 text-muted-foreground/10"
-                style={{ animation: "kt-icon-float 3.5s ease-in-out infinite" }}
-              />
-            </div>
-          </div>
+          )}
         </Section>
       </div>
     </AppShell>

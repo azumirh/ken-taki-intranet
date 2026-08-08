@@ -114,6 +114,9 @@ export type Feedback = {
   autor: string;
   filial: string;
   ts: number;
+  destino?: "gestor" | "azumi" | undefined;
+  aceitaContato?: boolean | undefined;
+  contato?: string | undefined;
   status?: "em-andamento" | "concluido" | "cancelado" | undefined;
   statusAlteradoEm?: number | undefined;
   gestorQueMudouStatus?: string | undefined;
@@ -538,6 +541,9 @@ export const useFeedbacks = () =>
       ...(r.comentarios_gestor != null
         ? { comentariosGestor: r.comentarios_gestor as Record<string, string> }
         : {}),
+      ...(r.destino != null ? { destino: s(r.destino) as Feedback["destino"] } : {}),
+      ...(r.aceita_contato != null ? { aceitaContato: Boolean(r.aceita_contato) } : {}),
+      ...(r.contato != null ? { contato: s(r.contato) } : {}),
     }),
     toRow: (f) => ({
       id: f.id,
@@ -547,6 +553,9 @@ export const useFeedbacks = () =>
       autor: f.autor,
       filial: f.filial,
       ts: new Date(f.ts).toISOString(),
+      destino: f.destino ?? null,
+      aceita_contato: f.aceitaContato ?? null,
+      contato: f.contato ?? null,
       status: f.status ?? null,
       status_alterado_em:
         f.statusAlteradoEm != null ? new Date(f.statusAlteradoEm).toISOString() : null,
