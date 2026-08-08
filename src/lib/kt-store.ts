@@ -273,7 +273,7 @@ function useSupabaseList<T extends { id: string }>(
     let channel: ReturnType<typeof supabase.channel> | null = null;
     if (realtime) {
       channel = supabase
-        .channel(`rt:${table}`)
+        .channel(`rt:${table}:${uid()}`)
         .on("postgres_changes", { event: "*", schema: "public", table }, () => fetchData())
         .subscribe();
     }
