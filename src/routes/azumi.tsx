@@ -504,7 +504,7 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
   const [gestorOpen, setGestorOpen] = useState(false);
   const [gNome, setGNome] = useState("");
   const [gEmail, setGEmail] = useState("");
-  const [gFilial, setGFilial] = useState<"cristo-rei" | "champagnat">(FILIAIS[0].id);
+  const [gFilial, setGFilial] = useState<"cristo-rei" | "champagnat" | null>(null);
   const [gCpf3, setGCpf3] = useState("");
   const [gCargo, setGCargo] = useState("");
   const [gNascimento, setGNascimento] = useState("");
@@ -2174,7 +2174,7 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
                 setGSucesso(null);
                 setGNome("");
                 setGEmail("");
-                setGFilial(FILIAIS[0].id);
+                setGFilial(null);
                 setGCpf3("");
                 setGCargo("");
                 setGNascimento("");
@@ -2237,7 +2237,7 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
                       setGSucesso(null);
                       setGNome("");
                       setGEmail("");
-                      setGFilial(FILIAIS[0].id);
+                      setGFilial(null);
                       setGCpf3("");
                       setGCargo("");
                       setGNascimento("");
@@ -2270,7 +2270,12 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
                     />
                   </div>
                   <div className="grid gap-2">
-                    <Label>Unidade</Label>
+                    <Label>
+                      Unidade{" "}
+                      {!gFilial && (
+                        <span className="text-destructive">* obrigatório</span>
+                      )}
+                    </Label>
                     <div className="flex flex-wrap gap-2">
                       {FILIAIS.map((f) => (
                         <button
@@ -2279,13 +2284,18 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
                           className={`rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors ${
                             gFilial === f.id
                               ? "border-kt bg-kt-soft text-kt"
-                              : "border-border bg-card"
+                              : "border-border bg-card hover:bg-muted"
                           }`}
                         >
                           {f.nome}
                         </button>
                       ))}
                     </div>
+                    {!gFilial && (
+                      <p className="text-xs text-muted-foreground">
+                        Selecione a unidade antes de criar o acesso.
+                      </p>
+                    )}
                   </div>
                   <p className="text-xs font-semibold text-muted-foreground">
                     Dados do colaborador (para aniversários, tempo de casa etc.)
@@ -2333,8 +2343,9 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
                   {gErro ? <p className="text-sm font-medium text-destructive">{gErro}</p> : null}
                   <Button
                     className="rounded-full"
-                    disabled={!gNome.trim() || !gEmail.trim() || gCriando}
+                    disabled={!gNome.trim() || !gEmail.trim() || !gFilial || gCriando}
                     onClick={async () => {
+                      if (!gFilial) return;
                       setGCriando(true);
                       setGErro("");
                       try {
