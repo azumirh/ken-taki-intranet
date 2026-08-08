@@ -132,6 +132,8 @@ function Painel() {
   const [bdayMsgParaId, setBdayMsgParaId] = useState<string | null>(null);
   const [bdayMsgTexto, setBdayMsgTexto] = useState("");
   const [bdayMsgEmoji, setBdayMsgEmoji] = useState("🎉");
+  const [minhasSugIds, setMinhasSugIds] = useState<string[]>([]);
+  const [meusFbIds, setMeusFbIds] = useState<string[]>([]);
 
   useEffect(() => {
     if (sessaoPronta && session === null) navigate({ to: "/colaborador" });
@@ -862,9 +864,10 @@ function Painel() {
                       className="rounded-full"
                       disabled={!sugMsg.trim()}
                       onClick={() => {
+                        const novoSugId = uid();
                         setSugestoes([
                           {
-                            id: uid(),
+                            id: novoSugId,
                             categoria: sugCat,
                             mensagem: sugMsg.trim(),
                             filial: session.filial,
@@ -874,6 +877,7 @@ function Painel() {
                         ]);
                         setSugMsg("");
                         setSugEnviado(true);
+                        setMinhasSugIds((prev) => [...prev, novoSugId]);
                         setTimeout(() => setSugEnviado(false), 2500);
                       }}
                     >
@@ -892,6 +896,63 @@ function Painel() {
             </div>
           </div>
         </Section>
+
+        {/* Histórico de sugestões desta sessão */}
+        {minhasSugIds.length > 0 && (() => {
+          const minhasSugs = sugestoes
+            .filter((s) => minhasSugIds.includes(s.id))
+            .sort((a, b) => b.ts - a.ts);
+          const statusLabel: Record<string, string> = {
+            "enviado-rh": "Enviado ao RH",
+            desconsiderado: "Desconsiderado",
+            "considerar-depois": "Considerar depois",
+            "para-socios": "Para sócios",
+          };
+          return (
+            <Section
+              titulo="Minhas sugestões"
+              intro="Sugestões enviadas nesta sessão."
+              contagem={`${minhasSugs.length} enviadas`}
+              collapsible
+              defaultOpen
+            >
+              <div className="overflow-x-auto rounded-2xl border border-border">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border bg-muted/40">
+                      <th className="px-4 py-3 text-left font-semibold">Data</th>
+                      <th className="px-4 py-3 text-left font-semibold">Categoria</th>
+                      <th className="px-4 py-3 text-left font-semibold">Mensagem</th>
+                      <th className="px-4 py-3 text-left font-semibold">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {minhasSugs.map((s) => (
+                      <tr key={s.id} className="border-b border-border last:border-0">
+                        <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">
+                          {new Date(s.ts).toLocaleDateString("pt-BR")}
+                        </td>
+                        <td className="px-4 py-3 font-medium">{s.categoria}</td>
+                        <td className="px-4 py-3 text-muted-foreground">
+                          {s.mensagem.length > 80 ? s.mensagem.slice(0, 80) + "…" : s.mensagem}
+                        </td>
+                        <td className="px-4 py-3">
+                          {s.status ? (
+                            <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium">
+                              {statusLabel[s.status] ?? s.status}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">Aguardando</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Section>
+          );
+        })()}
 
         {/* Feedback ao gestor */}
         <Section
@@ -1104,6 +1165,7 @@ function Painel() {
                         ...feedbacks,
                       ]);
                       setFbIdEnviado(novoId);
+                      setMeusFbIds((prev) => [...prev, novoId]);
                       setFbEnviado(true);
                       setFbAceitaContato(null);
                     }}
@@ -1122,6 +1184,73 @@ function Painel() {
             </div>
           )}
         </Section>
+
+        {/* Histórico de feedbacks */}
+        {(() => {
+          const meusFbs = feedbacks
+            .filter((f) => meusFbIds.includes(f.id) || (!f.anonimo && f.autor === session.nome))
+            .sort((a, b) => b.ts - a.ts);
+          if (meusFbs.length === 0) return null;
+          const fbStatusLabel: Record<string, string> = {
+            "em-andamento": "Em andamento",
+            concluido: "Concluído",
+            cancelado: "Cancelado",
+          };
+          return (
+            <Section
+              titulo="Meus feedbacks"
+              intro="Histórico dos feedbacks que você enviou. Feedbacks anônimos aparecem apenas nesta sessão."
+              contagem={`${meusFbs.length} registros`}
+              collapsible
+              defaultOpen
+            >
+              <div className="overflow-x-auto rounded-2xl border border-border">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border bg-muted/40">
+                      <th className="px-4 py-3 text-left font-semibold">Data</th>
+                      <th className="px-4 py-3 text-left font-semibold">Tipo</th>
+                      <th className="px-4 py-3 text-left font-semibold">Identificação</th>
+                      <th className="px-4 py-3 text-left font-semibold">Mensagem</th>
+                      <th className="px-4 py-3 text-left font-semibold">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {meusFbs.map((f) => (
+                      <tr key={f.id} className="border-b border-border last:border-0">
+                        <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">
+                          {new Date(f.ts).toLocaleDateString("pt-BR")}
+                        </td>
+                        <td className="px-4 py-3 font-medium">{f.tipo}</td>
+                        <td className="px-4 py-3">
+                          <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${f.anonimo ? "bg-muted text-muted-foreground" : "bg-kt-soft text-kt"}`}>
+                            {f.anonimo ? "Anônimo" : "Assinado"}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground">
+                          {f.mensagem.length > 80 ? f.mensagem.slice(0, 80) + "…" : f.mensagem}
+                        </td>
+                        <td className="px-4 py-3">
+                          {f.status ? (
+                            <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                              f.status === "concluido" ? "bg-success-soft text-success"
+                              : f.status === "cancelado" ? "bg-destructive/10 text-destructive"
+                              : "bg-warn-soft text-warn"
+                            }`}>
+                              {fbStatusLabel[f.status] ?? f.status}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">Aguardando</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Section>
+          );
+        })()}
       </div>
     </AppShell>
   );

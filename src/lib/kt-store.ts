@@ -493,6 +493,7 @@ export const useSugestoes = () =>
     table: "kt_sugestoes",
     initial: [],
     orderBy: "ts",
+    realtime: true,
     fromRow: (r) => ({
       id: s(r.id),
       categoria: s(r.categoria),
@@ -593,6 +594,7 @@ export const useAjuda = () =>
     table: "kt_ajuda",
     initial: [],
     orderBy: "ts",
+    realtime: true,
     fromRow: (r) => ({
       id: s(r.id),
       nome: s(r.nome),
