@@ -350,7 +350,7 @@ function Painel() {
                     <div>
                       <h3 className="font-bold">{pesquisa.titulo}</h3>
                       {pesquisa.categoria && (
-                        <span className="mt-1 inline-block rounded-full bg-az px-2.5 py-0.5 text-[11px] font-bold text-white">
+                        <span className="mt-1 inline-block rounded-full bg-az px-2.5 py-1 text-[11px] font-bold text-white">
                           {pesquisa.categoria}
                         </span>
                       )}
@@ -496,10 +496,10 @@ function Painel() {
                       <p className="mt-1 text-2xl font-extrabold text-kt">{idadeAnos} anos</p>
                       <p className="mt-0.5 text-xs text-muted-foreground">{diaMes(c.nascimento)}</p>
                       <div className="mt-2 flex flex-wrap justify-center gap-1.5">
-                        <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+                        <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
                           {c.cargo}
                         </span>
-                        <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+                        <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
                           {filialNome(c.filial)}
                         </span>
                       </div>

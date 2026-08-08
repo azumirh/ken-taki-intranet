@@ -88,9 +88,9 @@ function BotaoWa({
 
 function CvvInfo() {
   return (
-    <div className="mt-3 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm">
+    <div className="mt-3 rounded-xl border border-destructive/30 bg-destructive/5 px-3 py-3 text-sm sm:px-4">
       <p className="font-semibold text-destructive">Você não está sozinho.</p>
-      <p className="mt-0.5 text-muted-foreground">
+      <p className="mt-0.5 break-words text-muted-foreground">
         Se precisar conversar agora: <strong className="text-foreground">CVV — ligue 188</strong>{" "}
         (gratuito, 24h, todos os dias) ou acesse{" "}
         <a
@@ -125,7 +125,7 @@ function BlocoNegativo({
   setAjuda: ReturnType<typeof useAjuda>[1];
 }) {
   return (
-    <div className="rounded-2xl border border-destructive/40 bg-destructive/5 px-4 py-4">
+    <div className="overflow-hidden rounded-2xl border border-destructive/40 bg-destructive/5 px-3 py-4 sm:px-4">
       <p className="font-semibold text-destructive">
         Hoje está difícil — tudo bem falar sobre isso.
       </p>
@@ -135,7 +135,7 @@ function BlocoNegativo({
         <div className="mt-3 grid gap-2">
           <Button
             variant="outline"
-            className="h-auto w-full justify-start rounded-2xl border-destructive/30 px-4 py-3 text-left hover:bg-destructive/5"
+            className="h-auto w-full justify-start rounded-2xl border-destructive/30 px-3 py-3 text-left hover:bg-destructive/5 sm:px-4"
             onClick={() => {
               setFeedbacks([
                 {
@@ -161,7 +161,7 @@ function BlocoNegativo({
           </Button>
           <Button
             variant="outline"
-            className="h-auto w-full justify-start rounded-2xl border-destructive/30 px-4 py-3 text-left hover:bg-destructive/5"
+            className="h-auto w-full justify-start rounded-2xl border-destructive/30 px-3 py-3 text-left hover:bg-destructive/5 sm:px-4"
             onClick={() => {
               setAjuda([
                 {
@@ -191,7 +191,7 @@ function BlocoNegativo({
           </Button>
           <Button
             variant="ghost"
-            className="h-auto w-full justify-start rounded-2xl px-4 py-3 text-left text-muted-foreground"
+            className="h-auto w-full justify-start rounded-2xl px-3 py-3 text-left text-muted-foreground sm:px-4"
             onClick={() => setOpcaoNeg("nao-agora")}
           >
             Prefiro não falar agora

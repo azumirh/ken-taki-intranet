@@ -510,7 +510,7 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
     if (assinou(docId, session.nome)) return;
     if (!leu(docId, session.nome)) {
       setLeituras((prev) => [
-        { documentoId: docId, nome: session.nome, filial: session.filial, ts: Date.now() },
+        { id: uid(), documentoId: docId, nome: session.nome, filial: session.filial, ts: Date.now() },
         ...prev,
       ]);
     }
@@ -529,6 +529,7 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
     setAssinaturas((prev) => [
       ...prev,
       {
+        id: uid(),
         politica: docPendenteGestor,
         nome: session.nome,
         filial: session.filial,
@@ -1408,12 +1409,12 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
                     <div className="flex flex-wrap items-center gap-2">
                       <h3 className="font-bold">{pesquisa.titulo}</h3>
                       {pesquisa.categoria && (
-                        <span className="rounded-full bg-az/15 px-2.5 py-0.5 text-xs font-medium text-az">
+                        <span className="rounded-full bg-az/15 px-2.5 py-1 text-xs font-medium text-az">
                           {pesquisa.categoria}
                         </span>
                       )}
                       {gestorJaRespondeu && (
-                        <span className="rounded-full bg-success px-2.5 py-0.5 text-xs font-bold text-white">
+                        <span className="rounded-full bg-success px-2.5 py-1 text-xs font-bold text-white">
                           ✓ Respondida
                         </span>
                       )}
@@ -1515,11 +1516,11 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
                           <td className="px-4 py-3 font-medium">{c.nome}</td>
                           <td className="px-4 py-3">
                             {respondeu ? (
-                              <span className="rounded-full bg-success-soft px-2.5 py-0.5 text-xs font-semibold text-success">
+                              <span className="rounded-full bg-success-soft px-2.5 py-1 text-xs font-semibold text-success">
                                 ✓ Respondeu
                               </span>
                             ) : (
-                              <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+                              <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
                                 Pendente
                               </span>
                             )}

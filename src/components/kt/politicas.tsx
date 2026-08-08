@@ -57,7 +57,7 @@ export function Documentos({
     window.open(doc.url, "_blank", "noreferrer");
     if (!leu(doc.id)) {
       setLeituras((prev) => [
-        { documentoId: doc.id, nome: session.nome, filial: session.filial, ts: Date.now() },
+        { id: uid(), documentoId: doc.id, nome: session.nome, filial: session.filial, ts: Date.now() },
         ...prev,
       ]);
     }
@@ -75,6 +75,7 @@ export function Documentos({
     setAssinaturas((prev) => [
       ...prev,
       {
+        id: uid(),
         politica: docPendente.id,
         nome: session.nome,
         filial: session.filial,

@@ -1039,7 +1039,7 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
                     <div className="min-w-0 flex-1">
                       <p className="font-bold">{pesquisa.titulo}</p>
                       {pesquisa.categoria && (
-                        <span className="mt-1 inline-block rounded-full bg-az/15 px-2.5 py-0.5 text-xs font-medium text-az">
+                        <span className="mt-1 inline-block rounded-full bg-az/15 px-2.5 py-1 text-xs font-medium text-az">
                           {pesquisa.categoria}
                         </span>
                       )}
@@ -1402,7 +1402,7 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
                               </td>
                               <td className="px-4 py-3">
                                 {a.assunto.includes("gestor") && (
-                                  <span className="rounded-full bg-warn-soft px-2 py-0.5 text-[11px] font-medium text-warn">
+                                  <span className="rounded-full bg-warn-soft px-2.5 py-1 text-[11px] font-medium text-warn">
                                     sim
                                   </span>
                                 )}
@@ -1497,7 +1497,7 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
                                                       prev === c ? "" : c,
                                                     )
                                                   }
-                                                  className={`rounded-full border px-2 py-0.5 text-[11px] font-medium transition-colors ${novaAnotacaoCanal === c ? "border-az bg-az-soft text-az" : "border-border"}`}
+                                                  className={`rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors ${novaAnotacaoCanal === c ? "border-az bg-az-soft text-az" : "border-border"}`}
                                                 >
                                                   {c}
                                                 </button>
@@ -1725,7 +1725,7 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
                               />
                               <div className="flex gap-1">
                                 <button
-                                  className="rounded-full bg-az-soft px-2 py-0.5 text-[11px] font-medium text-az"
+                                  className="rounded-full bg-az-soft px-2.5 py-1 text-[11px] font-medium text-az"
                                   onClick={() => {
                                     if (obsSugestaoTexto.trim()) {
                                       setSugestoes((prev) =>
@@ -1976,16 +1976,16 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
                       </div>
                       {/* Summary badges */}
                       <div className="mt-auto flex flex-wrap gap-2 pt-3 text-xs">
-                        <span className="flex items-center gap-1 rounded-full bg-success-soft px-2 py-0.5 text-success">
+                        <span className="flex items-center gap-1 rounded-full bg-success-soft px-2.5 py-1 text-success">
                           <Check className="h-3 w-3" /> {nomesAssinantes.size} assinaram
                         </span>
                         {leuSemAssinarList.length > 0 && (
-                          <span className="rounded-full bg-warn-soft px-2 py-0.5 text-warn">
+                          <span className="rounded-full bg-warn-soft px-2.5 py-1 text-warn">
                             {leuSemAssinarList.length} leram
                           </span>
                         )}
                         {nuncaAbriramList.length > 0 && (
-                          <span className="rounded-full bg-muted px-2 py-0.5 text-muted-foreground">
+                          <span className="rounded-full bg-muted px-2.5 py-1 text-muted-foreground">
                             {nuncaAbriramList.length} não abriram
                           </span>
                         )}
