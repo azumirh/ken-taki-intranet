@@ -91,7 +91,7 @@ export const criarGestorFn = createServerFn({ method: "POST" })
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          from: "Azumi RH <onboarding@resend.dev>",
+          from: "Azumi RH <no-reply@azumirh.com.br>",
           to: [data.email.trim().toLowerCase()],
           subject: "Seu acesso à intranet Ken Taki",
           html: `
