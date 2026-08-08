@@ -24,17 +24,43 @@ function AuthPage() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const url = new URL(window.location.href);
-    const code = url.searchParams.get("code");
-    if (!code) {
-      setFase("erro");
-      setCarregando(false);
+
+    // PKCE flow: ?code= in query params (email recovery via resetPasswordForEmail)
+    const code = new URL(window.location.href).searchParams.get("code");
+    if (code) {
+      supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
+        if (error) setFase("erro");
+        setCarregando(false);
+      });
       return;
     }
-    supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
-      if (error) setFase("erro");
+
+    // Implicit/OTP flow (admin-generated links, older Supabase clients):
+    // Supabase JS auto-processes the #access_token hash before this effect runs
+    // and fires PASSWORD_RECOVERY via onAuthStateChange. Check if session exists.
+    let settled = false;
+    const settle = (ok: boolean) => {
+      if (settled) return;
+      settled = true;
+      if (!ok) setFase("erro");
       setCarregando(false);
+    };
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") settle(true);
     });
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        settle(true);
+      } else {
+        setTimeout(() => settle(false), 1500);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   if (carregando) return null;
