@@ -143,6 +143,7 @@ function Painel() {
   const [bdayMsgEmoji, setBdayMsgEmoji] = useState("🎉");
   const [minhasSugIds, setMinhasSugIds] = useState<string[]>([]);
   const [meusFbIds, setMeusFbIds] = useState<string[]>([]);
+  const [msgsExpandidas, setMsgsExpandidas] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (sessaoPronta && session === null) navigate({ to: "/colaborador" });
@@ -537,146 +538,216 @@ function Painel() {
           {aniversariantes.length === 0 ? (
             <EmptyState>Ninguém faz aniversário este mês por aqui.</EmptyState>
           ) : (
-            <div className="grid gap-4 md:grid-cols-2">
-              {aniversariantes.map((c, idx) => {
-                const hoje = new Date();
+            <div className="mx-auto grid w-full max-w-2xl gap-5 sm:grid-cols-2">
+              {aniversariantes.map((c) => {
+                const REACAO_EMOJIS = ["🎈", "🎂", "❤️", "🥳", "🎉"];
+                const hojeD = new Date();
                 const aniversario = new Date(c.nascimento + "T00:00:00");
                 const ehHoje =
-                  aniversario.getDate() === hoje.getDate() &&
-                  aniversario.getMonth() === hoje.getMonth();
+                  aniversario.getDate() === hojeD.getDate() &&
+                  aniversario.getMonth() === hojeD.getMonth();
                 const idadeAnos = idade(c.nascimento) + 1;
-                const msgsDoPerfil = bdayMsgs.filter((m) => m.paraId === c.id);
-                const jaEnviouMsg = msgsDoPerfil.some((m) => m.de === session.nome);
-                const borderColors = [
-                  "border-kt/30 bg-gradient-to-br from-kt-soft via-white to-az-soft",
-                  "border-az/30 bg-gradient-to-br from-az-soft via-white to-success-soft",
-                  "border-success/30 bg-gradient-to-br from-success-soft via-white to-warn-soft",
-                ];
-                const cardClass = ehHoje
-                  ? "border-kt/40 bg-gradient-to-br from-kt-soft via-az-soft to-kt-soft"
-                  : (borderColors[idx % borderColors.length] ?? borderColors[0]!);
-                return (
-                  <div key={c.id} className={`overflow-hidden rounded-2xl border-2 ${cardClass}`}>
-                    {/* Decoração */}
-                    <div className="py-2 text-center text-xl">
-                      {ehHoje ? "🎊 🎉 🎈 🎂 🎈 🎉 🎊" : "🎈 🎉 🎂 🎉 🎈"}
-                    </div>
 
-                    {/* Foto quadrada centralizada */}
-                    <div className="flex justify-center px-4">
+                const reacoesDoPerfil = bdayMsgs.filter(
+                  (m) => m.paraId === c.id && m.mensagem === "__reacao__",
+                );
+                const msgsDoPerfil = bdayMsgs
+                  .filter((m) => m.paraId === c.id && m.mensagem !== "__reacao__")
+                  .sort((a, b) => b.ts - a.ts);
+                const jaEnviouMsg = msgsDoPerfil.some((m) => m.de === session.nome);
+                const expandido = msgsExpandidas.has(c.id);
+                const msgsVisiveis = expandido ? msgsDoPerfil : msgsDoPerfil.slice(0, 2);
+
+                return (
+                  <div
+                    key={c.id}
+                    className={`overflow-hidden rounded-3xl border-2 bg-card shadow-sm ${ehHoje ? "border-kt/50" : "border-border/60"}`}
+                  >
+                    {/* Foto — full width, proporção quadrada */}
+                    <div className="aspect-square w-full overflow-hidden bg-gradient-to-br from-kt-soft to-az-soft">
                       {c.foto ? (
                         <img
                           src={c.foto}
                           alt={c.nome}
-                          className="h-32 w-32 rounded-2xl object-cover object-center shadow-md"
+                          className="h-full w-full object-cover"
                         />
                       ) : (
-                        <div className="flex h-32 w-32 items-center justify-center rounded-2xl bg-gradient-to-br from-kt-soft to-az-soft shadow-md">
-                          <Avatar nome={c.nome} size={80} />
+                        <div className="flex h-full w-full items-center justify-center">
+                          <Avatar nome={c.nome} size={96} />
                         </div>
                       )}
                     </div>
-                    <div className="p-4 text-center">
-                      <p className="text-lg font-extrabold">
-                        {ehHoje ? "🥳 " : "🎂 "}Feliz aniversário, {c.nome.split(" ")[0]}!
+
+                    {/* Info */}
+                    <div className="px-4 pt-4">
+                      {ehHoje && (
+                        <p className="mb-1.5 text-center text-lg">🎊 🎉 🎈 🎉 🎊</p>
+                      )}
+                      <p className="text-base font-bold">
+                        {ehHoje ? "🥳" : "🎂"} Feliz aniversário,{" "}
+                        {c.nome.split(" ")[0]}!
                       </p>
-                      <p className="mt-1 text-2xl font-extrabold text-kt">{idadeAnos} anos</p>
-                      <p className="mt-0.5 text-xs text-muted-foreground">{diaMes(c.nascimento)}</p>
-                      <div className="mt-2 flex flex-wrap justify-center gap-1.5">
-                        <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
+                      <p className="mt-1.5 text-xl font-extrabold text-kt">
+                        {diaMes(c.nascimento)}
+                      </p>
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        completa {idadeAnos} anos
+                      </p>
+                      <div className="mt-2.5 flex flex-wrap gap-1.5">
+                        <span className="rounded-full bg-az-soft px-2.5 py-0.5 text-xs font-medium text-az">
                           {c.cargo}
                         </span>
-                        <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
+                        <span className="rounded-full bg-success-soft px-2.5 py-0.5 text-xs font-medium text-success">
                           {filialNome(c.filial)}
                         </span>
                       </div>
+                    </div>
 
-                      {/* Mensagens de parabéns */}
+                    {/* Reações */}
+                    <div className="mt-3 flex flex-wrap gap-1.5 border-t border-border/40 px-4 py-3">
+                      {REACAO_EMOJIS.map((e) => {
+                        const count = reacoesDoPerfil.filter((r) => r.emoji === e).length;
+                        const minhaReacao = reacoesDoPerfil.find(
+                          (r) => r.emoji === e && r.de === session.nome,
+                        );
+                        return (
+                          <button
+                            key={e}
+                            onClick={() => {
+                              if (minhaReacao) {
+                                setBdayMsgs((prev) =>
+                                  prev.filter((m) => m.id !== minhaReacao.id),
+                                );
+                              } else {
+                                setBdayMsgs((prev) => [
+                                  ...prev,
+                                  {
+                                    id: uid(),
+                                    paraId: c.id,
+                                    de: session.nome,
+                                    emoji: e,
+                                    mensagem: "__reacao__",
+                                    ts: Date.now(),
+                                  },
+                                ]);
+                              }
+                            }}
+                            className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-sm transition-all ${
+                              minhaReacao
+                                ? "bg-az-soft font-semibold text-az shadow-sm"
+                                : "bg-muted/40 text-muted-foreground hover:bg-muted"
+                            }`}
+                          >
+                            <span>{e}</span>
+                            {count > 0 && (
+                              <span className="text-xs tabular-nums">{count}</span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Mensagens */}
+                    <div className="border-t border-border/40 px-4 pb-4 pt-3">
                       {msgsDoPerfil.length > 0 && (
-                        <div className="mt-3 grid gap-1.5 text-left">
-                          {msgsDoPerfil.map((m) => (
-                            <div key={m.id} className="rounded-xl bg-muted/50 px-3 py-2 text-sm">
+                        <div className="mb-3 grid gap-1.5">
+                          {msgsVisiveis.map((m) => (
+                            <div
+                              key={m.id}
+                              className="rounded-xl bg-background px-3 py-2 text-sm ring-1 ring-border/40"
+                            >
                               <span className="mr-1">{m.emoji}</span>
-                              <span className="font-medium">{m.de}:</span>{" "}
+                              <span className="font-semibold">{m.de}:</span>{" "}
                               <span className="text-muted-foreground">{m.mensagem}</span>
                             </div>
                           ))}
+                          {msgsDoPerfil.length > 2 && (
+                            <button
+                              onClick={() =>
+                                setMsgsExpandidas((prev) => {
+                                  const n = new Set(prev);
+                                  n.has(c.id) ? n.delete(c.id) : n.add(c.id);
+                                  return n;
+                                })
+                              }
+                              className="text-left text-xs text-muted-foreground hover:text-foreground"
+                            >
+                              {expandido
+                                ? "Mostrar menos"
+                                : `Ver mais ${msgsDoPerfil.length - 2} mensagem${msgsDoPerfil.length - 2 > 1 ? "s" : ""}`}
+                            </button>
+                          )}
                         </div>
                       )}
 
-                      {/* Enviar mensagem */}
-                      {!jaEnviouMsg &&
-                        c.id !== (session as typeof session & { id?: string }).id && (
-                          <div className="mt-3 text-left">
-                            {bdayMsgParaId === c.id ? (
-                              <div className="grid gap-2">
-                                <div className="flex gap-2">
-                                  {["🎉", "🎂", "🥳", "❤️", "🌟"].map((e) => (
-                                    <button
-                                      key={e}
-                                      onClick={() => setBdayMsgEmoji(e)}
-                                      className={`rounded-full p-1 text-lg transition-transform hover:scale-125 ${bdayMsgEmoji === e ? "ring-2 ring-kt" : ""}`}
-                                    >
-                                      {e}
-                                    </button>
-                                  ))}
-                                </div>
-                                <Textarea
-                                  rows={2}
-                                  placeholder="Deixe uma mensagem de parabéns..."
-                                  value={bdayMsgTexto}
-                                  onChange={(e) => setBdayMsgTexto(e.target.value)}
-                                  maxLength={200}
-                                  className="text-sm"
-                                />
-                                <div className="flex gap-2">
-                                  <Button
-                                    size="sm"
-                                    className="rounded-full"
-                                    disabled={!bdayMsgTexto.trim()}
-                                    onClick={() => {
-                                      setBdayMsgs([
-                                        ...bdayMsgs,
-                                        {
-                                          id: uid(),
-                                          paraId: c.id,
-                                          de: session.nome,
-                                          emoji: bdayMsgEmoji,
-                                          mensagem: bdayMsgTexto.trim(),
-                                          ts: Date.now(),
-                                        },
-                                      ]);
-                                      setBdayMsgTexto("");
-                                      setBdayMsgParaId(null);
-                                    }}
-                                  >
-                                    Enviar parabéns
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="rounded-full"
-                                    onClick={() => setBdayMsgParaId(null)}
-                                  >
-                                    Cancelar
-                                  </Button>
-                                </div>
-                              </div>
-                            ) : (
-                              <button
-                                className="text-xs text-muted-foreground underline-offset-2 hover:underline"
+                      {!jaEnviouMsg ? (
+                        bdayMsgParaId === c.id ? (
+                          <div className="grid gap-2">
+                            <div className="flex gap-2">
+                              {["🎉", "🎂", "🥳", "❤️", "🌟"].map((e) => (
+                                <button
+                                  key={e}
+                                  onClick={() => setBdayMsgEmoji(e)}
+                                  className={`text-xl transition-transform hover:scale-125 ${bdayMsgEmoji === e ? "scale-125 drop-shadow" : "opacity-50"}`}
+                                >
+                                  {e}
+                                </button>
+                              ))}
+                            </div>
+                            <Textarea
+                              rows={2}
+                              placeholder="Deixe uma mensagem de parabéns…"
+                              value={bdayMsgTexto}
+                              onChange={(e) => setBdayMsgTexto(e.target.value)}
+                              maxLength={200}
+                              className="bg-background/80 text-sm"
+                            />
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                className="rounded-full"
+                                disabled={!bdayMsgTexto.trim()}
                                 onClick={() => {
-                                  setBdayMsgParaId(c.id);
+                                  setBdayMsgs([
+                                    ...bdayMsgs,
+                                    {
+                                      id: uid(),
+                                      paraId: c.id,
+                                      de: session.nome,
+                                      emoji: bdayMsgEmoji,
+                                      mensagem: bdayMsgTexto.trim(),
+                                      ts: Date.now(),
+                                    },
+                                  ]);
                                   setBdayMsgTexto("");
+                                  setBdayMsgParaId(null);
                                 }}
                               >
-                                🎉 Deixar mensagem de parabéns
-                              </button>
-                            )}
+                                Enviar parabéns
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="rounded-full"
+                                onClick={() => setBdayMsgParaId(null)}
+                              >
+                                Cancelar
+                              </Button>
+                            </div>
                           </div>
-                        )}
-                      {jaEnviouMsg && (
-                        <p className="mt-2 text-xs text-success">✓ Você já deixou uma mensagem</p>
+                        ) : (
+                          <button
+                            className="w-full rounded-xl border border-dashed border-border px-3 py-2.5 text-left text-sm text-muted-foreground transition-colors hover:border-az/40 hover:bg-az-soft/30 hover:text-az"
+                            onClick={() => {
+                              setBdayMsgParaId(c.id);
+                              setBdayMsgTexto("");
+                            }}
+                          >
+                            💬 Deixar mensagem de parabéns…
+                          </button>
+                        )
+                      ) : (
+                        <p className="text-xs text-success">✓ Você já deixou uma mensagem</p>
                       )}
                     </div>
                   </div>
