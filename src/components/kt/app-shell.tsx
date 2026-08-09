@@ -24,64 +24,105 @@ export function Brand({ size = "sm" }: { size?: "sm" | "lg" }) {
   );
 }
 
+function IconLink({
+  href,
+  label,
+  children,
+  tone = "muted",
+}: {
+  href: string;
+  label: string;
+  children: ReactNode;
+  tone?: "muted" | "success";
+}) {
+  return (
+    <a
+      href={href}
+      target={href.startsWith("http") ? "_blank" : undefined}
+      rel="noreferrer"
+      title={label}
+      aria-label={label}
+      className={`grid h-9 w-9 shrink-0 place-items-center rounded-full border transition-all hover:-translate-y-0.5 hover:shadow-[var(--shadow-soft)] ${
+        tone === "success"
+          ? "border-success/25 bg-success-soft text-success hover:bg-success/15"
+          : "border-border bg-card text-muted-foreground hover:text-foreground"
+      }`}
+    >
+      {children}
+    </a>
+  );
+}
+
 export function AppShell({
   children,
   back,
   onExit,
   onLogout,
+  aside,
 }: {
   children: ReactNode;
   back?: ReactNode;
   onExit?: boolean;
   onLogout?: () => void;
+  aside?: ReactNode;
 }) {
   const [session, setSession] = useSession();
   const handleSair = onLogout ?? (() => setSession(null));
   const podeSair = (session || onLogout) && onExit !== false;
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="flex min-h-screen flex-col">
       <header className="sticky top-0 z-40 border-b border-border bg-card/85 backdrop-blur-md">
-        <div className="mx-auto grid w-full max-w-6xl grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 sm:px-6">
+        <div className="mx-auto grid w-full max-w-[1400px] grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 sm:px-6 lg:px-8">
           <Link to="/" className="flex min-w-0 items-center">
             <Brand />
           </Link>
           <div className="flex shrink-0 items-center gap-2">
-            <a
+            <IconLink
               href={`https://wa.me/${AZUMI_CONTACT.whatsapp}`}
-              target="_blank"
-              rel="noreferrer"
-              className="hidden items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground sm:flex"
+              label={`WhatsApp Azumi RH · ${AZUMI_CONTACT.whatsappLabel}`}
+              tone="success"
             >
-              <MessageCircle className="h-3.5 w-3.5" /> WhatsApp Azumi
-            </a>
-            <a
-              href={`mailto:${AZUMI_CONTACT.email}`}
-              className="hidden items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground md:flex"
-            >
-              <Mail className="h-3.5 w-3.5" /> {AZUMI_CONTACT.email}
-            </a>
+              <MessageCircle className="h-4 w-4" />
+            </IconLink>
+            <IconLink href={`mailto:${AZUMI_CONTACT.email}`} label={AZUMI_CONTACT.email}>
+              <Mail className="h-4 w-4" />
+            </IconLink>
             {podeSair ? (
               <Button
                 variant="ghost"
                 size="sm"
-                className="text-muted-foreground"
+                className="rounded-full text-muted-foreground"
                 onClick={handleSair}
               >
-                <LogOut className="h-4 w-4" /> Sair
+                <LogOut className="h-4 w-4" />
+                <span className="hidden sm:inline">Sair</span>
               </Button>
             ) : null}
           </div>
         </div>
-        {back ? <div className="mx-auto w-full max-w-6xl px-4 pb-2 sm:px-6">{back}</div> : null}
+        {back ? (
+          <div className="mx-auto w-full max-w-[1400px] px-4 pb-2 sm:px-6 lg:px-8">{back}</div>
+        ) : null}
       </header>
 
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6 sm:py-10">{children}</main>
+      <main className="mx-auto w-full max-w-[1400px] flex-1 px-4 py-6 sm:px-6 sm:py-10 lg:px-8">
+        {aside ? (
+          <div className="grid gap-8 lg:grid-cols-[240px_minmax(0,1fr)]">
+            <aside className="hidden lg:block">
+              <div className="sticky top-24">{aside}</div>
+            </aside>
+            <div className="min-w-0">{children}</div>
+          </div>
+        ) : (
+          children
+        )}
+      </main>
 
-      <footer className="border-t border-border bg-card/60">
-        <div className="mx-auto flex w-full max-w-6xl flex-col gap-1 px-4 py-6 text-xs text-muted-foreground sm:px-6">
+      <footer className="mt-10 border-t border-border bg-card/60">
+        <div className="mx-auto grid w-full max-w-[1400px] gap-4 px-4 py-8 text-xs text-muted-foreground sm:px-6 md:grid-cols-[auto_minmax(0,1fr)] md:items-center lg:px-8">
           <Brand />
-          <p className="mt-2">
+          <p className="md:text-right">
             Intranet interna do Ken Taki, operada com a Azumi RH · {AZUMI_CONTACT.whatsappLabel} ·{" "}
             {AZUMI_CONTACT.email}
           </p>
