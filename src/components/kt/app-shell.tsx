@@ -58,13 +58,11 @@ export function AppShell({
   back,
   onExit,
   onLogout,
-  aside,
 }: {
   children: ReactNode;
   back?: ReactNode;
   onExit?: boolean;
   onLogout?: () => void;
-  aside?: ReactNode;
 }) {
   const [session, setSession] = useSession();
   const handleSair = onLogout ?? (() => setSession(null));
@@ -107,16 +105,7 @@ export function AppShell({
       </header>
 
       <main className="mx-auto w-full max-w-[1400px] flex-1 px-4 py-6 sm:px-6 sm:py-10 lg:px-8">
-        {aside ? (
-          <div className="grid gap-8 lg:grid-cols-[240px_minmax(0,1fr)]">
-            <aside className="hidden lg:block">
-              <div className="sticky top-24">{aside}</div>
-            </aside>
-            <div className="min-w-0">{children}</div>
-          </div>
-        ) : (
-          children
-        )}
+        {children}
       </main>
 
       <footer className="mt-10 border-t border-border bg-card/60">

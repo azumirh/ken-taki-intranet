@@ -14,17 +14,6 @@ import {
 import capaPadrao from "@/assets/capa-padrao-politicas.jpg";
 import { AppShell, BackLink } from "@/components/kt/app-shell";
 import { Avatar, EmptyState, Section } from "@/components/kt/section";
-import { SideNav, type NavItem } from "@/components/kt/side-nav";
-
-const NAV_GESTOR: NavItem[] = [
-  { id: "clima", label: "Clima da equipe", emoji: "📊" },
-  { id: "politicas", label: "Políticas", emoji: "📄" },
-  { id: "feedbacks", label: "Feedbacks", emoji: "💬" },
-  { id: "sugestoes", label: "Caixinha de sugestão", emoji: "💡" },
-  { id: "enviar-sugestao", label: "Enviar sugestão", emoji: "✍️" },
-  { id: "pesquisa-clima", label: "Pesquisa de clima", emoji: "🗳️" },
-  { id: "equipe", label: "Equipe da unidade", emoji: "👥" },
-];
 import { Mural } from "@/components/kt/mural";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -566,7 +555,7 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
   };
 
   return (
-    <AppShell onLogout={onLogout} aside={<SideNav titulo="Nesta página" itens={NAV_GESTOR} />}>
+    <AppShell onLogout={onLogout}>
       <div className="grid gap-5">
         <div className="text-center sm:text-left">
           <h1 className="text-3xl font-extrabold leading-tight sm:text-3xl">

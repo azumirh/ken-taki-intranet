@@ -16,18 +16,6 @@ import {
 } from "lucide-react";
 import { AppShell, BackLink } from "@/components/kt/app-shell";
 import { EmptyState, Section } from "@/components/kt/section";
-import { SideNav, type NavItem } from "@/components/kt/side-nav";
-
-const NAV_AZUMI: NavItem[] = [
-  { id: "clima", label: "Clima por unidade", emoji: "📊" },
-  { id: "publicar", label: "Publicar notícia", emoji: "🎬" },
-  { id: "pesquisa-clima", label: "Pesquisa de clima", emoji: "🗳️" },
-  { id: "apoio", label: "Pedidos de apoio", emoji: "🆘" },
-  { id: "sugestoes", label: "Caixinha de sugestão", emoji: "💡" },
-  { id: "feedbacks", label: "Feedbacks", emoji: "💬" },
-  { id: "colaboradores", label: "Colaboradores", emoji: "👥" },
-  { id: "politicas", label: "Documentos", emoji: "📄" },
-];
 import { Mural } from "@/components/kt/mural";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -699,7 +687,7 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
     .sort((a, b) => b.ts - a.ts);
 
   return (
-    <AppShell onLogout={onLogout} aside={<SideNav titulo="Nesta página" itens={NAV_AZUMI} />}>
+    <AppShell onLogout={onLogout}>
       <div className="grid gap-5">
         <div>
           <h1 className="text-2xl font-extrabold sm:text-3xl">

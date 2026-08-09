@@ -4,19 +4,6 @@ import { toast } from "sonner";
 import { Camera, Inbox, Mail, MessageCircle } from "lucide-react";
 import { AppShell } from "@/components/kt/app-shell";
 import { Avatar, EmptyState, Section } from "@/components/kt/section";
-import { SideNav, type NavItem } from "@/components/kt/side-nav";
-
-const NAV_PAINEL: NavItem[] = [
-  { id: "checkin", label: "Check-in do dia", emoji: "🙂" },
-  { id: "politicas", label: "Políticas", emoji: "📄" },
-  { id: "mural", label: "Mural da equipe", emoji: "📌" },
-  { id: "clima", label: "Pesquisa de clima", emoji: "📊" },
-  { id: "aniversariantes", label: "Aniversariantes", emoji: "🎂" },
-  { id: "noticias", label: "Notícias e vídeos", emoji: "🎬" },
-  { id: "sugestoes", label: "Caixinha de sugestão", emoji: "💡" },
-  { id: "feedback", label: "Feedback ao gestor", emoji: "💬" },
-  { id: "historico-checkins", label: "Meu histórico", emoji: "🕘" },
-];
 import { CheckIn } from "@/components/kt/checkin";
 import { Documentos } from "@/components/kt/politicas";
 import { Mural } from "@/components/kt/mural";
@@ -187,7 +174,7 @@ function Painel() {
   );
 
   return (
-    <AppShell aside={<SideNav titulo="Nesta página" itens={NAV_PAINEL} />}>
+    <AppShell>
       <div className="grid gap-5">
         {/* Header — nome + unidade em destaque */}
         {(() => {
