@@ -156,6 +156,7 @@ export type AnotacaoApoio = {
   gestorNome?: string | undefined;
   envolveGestor?: boolean | undefined;
   nomeGestor?: string | undefined;
+  statusAnotacao?: "pendente" | "concluida" | "cancelada" | undefined;
   criadoEm: number;
 };
 export type BdayMsg = {
@@ -642,6 +643,7 @@ export const useAnotacoesApoio = () =>
       ...(r.gestor_nome != null ? { gestorNome: s(r.gestor_nome) } : {}),
       ...(r.envolve_gestor != null ? { envolveGestor: Boolean(r.envolve_gestor) } : {}),
       ...(r.nome_gestor != null ? { nomeGestor: s(r.nome_gestor) } : {}),
+      ...(r.status_anotacao != null ? { statusAnotacao: s(r.status_anotacao) as AnotacaoApoio["statusAnotacao"] } : {}),
       criadoEm: tsMs(r.criado_em),
     }),
     toRow: (a) => ({
@@ -654,6 +656,7 @@ export const useAnotacoesApoio = () =>
       gestor_nome: a.gestorNome ?? null,
       envolve_gestor: a.envolveGestor ?? null,
       nome_gestor: a.nomeGestor ?? null,
+      status_anotacao: a.statusAnotacao ?? null,
       criado_em: new Date(a.criadoEm).toISOString(),
     }),
   });

@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { LogOut, Mail, MessageCircle } from "lucide-react";
+import { ChevronLeft, LogOut, Mail, MessageCircle } from "lucide-react";
 import type { ReactNode } from "react";
 import { AZUMI_CONTACT } from "@/lib/kt-data";
 import { useSession } from "@/lib/kt-store";
@@ -125,9 +125,10 @@ export function BackLink({ onClick, children }: { onClick: () => void; children:
   return (
     <button
       onClick={onClick}
-      className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+      className="inline-flex items-center gap-0.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground shadow-sm transition-all hover:bg-muted hover:text-foreground hover:shadow-none"
     >
-      ← {children}
+      <ChevronLeft className="h-3.5 w-3.5" />
+      {children}
     </button>
   );
 }

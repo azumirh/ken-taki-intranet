@@ -39,6 +39,7 @@ import {
   type FilialId,
 } from "@/lib/kt-data";
 import {
+  type AnotacaoApoio,
   fmtData,
   uid,
   useAjuda,
@@ -491,6 +492,7 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
   const [novaAnotacaoConsultor, setNovaAnotacaoConsultor] = useState("");
   const [novaAnotacaoEnvolveGestor, setNovaAnotacaoEnvolveGestor] = useState(false);
   const [novaAnotacaoNomeGestor, setNovaAnotacaoNomeGestor] = useState("");
+  const [novaAnotacaoStatus, setNovaAnotacaoStatus] = useState<"pendente" | "concluida" | "cancelada">("pendente");
   const [obsSugestaoId, setObsSugestaoId] = useState<string | null>(null);
   const [obsSugestaoTexto, setObsSugestaoTexto] = useState("");
 
@@ -1367,11 +1369,10 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
                     <thead>
                       <tr className="border-b border-border bg-muted/40">
                         <th className="px-4 py-3 text-left font-semibold">Nome</th>
-                        <th className="px-4 py-3 text-left font-semibold">Canal</th>
+                        <th className="px-4 py-3 text-left font-semibold">Tipo</th>
                         <th className="px-4 py-3 text-left font-semibold">Status</th>
                         <th className="px-4 py-3 text-left font-semibold">Anotações</th>
                         <th className="px-4 py-3 text-left font-semibold">Data/Hora</th>
-                        <th className="px-4 py-3 text-left font-semibold">Gestor</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1448,40 +1449,24 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
                                   minute: "2-digit",
                                 })}
                               </td>
-                              <td className="px-4 py-3">
-                                {a.assunto.includes("gestor") && (
-                                  <span className="rounded-full bg-warn-soft px-2.5 py-1 text-[11px] font-medium text-warn">
-                                    sim
-                                  </span>
-                                )}
-                              </td>
                             </tr>
                             {isExpanded && (
                               <tr
                                 key={`${a.id}-expand`}
                                 className="border-b border-border bg-muted/20"
                               >
-                                <td colSpan={6} className="px-4 py-3">
+                                <td colSpan={5} className="px-4 py-3">
                                   {anotacoesRow.length > 0 && (
                                     <div className="mb-3 overflow-x-auto rounded-xl border border-border">
                                       <table className="w-full text-xs">
                                         <thead>
                                           <tr className="border-b border-border bg-muted/30">
-                                            <th className="px-3 py-2 text-left font-medium">
-                                              Anotação
-                                            </th>
-                                            <th className="px-3 py-2 text-left font-medium">
-                                              Canal
-                                            </th>
-                                            <th className="px-3 py-2 text-left font-medium">
-                                              Data/Hora
-                                            </th>
-                                            <th className="px-3 py-2 text-left font-medium">
-                                              Consultor
-                                            </th>
-                                            <th className="px-3 py-2 text-left font-medium">
-                                              Gestor
-                                            </th>
+                                            <th className="px-3 py-2 text-left font-medium">Anotação</th>
+                                            <th className="px-3 py-2 text-left font-medium">Canal</th>
+                                            <th className="px-3 py-2 text-left font-medium">Data/Hora</th>
+                                            <th className="px-3 py-2 text-left font-medium">Consultor</th>
+                                            <th className="px-3 py-2 text-left font-medium">Gestor</th>
+                                            <th className="px-3 py-2 text-left font-medium">Status</th>
                                           </tr>
                                         </thead>
                                         <tbody>
@@ -1513,6 +1498,31 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
                                                 ) : (
                                                   "—"
                                                 )}
+                                              </td>
+                                              <td className="px-3 py-2">
+                                                <select
+                                                  className={`rounded-full border px-2 py-0.5 text-[11px] font-bold focus:outline-none ${
+                                                    n.statusAnotacao === "concluida"
+                                                      ? "border-success/30 bg-success-soft text-success"
+                                                      : n.statusAnotacao === "cancelada"
+                                                        ? "border-destructive/30 bg-destructive/10 text-destructive"
+                                                        : "border-warn/30 bg-warn-soft text-warn"
+                                                  }`}
+                                                  value={n.statusAnotacao ?? "pendente"}
+                                                  onChange={(e) =>
+                                                    setAnotacoes((prev) =>
+                                                      prev.map((x) =>
+                                                        x.id === n.id
+                                                          ? { ...x, statusAnotacao: e.target.value as AnotacaoApoio["statusAnotacao"] }
+                                                          : x,
+                                                      ),
+                                                    )
+                                                  }
+                                                >
+                                                  <option value="pendente">Pendente</option>
+                                                  <option value="concluida">Concluída</option>
+                                                  <option value="cancelada">Cancelada</option>
+                                                </select>
                                               </td>
                                             </tr>
                                           ))}
@@ -1594,6 +1604,30 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
                                           />
                                         )}
                                       </div>
+                                      <div>
+                                        <p className="mb-1 text-[11px] font-medium text-muted-foreground">
+                                          Status da anotação
+                                        </p>
+                                        <div className="flex flex-wrap gap-1">
+                                          {(["pendente", "concluida", "cancelada"] as const).map((s) => (
+                                            <button
+                                              key={s}
+                                              onClick={() => setNovaAnotacaoStatus(s)}
+                                              className={`rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                                                novaAnotacaoStatus === s
+                                                  ? s === "concluida"
+                                                    ? "border-success/40 bg-success-soft text-success"
+                                                    : s === "cancelada"
+                                                      ? "border-destructive/40 bg-destructive/10 text-destructive"
+                                                      : "border-warn/40 bg-warn-soft text-warn"
+                                                  : "border-border text-muted-foreground"
+                                              }`}
+                                            >
+                                              {s === "pendente" ? "Pendente" : s === "concluida" ? "Concluída" : "Cancelada"}
+                                            </button>
+                                          ))}
+                                        </div>
+                                      </div>
                                       <div className="flex gap-2">
                                         <Button
                                           size="sm"
@@ -1625,6 +1659,7 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
                                                         : {}),
                                                     }
                                                   : {}),
+                                                statusAnotacao: novaAnotacaoStatus,
                                                 criadoEm: Date.now(),
                                               },
                                             ]);
@@ -1633,6 +1668,7 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
                                             setNovaAnotacaoConsultor("");
                                             setNovaAnotacaoEnvolveGestor(false);
                                             setNovaAnotacaoNomeGestor("");
+                                            setNovaAnotacaoStatus("pendente");
                                             setAnotandoId(null);
                                           }}
                                         >
@@ -1649,6 +1685,7 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
                                             setNovaAnotacaoConsultor("");
                                             setNovaAnotacaoEnvolveGestor(false);
                                             setNovaAnotacaoNomeGestor("");
+                                            setNovaAnotacaoStatus("pendente");
                                           }}
                                         >
                                           Cancelar

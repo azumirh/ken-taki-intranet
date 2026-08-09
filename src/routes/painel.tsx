@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Camera, Inbox, Mail, MessageCircle } from "lucide-react";
+import { Camera, MessageCircle } from "lucide-react";
 import { AppShell } from "@/components/kt/app-shell";
 import { Avatar, EmptyState, Section } from "@/components/kt/section";
 import { CheckIn } from "@/components/kt/checkin";
@@ -144,6 +144,7 @@ function Painel() {
   const [minhasSugIds, setMinhasSugIds] = useState<string[]>([]);
   const [meusFbIds, setMeusFbIds] = useState<string[]>([]);
   const [msgsExpandidas, setMsgsExpandidas] = useState<Set<string>>(new Set());
+  const [bdayIdx, setBdayIdx] = useState(0);
 
   useEffect(() => {
     if (sessaoPronta && session === null) navigate({ to: "/colaborador" });
@@ -213,10 +214,10 @@ function Painel() {
                   <img
                     src={meuPerfil.foto}
                     alt={session.nome}
-                    className="h-16 w-16 rounded-full object-cover ring-2 ring-az/30"
+                    className="h-20 w-20 rounded-full object-cover ring-2 ring-az/30"
                   />
                 ) : (
-                  <Avatar nome={session.nome} size={64} />
+                  <Avatar nome={session.nome} size={80} />
                 )}
                 <button
                   title="Trocar foto"
@@ -257,7 +258,7 @@ function Painel() {
         })()}
 
         {/* Precisa de apoio — movida para o topo */}
-        <div className="overflow-hidden rounded-2xl border border-az/20 bg-gradient-to-br from-az-soft to-az/10">
+        <div className="mx-auto w-full max-w-2xl overflow-hidden rounded-2xl border border-az/20 bg-gradient-to-br from-az-soft to-az/10">
           <div className="flex flex-col items-center gap-2 border-b border-az/20 px-5 py-4 text-center sm:flex-row sm:items-center sm:gap-3 sm:px-7 sm:text-left">
             <MessageCircle className="h-5 w-5 shrink-0 text-az" />
             <div className="min-w-0">
@@ -374,7 +375,7 @@ function Painel() {
           </div>
         )}
 
-        <div id="checkin" className="scroll-mt-24">
+        <div id="checkin" className="mx-auto w-full max-w-2xl scroll-mt-24">
           <CheckIn session={session} />
         </div>
 
@@ -546,8 +547,30 @@ function Painel() {
           {aniversariantes.length === 0 ? (
             <EmptyState>Ninguém faz aniversário este mês por aqui.</EmptyState>
           ) : (
-            <div className="mx-auto grid w-full max-w-2xl gap-5 sm:grid-cols-2">
-              {aniversariantes.map((c) => {
+            <div className="mx-auto w-full max-w-xs">
+              {aniversariantes.length > 1 && (
+                <div className="mb-4 flex items-center justify-between">
+                  <button
+                    onClick={() => setBdayIdx((i) => Math.max(0, i - 1))}
+                    disabled={bdayIdx === 0}
+                    className="rounded-full border border-border px-3 py-1.5 text-xs text-muted-foreground transition-colors disabled:opacity-30 hover:bg-muted"
+                  >
+                    ← Anterior
+                  </button>
+                  <span className="text-xs text-muted-foreground">
+                    {Math.min(bdayIdx, aniversariantes.length - 1) + 1} de {aniversariantes.length}
+                  </span>
+                  <button
+                    onClick={() => setBdayIdx((i) => Math.min(aniversariantes.length - 1, i + 1))}
+                    disabled={bdayIdx >= aniversariantes.length - 1}
+                    className="rounded-full border border-border px-3 py-1.5 text-xs text-muted-foreground transition-colors disabled:opacity-30 hover:bg-muted"
+                  >
+                    Próximo →
+                  </button>
+                </div>
+              )}
+              {(() => {
+                const c = aniversariantes[Math.min(bdayIdx, aniversariantes.length - 1)]!;
                 const REACAO_EMOJIS = ["🎈", "🎂", "❤️", "🥳", "🎉"];
                 const hojeD = new Date();
                 const aniversario = new Date(c.nascimento + "T00:00:00");
@@ -555,7 +578,6 @@ function Painel() {
                   aniversario.getDate() === hojeD.getDate() &&
                   aniversario.getMonth() === hojeD.getMonth();
                 const idadeAnos = idade(c.nascimento) + 1;
-
                 const reacoesDoPerfil = bdayMsgs.filter(
                   (m) => m.paraId === c.id && m.mensagem === "__reacao__",
                 );
@@ -565,42 +587,26 @@ function Painel() {
                 const jaEnviouMsg = msgsDoPerfil.some((m) => m.de === session.nome);
                 const expandido = msgsExpandidas.has(c.id);
                 const msgsVisiveis = expandido ? msgsDoPerfil : msgsDoPerfil.slice(0, 2);
-
                 return (
                   <div
-                    key={c.id}
                     className={`overflow-hidden rounded-3xl border-2 bg-card shadow-sm ${ehHoje ? "border-kt/50" : "border-border/60"}`}
                   >
-                    {/* Foto — full width, proporção quadrada */}
                     <div className="aspect-square w-full overflow-hidden bg-gradient-to-br from-kt-soft to-az-soft">
                       {c.foto ? (
-                        <img
-                          src={c.foto}
-                          alt={c.nome}
-                          className="h-full w-full object-cover"
-                        />
+                        <img src={c.foto} alt={c.nome} className="h-full w-full object-cover" />
                       ) : (
                         <div className="flex h-full w-full items-center justify-center">
                           <Avatar nome={c.nome} size={96} />
                         </div>
                       )}
                     </div>
-
-                    {/* Info */}
                     <div className="px-4 pt-4">
-                      {ehHoje && (
-                        <p className="mb-1.5 text-center text-lg">🎊 🎉 🎈 🎉 🎊</p>
-                      )}
+                      {ehHoje && <p className="mb-1.5 text-center text-lg">🎊 🎉 🎈 🎉 🎊</p>}
                       <p className="text-base font-bold">
-                        {ehHoje ? "🥳" : "🎂"} Feliz aniversário,{" "}
-                        {c.nome.split(" ")[0]}!
+                        {ehHoje ? "🥳" : "🎂"} Feliz aniversário, {c.nome.split(" ")[0]}!
                       </p>
-                      <p className="mt-1.5 text-xl font-extrabold text-kt">
-                        {diaMes(c.nascimento)}
-                      </p>
-                      <p className="mt-0.5 text-xs text-muted-foreground">
-                        completa {idadeAnos} anos
-                      </p>
+                      <p className="mt-1.5 text-xl font-extrabold text-kt">{diaMes(c.nascimento)}</p>
+                      <p className="mt-0.5 text-xs text-muted-foreground">completa {idadeAnos} anos</p>
                       <div className="mt-2.5 flex flex-wrap gap-1.5">
                         <span className="rounded-full bg-az-soft px-2.5 py-0.5 text-xs font-medium text-az">
                           {c.cargo}
@@ -610,8 +616,6 @@ function Painel() {
                         </span>
                       </div>
                     </div>
-
-                    {/* Reações */}
                     <div className="mt-3 flex flex-wrap gap-1.5 border-t border-border/40 px-4 py-3">
                       {REACAO_EMOJIS.map((e) => {
                         const count = reacoesDoPerfil.filter((r) => r.emoji === e).length;
@@ -623,20 +627,11 @@ function Painel() {
                             key={e}
                             onClick={() => {
                               if (minhaReacao) {
-                                setBdayMsgs((prev) =>
-                                  prev.filter((m) => m.id !== minhaReacao.id),
-                                );
+                                setBdayMsgs((prev) => prev.filter((m) => m.id !== minhaReacao.id));
                               } else {
                                 setBdayMsgs((prev) => [
                                   ...prev,
-                                  {
-                                    id: uid(),
-                                    paraId: c.id,
-                                    de: session.nome,
-                                    emoji: e,
-                                    mensagem: "__reacao__",
-                                    ts: Date.now(),
-                                  },
+                                  { id: uid(), paraId: c.id, de: session.nome, emoji: e, mensagem: "__reacao__", ts: Date.now() },
                                 ]);
                               }
                             }}
@@ -647,15 +642,11 @@ function Painel() {
                             }`}
                           >
                             <span>{e}</span>
-                            {count > 0 && (
-                              <span className="text-xs tabular-nums">{count}</span>
-                            )}
+                            {count > 0 && <span className="text-xs tabular-nums">{count}</span>}
                           </button>
                         );
                       })}
                     </div>
-
-                    {/* Mensagens */}
                     <div className="border-t border-border/40 px-4 pb-4 pt-3">
                       {msgsDoPerfil.length > 0 && (
                         <div className="mb-3 grid gap-1.5">
@@ -687,7 +678,6 @@ function Painel() {
                           )}
                         </div>
                       )}
-
                       {!jaEnviouMsg ? (
                         bdayMsgParaId === c.id ? (
                           <div className="grid gap-2">
@@ -718,14 +708,7 @@ function Painel() {
                                 onClick={() => {
                                   setBdayMsgs([
                                     ...bdayMsgs,
-                                    {
-                                      id: uid(),
-                                      paraId: c.id,
-                                      de: session.nome,
-                                      emoji: bdayMsgEmoji,
-                                      mensagem: bdayMsgTexto.trim(),
-                                      ts: Date.now(),
-                                    },
+                                    { id: uid(), paraId: c.id, de: session.nome, emoji: bdayMsgEmoji, mensagem: bdayMsgTexto.trim(), ts: Date.now() },
                                   ]);
                                   setBdayMsgTexto("");
                                   setBdayMsgParaId(null);
@@ -746,10 +729,7 @@ function Painel() {
                         ) : (
                           <button
                             className="w-full rounded-xl border border-dashed border-border px-3 py-2.5 text-left text-sm text-muted-foreground transition-colors hover:border-az/40 hover:bg-az-soft/30 hover:text-az"
-                            onClick={() => {
-                              setBdayMsgParaId(c.id);
-                              setBdayMsgTexto("");
-                            }}
+                            onClick={() => { setBdayMsgParaId(c.id); setBdayMsgTexto(""); }}
                           >
                             💬 Deixar mensagem de parabéns…
                           </button>
@@ -760,7 +740,7 @@ function Painel() {
                     </div>
                   </div>
                 );
-              })}
+              })()}
             </div>
           )}
         </Section>
@@ -973,8 +953,7 @@ function Painel() {
           collapsible
           defaultOpen
         >
-          <div className="grid gap-6 lg:grid-cols-[1fr_auto]">
-            <div className="grid gap-4">
+          <div className="grid gap-4">
               <p className="text-sm text-muted-foreground">
                 Sua sugestão é completamente anônima — nenhum dado pessoal é vinculado ao envio.
                 Usamos a unidade só para entender o contexto.
@@ -1045,14 +1024,6 @@ function Painel() {
                   </div>
                 </>
               )}
-            </div>
-            {/* Floating icon — visible on large screens */}
-            <div className="hidden items-center justify-center lg:flex">
-              <Inbox
-                className="h-36 w-36 text-kt/15"
-                style={{ animation: "kt-icon-float 3s ease-in-out infinite" }}
-              />
-            </div>
           </div>
         </Section>
 
@@ -1236,8 +1207,7 @@ function Painel() {
             </div>
           ) : (
             /* ── Formulário ── */
-            <div className="grid gap-6 lg:grid-cols-[1fr_auto]">
-              <div className="grid gap-4">
+            <div className="grid gap-4">
                 {/* texto explicativo — roteamento */}
                 <div className="rounded-xl bg-muted/50 px-4 py-3 text-xs text-muted-foreground">
                   Feedbacks de elogio e dúvida vão direto pro seu gestor. Críticas ou situações
@@ -1336,14 +1306,6 @@ function Painel() {
                     Enviar feedback
                   </Button>
                 </div>
-              </div>
-              {/* Floating icon */}
-              <div className="hidden items-center justify-center lg:flex">
-                <Mail
-                  className="h-36 w-36 text-muted-foreground/10"
-                  style={{ animation: "kt-icon-float 3.5s ease-in-out infinite" }}
-                />
-              </div>
             </div>
           )}
         </Section>

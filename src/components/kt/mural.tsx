@@ -213,7 +213,7 @@ export function Mural({
           {itens.map((m, idx) => (
             <article
               key={m.id}
-              className={`relative flex flex-col rounded-2xl border p-5 transition-transform hover:scale-[1.01] ${POST_IT_BG[m.tipo]} ${ROTACOES[idx % 3]}`}
+              className={`relative flex min-h-[220px] flex-col rounded-2xl border p-6 transition-transform hover:scale-[1.01] ${POST_IT_BG[m.tipo]} ${ROTACOES[idx % 3]}`}
             >
               {/* decorative pin */}
               <div className="absolute left-1/2 top-0 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-foreground/40 shadow-sm" />
