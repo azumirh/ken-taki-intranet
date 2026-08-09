@@ -421,15 +421,19 @@ function Painel() {
           );
         })()}
 
-        <Documentos session={session} collapsible defaultOpen={docsFilial.length > 0} />
+        {/* Documentos + Mural — lado a lado no desktop */}
+        <div className="grid gap-5 lg:grid-cols-2">
+          <Documentos session={session} collapsible defaultOpen={docsFilial.length > 0} />
+          <Mural
+            filial={session.filial}
+            autorPadrao={session.nome}
+            collapsible
+            defaultOpen={itensFilial.length > 0}
+          />
+        </div>
 
-        <Mural
-          filial={session.filial}
-          autorPadrao={session.nome}
-          collapsible
-          defaultOpen={itensFilial.length > 0}
-        />
-
+        {/* Pesquisa de clima + Aniversariantes — lado a lado no desktop */}
+        <div className="grid gap-5 lg:grid-cols-2">
         <Section
           id="clima"
           titulo="Pesquisa de clima"
@@ -773,7 +777,10 @@ function Painel() {
             </div>
           )}
         </Section>
+        </div>
 
+        {/* Notícias + Histórico de check-ins — lado a lado no desktop */}
+        <div className="grid gap-5 lg:grid-cols-2">
         <Section
           id="noticias"
           titulo="Notícias e vídeos"
@@ -965,7 +972,11 @@ function Painel() {
             </Section>
           );
         })()}
+        </div>
 
+        {/* Caixinha de sugestão + Feedback — lado a lado no desktop */}
+        <div className="grid gap-5 lg:grid-cols-2">
+          <div className="grid content-start gap-5">
         {/* Caixinha de sugestão */}
         <Section
           id="sugestoes"
@@ -1115,7 +1126,8 @@ function Painel() {
             </Section>
           );
         })()}
-
+          </div>
+          <div className="grid content-start gap-5">
         {/* Feedback ao gestor */}
         <Section
           id="feedback"
@@ -1348,6 +1360,8 @@ function Painel() {
             </div>
           )}
         </Section>
+          </div>
+        </div>
 
         {/* Respostas da Azumi RH — anotações em pedidos de apoio visíveis ao colaborador (K) */}
         {(() => {
