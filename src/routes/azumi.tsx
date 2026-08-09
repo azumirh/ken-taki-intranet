@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import {
+  Bell,
   Check,
   Copy,
   Download,
@@ -46,6 +47,7 @@ import {
   useCheckins,
   useColaboradores,
   useDocumentos,
+  useFeedbacks,
   useLeituras,
   useNoticias,
   usePesquisa,
@@ -426,6 +428,7 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
   const [assinaturas] = useAssinaturas();
   const [leituras] = useLeituras();
   const [sugestoes, setSugestoes] = useSugestoes();
+  const [feedbacks] = useFeedbacks();
   const [ajuda, setAjuda] = useAjuda();
   const [anotacoes, setAnotacoes] = useAnotacoesApoio();
   const [pesquisa, setPesquisa] = usePesquisa();
@@ -490,6 +493,13 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
   const [novaAnotacaoNomeGestor, setNovaAnotacaoNomeGestor] = useState("");
   const [obsSugestaoId, setObsSugestaoId] = useState<string | null>(null);
   const [obsSugestaoTexto, setObsSugestaoTexto] = useState("");
+
+  // feedbacks filter state (B)
+  const [fbFiltroFilial, setFbFiltroFilial] = useState("Todas");
+  const [fbFiltroDestino, setFbFiltroDestino] = useState("Todos");
+
+  // colaborador list filter (D)
+  const [colabFiltroFilial, setColabFiltroFilial] = useState("Todas");
 
   // CSV import state (now in Dialog)
   const [csvOpen, setCsvOpen] = useState(false);
@@ -703,6 +713,40 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
             </div>
           ))}
         </div>
+
+        {/* Badge de notificações pendentes (N) */}
+        {(() => {
+          const fbSemStatus = feedbacks.filter(
+            (f) => f.destino === "azumi" && !f.status,
+          ).length;
+          const sugAzumiSemStatus = sugestoes.filter(
+            (s) => s.categoria === "Equipe Azumi RH" && !s.status,
+          ).length;
+          const total = fbSemStatus + sugAzumiSemStatus;
+          if (total === 0) return null;
+          const itens: string[] = [];
+          if (fbSemStatus > 0)
+            itens.push(
+              `${fbSemStatus} feedback${fbSemStatus > 1 ? "s" : ""} sem resposta`,
+            );
+          if (sugAzumiSemStatus > 0)
+            itens.push(
+              `${sugAzumiSemStatus} sugestão${sugAzumiSemStatus > 1 ? "ões" : ""} Azumi RH sem status`,
+            );
+          return (
+            <div className="flex items-start gap-3 rounded-2xl border border-warn/40 bg-warn-soft px-4 py-3.5 text-sm">
+              <Bell className="mt-0.5 h-4 w-4 shrink-0 text-warn" />
+              <div>
+                <p className="font-semibold text-warn">
+                  {total} item{total > 1 ? "s" : ""} aguardando atenção
+                </p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {itens.join(" · ")}
+                </p>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Gráfico de clima */}
         <Section
@@ -1675,24 +1719,23 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
                         <td className="min-w-[220px] px-4 py-2">
                           <select
                             className={`w-full rounded-lg border px-2 py-1 text-xs focus:outline-none ${
-                              s.status === "enviado-rh"
-                                ? "border-success/30 bg-success-soft text-success"
-                                : s.status === "para-socios"
-                                  ? "border-az/30 bg-az-soft text-az"
-                                  : s.status === "considerar-depois"
-                                    ? "border-warn/30 bg-warn-soft text-warn"
-                                    : s.status === "desconsiderado"
-                                      ? "border-border bg-muted text-muted-foreground"
-                                      : "border-border bg-card"
+                              s.status === "em-analise"
+                                ? "border-az/30 bg-az-soft text-az"
+                                : s.status === "encaminhado-gestor"
+                                  ? "border-kt/30 bg-kt-soft text-kt"
+                                  : s.status === "para-socios"
+                                    ? "border-success/30 bg-success-soft text-success"
+                                    : s.status === "considerar-depois"
+                                      ? "border-warn/30 bg-warn-soft text-warn"
+                                      : s.status === "descartado" || s.status === "desconsiderado"
+                                        ? "border-border bg-muted text-muted-foreground"
+                                        : s.status === "enviado-rh"
+                                          ? "border-az/30 bg-az-soft text-az"
+                                          : "border-border bg-card"
                             }`}
                             value={s.status ?? ""}
                             onChange={(e) => {
-                              const v = e.target.value as
-                                | "enviado-rh"
-                                | "desconsiderado"
-                                | "considerar-depois"
-                                | "para-socios"
-                                | "";
+                              const v = e.target.value as typeof s.status | "";
                               setSugestoes((prev) =>
                                 prev.map((x) =>
                                   x.id === s.id
@@ -1704,10 +1747,11 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
                             }}
                           >
                             <option value="">— Sem status —</option>
-                            <option value="enviado-rh">Enviado para o RH</option>
-                            <option value="para-socios">Levado para os sócios</option>
-                            <option value="considerar-depois">Considerar em outro momento</option>
-                            <option value="desconsiderado">Desconsiderado</option>
+                            <option value="em-analise">Em análise</option>
+                            <option value="encaminhado-gestor">Encaminhado ao gestor</option>
+                            <option value="para-socios">Levado aos sócios</option>
+                            <option value="considerar-depois">Considerar depois</option>
+                            <option value="descartado">Descartado (com justificativa)</option>
                           </select>
                           {s.statusTs && (
                             <p className="mt-0.5 text-[10px] text-muted-foreground">
@@ -1767,6 +1811,218 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
             </div>
           )}
         </Section>
+
+        {/* Feedbacks — seção exclusiva Azumi (B) */}
+        {(() => {
+          const fbsFiltrados = feedbacks
+            .filter((f) => {
+              const filialOk =
+                fbFiltroFilial === "Todas" ||
+                filialNome(f.filial) === fbFiltroFilial;
+              const destinoOk =
+                fbFiltroDestino === "Todos" ||
+                (fbFiltroDestino === "Gestor" && f.destino !== "azumi") ||
+                (fbFiltroDestino === "Azumi" && f.destino === "azumi");
+              return filialOk && destinoOk;
+            })
+            .sort((a, b) => b.ts - a.ts);
+          const novos = feedbacks.filter((f) => !f.status).length;
+          return (
+            <Section
+              titulo="Feedbacks"
+              intro="Todos os feedbacks enviados — Azumi vê tudo, independente do destino."
+              contagem={`${feedbacks.length} total${novos > 0 ? ` · ${novos} sem status` : ""}`}
+              collapsible
+              defaultOpen={feedbacks.length > 0}
+            >
+              {feedbacks.length === 0 ? (
+                <EmptyState>Nenhum feedback recebido ainda.</EmptyState>
+              ) : (
+                <div className="grid gap-3">
+                  <div className="flex flex-wrap gap-2">
+                    {["Todas", ...FILIAIS.map((f) => f.nome)].map((f) => (
+                      <button
+                        key={f}
+                        onClick={() => setFbFiltroFilial(f)}
+                        className={`rounded-full border px-3 py-1 text-sm font-medium transition-colors ${
+                          fbFiltroFilial === f
+                            ? "border-kt bg-kt-soft text-kt"
+                            : "border-border text-muted-foreground hover:border-foreground"
+                        }`}
+                      >
+                        {f}
+                      </button>
+                    ))}
+                    <span className="h-6 w-px bg-border" />
+                    {["Todos", "Gestor", "Azumi"].map((d) => (
+                      <button
+                        key={d}
+                        onClick={() => setFbFiltroDestino(d)}
+                        className={`rounded-full border px-3 py-1 text-sm font-medium transition-colors ${
+                          fbFiltroDestino === d
+                            ? "border-az bg-az-soft text-az"
+                            : "border-border text-muted-foreground hover:border-foreground"
+                        }`}
+                      >
+                        {d}
+                      </button>
+                    ))}
+                  </div>
+                  {fbsFiltrados.length === 0 ? (
+                    <EmptyState>Nenhum feedback com estes filtros.</EmptyState>
+                  ) : (
+                    <div className="overflow-x-auto rounded-2xl border border-border">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-border bg-muted/40">
+                            <th className="px-4 py-3 text-left font-semibold">Data</th>
+                            <th className="px-4 py-3 text-left font-semibold">Filial</th>
+                            <th className="px-4 py-3 text-left font-semibold">Tipo</th>
+                            <th className="px-4 py-3 text-left font-semibold">Autor</th>
+                            <th className="px-4 py-3 text-left font-semibold">Destino</th>
+                            <th className="px-4 py-3 text-left font-semibold">Mensagem</th>
+                            <th className="px-4 py-3 text-left font-semibold">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {fbsFiltrados.map((f) => (
+                            <tr key={f.id} className="border-b border-border last:border-0">
+                              <td className="whitespace-nowrap px-4 py-3 text-xs text-muted-foreground">
+                                {new Date(f.ts).toLocaleDateString("pt-BR")}
+                              </td>
+                              <td className="px-4 py-3 text-xs text-muted-foreground">
+                                {filialNome(f.filial)}
+                              </td>
+                              <td className="px-4 py-3">
+                                <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium">
+                                  {f.tipo}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3 text-sm">
+                                {f.anonimo ? (
+                                  <span className="text-xs text-muted-foreground">Anônimo</span>
+                                ) : (
+                                  f.autor
+                                )}
+                              </td>
+                              <td className="px-4 py-3">
+                                <span
+                                  className={`rounded-full px-2.5 py-1 text-xs font-bold ${
+                                    f.destino === "azumi"
+                                      ? "bg-az-soft text-az"
+                                      : "bg-kt-soft text-kt"
+                                  }`}
+                                >
+                                  {f.destino === "azumi" ? "Azumi" : "Gestor"}
+                                </span>
+                              </td>
+                              <td className="max-w-xs px-4 py-3 text-muted-foreground">
+                                {f.mensagem.length > 80
+                                  ? f.mensagem.slice(0, 80) + "…"
+                                  : f.mensagem}
+                              </td>
+                              <td className="px-4 py-3">
+                                {f.status ? (
+                                  <span
+                                    className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                                      f.status === "concluido"
+                                        ? "bg-success-soft text-success"
+                                        : f.status === "cancelado"
+                                          ? "bg-destructive/10 text-destructive"
+                                          : "bg-warn-soft text-warn"
+                                    }`}
+                                  >
+                                    {f.status === "concluido"
+                                      ? "Concluído"
+                                      : f.status === "cancelado"
+                                        ? "Cancelado"
+                                        : "Em andamento"}
+                                  </span>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground">Aguardando</span>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
+            </Section>
+          );
+        })()}
+
+        {/* Colaboradores cadastrados por filial (D) */}
+        {(() => {
+          const colabsFiltrados =
+            colabFiltroFilial === "Todas"
+              ? colaboradores
+              : colaboradores.filter((c) => filialNome(c.filial) === colabFiltroFilial);
+          return (
+            <Section
+              titulo="Colaboradores cadastrados"
+              intro="Lista de todos os colaboradores por unidade."
+              contagem={`${colaboradores.length} cadastrados`}
+              collapsible
+              defaultOpen={false}
+            >
+              <div className="grid gap-3">
+                <div className="flex flex-wrap gap-2">
+                  {["Todas", ...FILIAIS.map((f) => f.nome)].map((f) => (
+                    <button
+                      key={f}
+                      onClick={() => setColabFiltroFilial(f)}
+                      className={`rounded-full border px-3 py-1 text-sm font-medium transition-colors ${
+                        colabFiltroFilial === f
+                          ? "border-kt bg-kt-soft text-kt"
+                          : "border-border text-muted-foreground hover:border-foreground"
+                      }`}
+                    >
+                      {f}
+                    </button>
+                  ))}
+                </div>
+                {colabsFiltrados.length === 0 ? (
+                  <EmptyState>Nenhum colaborador cadastrado.</EmptyState>
+                ) : (
+                  <div className="overflow-x-auto rounded-2xl border border-border">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-border bg-muted/40">
+                          <th className="px-4 py-3 text-left font-semibold">Nome</th>
+                          <th className="px-4 py-3 text-left font-semibold">Cargo</th>
+                          <th className="px-4 py-3 text-left font-semibold">Filial</th>
+                          <th className="px-4 py-3 text-left font-semibold">Admissão</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {colabsFiltrados
+                          .slice()
+                          .sort((a, b) => a.nome.localeCompare(b.nome))
+                          .map((c) => (
+                            <tr key={c.id} className="border-b border-border last:border-0">
+                              <td className="px-4 py-3 font-medium">{c.nome}</td>
+                              <td className="px-4 py-3 text-muted-foreground">{c.cargo}</td>
+                              <td className="px-4 py-3 text-muted-foreground">
+                                {filialNome(c.filial)}
+                              </td>
+                              <td className="px-4 py-3 text-xs text-muted-foreground">
+                                {c.admissao
+                                  ? new Date(c.admissao + "T00:00:00").toLocaleDateString("pt-BR")
+                                  : "—"}
+                              </td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </Section>
+          );
+        })()}
 
         {/* Documentos */}
         <Section
@@ -2409,52 +2665,67 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
             </DialogContent>
           </Dialog>
 
-          {/* Lista de gestores existentes com opção de desativar */}
+          {/* Lista de gestores existentes — tabela editável */}
           {gestoresLista.length > 0 && (
-            <div className="mt-4">
-              <p className="mb-2 text-xs font-semibold text-muted-foreground">
-                Gestores criados ({gestoresLista.length})
-              </p>
-              <div className="grid gap-2">
-                {gestoresLista.map((g) => (
-                  <div
-                    key={g.id}
-                    className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-card px-4 py-3"
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold">{g.nome}</p>
-                      <p className="truncate text-xs text-muted-foreground">
-                        {g.email} · {g.filial === "cristo-rei" ? "Cristo Rei" : "Champagnat"}
-                      </p>
-                    </div>
-                    <button
-                      disabled={desativandoId === g.id || g.id === "pendente"}
-                      onClick={async () => {
-                        if (
-                          !confirm(
-                            `Desativar acesso de ${g.nome}? Esta ação não pode ser desfeita.`,
-                          )
-                        )
-                          return;
-                        setDesativandoId(g.id);
-                        try {
-                          await desativarGestorFn({ data: { userId: g.id } });
-                          setGestoresLista((prev) => prev.filter((x) => x.id !== g.id));
-                          toast.success(`Acesso de ${g.nome} desativado.`);
-                        } catch (e) {
-                          toast.error((e as Error).message);
-                        } finally {
-                          setDesativandoId(null);
-                        }
-                      }}
-                      className="shrink-0 rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive disabled:opacity-40"
-                      title="Desativar acesso"
+            <div className="mt-4 overflow-x-auto rounded-2xl border border-border">
+              <table className="min-w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border bg-muted/40 text-left text-xs text-muted-foreground">
+                    <th className="px-4 py-2.5 font-semibold">Nome</th>
+                    <th className="px-4 py-2.5 font-semibold">E-mail</th>
+                    <th className="px-4 py-2.5 font-semibold">Filial</th>
+                    <th className="px-4 py-2.5 font-semibold">Criado em</th>
+                    <th className="px-4 py-2.5 font-semibold">Ação</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {gestoresLista.map((g, i) => (
+                    <tr
+                      key={g.id}
+                      className={i % 2 === 0 ? "bg-card" : "bg-muted/20"}
                     >
-                      <UserMinus className="h-4 w-4" />
-                    </button>
-                  </div>
-                ))}
-              </div>
+                      <td className="px-4 py-3 font-medium">{g.nome}</td>
+                      <td className="px-4 py-3 text-muted-foreground">{g.email}</td>
+                      <td className="px-4 py-3">
+                        {g.filial === "cristo-rei" ? "Cristo Rei" : "Champagnat"}
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground">
+                        {g.created_at
+                          ? new Date(g.created_at).toLocaleDateString("pt-BR")
+                          : "—"}
+                      </td>
+                      <td className="px-4 py-3">
+                        <button
+                          disabled={desativandoId === g.id || g.id === "pendente"}
+                          onClick={async () => {
+                            if (
+                              !confirm(
+                                `Desativar acesso de ${g.nome}? Esta ação não pode ser desfeita.`,
+                              )
+                            )
+                              return;
+                            setDesativandoId(g.id);
+                            try {
+                              await desativarGestorFn({ data: { userId: g.id } });
+                              setGestoresLista((prev) => prev.filter((x) => x.id !== g.id));
+                              toast.success(`Acesso de ${g.nome} desativado.`);
+                            } catch (e) {
+                              toast.error((e as Error).message);
+                            } finally {
+                              setDesativandoId(null);
+                            }
+                          }}
+                          className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold text-destructive transition-colors hover:bg-destructive/10 disabled:opacity-40"
+                          title="Desativar acesso"
+                        >
+                          <UserMinus className="h-3.5 w-3.5" />
+                          {desativandoId === g.id ? "Desativando…" : "Desativar"}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </div>

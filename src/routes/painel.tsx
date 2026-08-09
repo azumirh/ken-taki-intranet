@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Inbox, Mail, MessageCircle } from "lucide-react";
+import { Camera, Inbox, Mail, MessageCircle } from "lucide-react";
 import { AppShell } from "@/components/kt/app-shell";
 import { Avatar, EmptyState, Section } from "@/components/kt/section";
 import { CheckIn } from "@/components/kt/checkin";
@@ -23,6 +23,7 @@ import {
 import {
   uid,
   useAjuda,
+  useAnotacoesApoio,
   useAssinaturas,
   useBdayMsgs,
   useCheckins,
@@ -36,6 +37,7 @@ import {
   useSession,
   useSugestoes,
 } from "@/lib/kt-store";
+import { supabase } from "@/lib/supabase";
 
 export const Route = createFileRoute("/painel")({
   head: () => ({
@@ -75,6 +77,10 @@ function calcDestino(tipo: string, anonimo: boolean): "gestor" | "azumi" {
   return "gestor";
 }
 
+function gerarProtocolo(): string {
+  return `KT-${Date.now().toString(36).toUpperCase().slice(-6)}`;
+}
+
 function Chips({
   opcoes,
   valor,
@@ -109,6 +115,7 @@ function Painel() {
   const [pesquisa, setPesquisa] = usePesquisa();
   const [noticias] = useNoticias();
   const [ajuda, setAjuda] = useAjuda();
+  const [anotacoes] = useAnotacoesApoio();
   const [checkins] = useCheckins();
   const [mural] = useMural();
 
@@ -116,8 +123,10 @@ function Painel() {
   const [assinaturas] = useAssinaturas();
   const [leituras] = useLeituras();
 
-  const [colaboradores] = useColaboradores();
+  const [colaboradores, setColaboradores] = useColaboradores();
   const [bdayMsgs, setBdayMsgs] = useBdayMsgs();
+  const [fotoUploading, setFotoUploading] = useState(false);
+  const fotoInputRef = useRef<HTMLInputElement>(null);
   const [sugCat, setSugCat] = useState(SUGESTAO_CATEGORIAS[0]!);
   const [sugMsg, setSugMsg] = useState("");
   const [sugEnviado, setSugEnviado] = useState(false);
@@ -167,18 +176,84 @@ function Painel() {
     <AppShell>
       <div className="grid gap-5">
         {/* Header — nome + unidade em destaque */}
-        <div className="text-center sm:text-left">
-          <h1 className="text-3xl font-extrabold leading-tight sm:text-3xl">
-            👋 Olá, {session.nome.split(" ")[0]}!
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Bem-vindo(a) à intranet do Ken Taki × Azumi RH
-          </p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            <strong className="text-foreground">Ken Taki · {filialNome(session.filial)}</strong> ·
-            CPF ***{session.cpf3}
-          </p>
-        </div>
+        {(() => {
+          const meuPerfil = colaboradores.find(
+            (c) => c.nome === session.nome && c.filial === session.filial,
+          );
+          async function uploadFoto(file: File) {
+            if (!meuPerfil) return;
+            setFotoUploading(true);
+            try {
+              const ext = file.name.split(".").pop() ?? "jpg";
+              const path = `fotos/${meuPerfil.id}-${Date.now()}.${ext}`;
+              const { data, error } = await supabase.storage
+                .from("kt-documentos")
+                .upload(path, file, { cacheControl: "86400", upsert: true });
+              if (error) throw error;
+              const { data: urlData } = supabase.storage
+                .from("kt-documentos")
+                .getPublicUrl(data.path);
+              setColaboradores((prev) =>
+                prev.map((c) =>
+                  c.id === meuPerfil.id ? { ...c, foto: urlData.publicUrl } : c,
+                ),
+              );
+              toast.success("Foto atualizada!");
+            } catch (e) {
+              toast.error(`Erro ao enviar foto: ${(e as Error).message}`);
+            } finally {
+              setFotoUploading(false);
+            }
+          }
+          return (
+            <div className="flex items-center gap-4 text-left">
+              <div className="relative shrink-0">
+                {meuPerfil?.foto ? (
+                  <img
+                    src={meuPerfil.foto}
+                    alt={session.nome}
+                    className="h-16 w-16 rounded-full object-cover ring-2 ring-az/30"
+                  />
+                ) : (
+                  <Avatar nome={session.nome} size={64} />
+                )}
+                <button
+                  title="Trocar foto"
+                  disabled={fotoUploading || !meuPerfil}
+                  onClick={() => fotoInputRef.current?.click()}
+                  className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-az text-white shadow disabled:opacity-50"
+                >
+                  <Camera className="h-3 w-3" />
+                </button>
+                <input
+                  ref={fotoInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) uploadFoto(f);
+                    e.target.value = "";
+                  }}
+                />
+              </div>
+              <div>
+                <h1 className="text-3xl font-extrabold leading-tight sm:text-3xl">
+                  👋 Olá, {session.nome.split(" ")[0]}!
+                </h1>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Bem-vindo(a) à intranet do Ken Taki × Azumi RH
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  <strong className="text-foreground">
+                    Ken Taki · {filialNome(session.filial)}
+                  </strong>{" "}
+                  · CPF ***{session.cpf3}
+                </p>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Precisa de apoio — movida para o topo */}
         <div className="overflow-hidden rounded-2xl border border-az/20 bg-gradient-to-br from-az-soft to-az/10">
@@ -202,6 +277,7 @@ function Painel() {
                     filial: session.filial,
                     assunto: "Apoio registrado (intranet)",
                     ts: Date.now(),
+                    protocolo: gerarProtocolo(),
                   },
                   ...ajuda,
                 ]);
@@ -810,23 +886,17 @@ function Painel() {
         >
           <div className="grid gap-6 lg:grid-cols-[1fr_auto]">
             <div className="grid gap-4">
-              {/* icon header */}
-              <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-kt-soft">
-                  <Inbox className="h-6 w-6 text-kt" />
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Sua sugestão é completamente anônima — nenhum dado pessoal é vinculado ao envio.
-                  Usamos a unidade só para entender o contexto.
-                </p>
-              </div>
+              <p className="text-sm text-muted-foreground">
+                Sua sugestão é completamente anônima — nenhum dado pessoal é vinculado ao envio.
+                Usamos a unidade só para entender o contexto.
+              </p>
 
               {sugEnviado ? (
                 <div className="flex flex-col items-center gap-3 rounded-2xl border border-kt/30 bg-kt-soft py-8 text-center">
-                  <Inbox className="h-10 w-10 animate-bounce text-kt" />
                   <p className="text-lg font-semibold text-kt">📬 Sugestão enviada!</p>
                   <p className="text-sm text-muted-foreground">
-                    Obrigado por contribuir com a equipe.
+                    Recebemos sua sugestão. Se for o caso, vamos considerar e agir — obrigado por
+                    contribuir.
                   </p>
                 </div>
               ) : (
@@ -911,7 +981,7 @@ function Painel() {
           return (
             <Section
               titulo="Minhas sugestões"
-              intro="Sugestões enviadas nesta sessão."
+              intro="Sugestões enviadas nesta sessão do navegador. Como as sugestões são anônimas por design, só conseguimos rastrear as enviadas aqui agora — não as de sessões anteriores."
               contagem={`${minhasSugs.length} enviadas`}
               collapsible
               defaultOpen
@@ -1161,6 +1231,7 @@ function Painel() {
                           filial: session.filial,
                           ts: Date.now(),
                           destino,
+                          protocolo: gerarProtocolo(),
                         },
                         ...feedbacks,
                       ]);
@@ -1184,6 +1255,46 @@ function Painel() {
             </div>
           )}
         </Section>
+
+        {/* Respostas da Azumi RH — anotações em pedidos de apoio visíveis ao colaborador (K) */}
+        {(() => {
+          const meusPedidosIds = ajuda
+            .filter((a) => a.nome === session.nome && a.filial === session.filial)
+            .map((a) => a.id);
+          const respostas = anotacoes
+            .filter((n) => meusPedidosIds.includes(n.pedidoId))
+            .sort((a, b) => b.criadoEm - a.criadoEm);
+          if (respostas.length === 0) return null;
+          return (
+            <Section
+              titulo="Respostas da equipe Azumi"
+              intro="A equipe Azumi RH registrou anotações sobre seus pedidos de apoio."
+              contagem={`${respostas.length} registro${respostas.length > 1 ? "s" : ""}`}
+              collapsible
+              defaultOpen
+            >
+              <div className="grid gap-3">
+                {respostas.map((n) => (
+                  <div key={n.id} className="rounded-2xl border border-az/20 bg-az-soft/50 p-4">
+                    <p className="text-sm">{n.texto}</p>
+                    <div className="mt-2 flex flex-wrap gap-3 text-xs text-muted-foreground">
+                      {n.canal && <span>via {n.canal}</span>}
+                      {n.consultor && <span>· {n.consultor}</span>}
+                      <span>·{" "}
+                        {new Date(n.criadoEm).toLocaleString("pt-BR", {
+                          day: "2-digit",
+                          month: "short",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Section>
+          );
+        })()}
 
         {/* Histórico de feedbacks */}
         {(() => {

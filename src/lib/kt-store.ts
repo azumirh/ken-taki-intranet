@@ -101,7 +101,7 @@ export type Sugestao = {
   mensagem: string;
   filial: string;
   ts: number;
-  status?: "enviado-rh" | "desconsiderado" | "considerar-depois" | "para-socios" | undefined;
+  status?: "enviado-rh" | "desconsiderado" | "considerar-depois" | "para-socios" | "em-analise" | "encaminhado-gestor" | "descartado" | undefined;
   statusTs?: number | undefined;
   justificativa?: string | undefined;
   observacao?: string | undefined;
@@ -122,6 +122,7 @@ export type Feedback = {
   gestorQueMudouStatus?: string | undefined;
   comentarioGestor?: string | undefined;
   comentariosGestor?: Record<string, string> | undefined;
+  protocolo?: string | undefined;
 };
 export type Vaga = { id: string; cargo: string; filial: string; motivo: string; ts: number };
 export type Pesquisa = {
@@ -143,6 +144,7 @@ export type AjudaClick = {
   assunto: string;
   ts: number;
   status?: "em-andamento" | "resolvido" | undefined;
+  protocolo?: string | undefined;
 };
 export type AnotacaoApoio = {
   id: string;
@@ -246,7 +248,14 @@ function useSupabaseList<T extends { id: string }>(
         ({ data, error }) => {
           if (!error && data) {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const items = (data as any[]).map(fromRow);
+            const raw = (data as any[]).map(fromRow);
+            // Deduplicate by id — prevents optimistic + realtime double-insert
+            const seen = new Set<string>();
+            const items = raw.filter((item) => {
+              if (seen.has(item.id)) return false;
+              seen.add(item.id);
+              return true;
+            });
             ref.current = items;
             setValue(items);
             write(key, items);
@@ -545,6 +554,7 @@ export const useFeedbacks = () =>
       ...(r.destino != null ? { destino: s(r.destino) as Feedback["destino"] } : {}),
       ...(r.aceita_contato != null ? { aceitaContato: Boolean(r.aceita_contato) } : {}),
       ...(r.contato != null ? { contato: s(r.contato) } : {}),
+      ...(r.protocolo != null ? { protocolo: s(r.protocolo) } : {}),
     }),
     toRow: (f) => ({
       id: f.id,
@@ -563,6 +573,7 @@ export const useFeedbacks = () =>
       gestor_que_mudou_status: f.gestorQueMudouStatus ?? null,
       comentario_gestor: f.comentarioGestor ?? null,
       comentarios_gestor: f.comentariosGestor ?? null,
+      protocolo: f.protocolo ?? null,
     }),
   });
 
@@ -602,6 +613,7 @@ export const useAjuda = () =>
       assunto: s(r.assunto),
       ts: tsMs(r.ts),
       ...(r.status != null ? { status: s(r.status) as AjudaClick["status"] } : {}),
+      ...(r.protocolo != null ? { protocolo: s(r.protocolo) } : {}),
     }),
     toRow: (a) => ({
       id: a.id,
@@ -610,6 +622,7 @@ export const useAjuda = () =>
       assunto: a.assunto,
       ts: new Date(a.ts).toISOString(),
       status: a.status ?? null,
+      protocolo: a.protocolo ?? null,
     }),
   });
 

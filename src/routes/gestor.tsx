@@ -50,6 +50,7 @@ import {
   usePesquisa,
   useSugestoes,
 } from "@/lib/kt-store";
+import { SUGESTAO_CATEGORIAS } from "@/lib/kt-data";
 import { type KtPerfil, useKtAuth } from "@/lib/kt-auth";
 import { supabase } from "@/lib/supabase";
 
@@ -356,6 +357,11 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
   const [fbFiltroMes, setFbFiltroMes] = useState("Todos");
   const [fbFiltroColab, setFbFiltroColab] = useState("");
 
+  // gestor envia sugestão (M)
+  const [gSugCat, setGSugCat] = useState(SUGESTAO_CATEGORIAS[0]!);
+  const [gSugMsg, setGSugMsg] = useState("");
+  const [gSugEnviado, setGSugEnviado] = useState(false);
+
   // documento categoria filter
   const [filtroDocTag, setFiltroDocTag] = useState("Todos");
   // expanded status tables per document
@@ -389,6 +395,10 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
   const session = { nome: perfil.nome, filial: perfil.filial! };
   const daUnidade = <T extends { filial: string }>(arr: T[]) =>
     arr.filter((i) => i.filial === session.filial);
+  // Sugestões: excluir as dirigidas à Azumi RH — gestor só vê o que é da sua unidade operacional
+  const sugestoesDaUnidade = daUnidade(sugestoes).filter(
+    (s) => s.categoria !== "Equipe Azumi RH",
+  );
   const meusCheckins = daUnidade(checkins);
   const equipe = colaboradores.filter((c) => c.filial === session.filial);
   const gestorJaRespondeu = pesquisa?.ativa
@@ -1289,14 +1299,86 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
           )}
         </Section>
 
+        {/* Gestor envia sugestão (M) */}
+        <Section
+          titulo="Enviar sugestão"
+          intro="Envie uma sugestão anonimamente para a Azumi RH ou para os sócios."
+          contagem="Anônima"
+          collapsible
+          defaultOpen={false}
+        >
+          <div className="grid gap-4">
+            <p className="text-sm text-muted-foreground">
+              Sua sugestão é tratada com total confidencialidade — identificamos apenas a unidade.
+            </p>
+            {gSugEnviado ? (
+              <div className="flex flex-col items-center gap-3 rounded-2xl border border-kt/30 bg-kt-soft py-6 text-center">
+                <p className="text-lg font-semibold text-kt">📬 Sugestão enviada!</p>
+                <p className="text-sm text-muted-foreground">
+                  Recebemos sua sugestão. Se for o caso, vamos considerar e agir.
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="grid gap-2">
+                  <Label>Categoria</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {SUGESTAO_CATEGORIAS.map((cat) => (
+                      <button
+                        key={cat}
+                        onClick={() => setGSugCat(cat)}
+                        className={`rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors ${
+                          gSugCat === cat
+                            ? "border-kt bg-kt-soft text-kt"
+                            : "border-border bg-card hover:bg-muted"
+                        }`}
+                      >
+                        {cat}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <Textarea
+                  rows={3}
+                  maxLength={800}
+                  placeholder="Conte sua ideia, elogio ou observação..."
+                  value={gSugMsg}
+                  onChange={(e) => setGSugMsg(e.target.value)}
+                />
+                <Button
+                  className="w-fit rounded-full"
+                  disabled={!gSugMsg.trim()}
+                  onClick={() => {
+                    setSugestoes([
+                      {
+                        id: uid(),
+                        categoria: gSugCat,
+                        mensagem: gSugMsg.trim(),
+                        filial: session.filial,
+                        ts: Date.now(),
+                      },
+                      ...sugestoes,
+                    ]);
+                    setGSugMsg("");
+                    setGSugEnviado(true);
+                    setTimeout(() => setGSugEnviado(false), 2500);
+                  }}
+                >
+                  Enviar anonimamente
+                </Button>
+              </>
+            )}
+          </div>
+        </Section>
+
         <Section
           titulo="Caixinha de sugestão"
-          intro="Sugestões anônimas do time desta unidade."
-          contagem={`${daUnidade(sugestoes).length} sugestões`}
+          intro="Sugestões anônimas do time desta unidade (exceto as dirigidas à equipe Azumi RH)."
+          contagem={`${sugestoesDaUnidade.length} sugestões`}
           collapsible
-          defaultOpen={daUnidade(sugestoes).length > 0}
+          defaultOpen={sugestoesDaUnidade.length > 0}
         >
-          {daUnidade(sugestoes).length === 0 ? (
+          {sugestoesDaUnidade.length === 0 ? (
             <EmptyState>Nenhuma sugestão registrada ainda.</EmptyState>
           ) : (
             <div className="hidden overflow-x-auto rounded-2xl border border-border md:block">
@@ -1310,7 +1392,7 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
                   </tr>
                 </thead>
                 <tbody>
-                  {daUnidade(sugestoes).map((s) => (
+                  {sugestoesDaUnidade.map((s) => (
                     <tr key={s.id} className="border-b border-border last:border-0">
                       <td className="px-4 py-3">
                         <span className="rounded-full bg-az-soft px-2.5 py-1 text-xs font-semibold text-az">
@@ -1357,9 +1439,9 @@ function PainelGestor({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => 
               </table>
             </div>
           )}
-          {daUnidade(sugestoes).length > 0 && (
+          {sugestoesDaUnidade.length > 0 && (
             <div className="grid gap-3 md:hidden">
-              {daUnidade(sugestoes).map((s) => (
+              {sugestoesDaUnidade.map((s) => (
                 <div key={s.id} className="rounded-2xl border border-border p-4">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="rounded-full bg-az-soft px-2.5 py-1 text-xs font-semibold text-az">
