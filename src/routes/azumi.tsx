@@ -16,6 +16,18 @@ import {
 } from "lucide-react";
 import { AppShell, BackLink } from "@/components/kt/app-shell";
 import { EmptyState, Section } from "@/components/kt/section";
+import { SideNav, type NavItem } from "@/components/kt/side-nav";
+
+const NAV_AZUMI: NavItem[] = [
+  { id: "clima", label: "Clima por unidade", emoji: "📊" },
+  { id: "publicar", label: "Publicar notícia", emoji: "🎬" },
+  { id: "pesquisa-clima", label: "Pesquisa de clima", emoji: "🗳️" },
+  { id: "apoio", label: "Pedidos de apoio", emoji: "🆘" },
+  { id: "sugestoes", label: "Caixinha de sugestão", emoji: "💡" },
+  { id: "feedbacks", label: "Feedbacks", emoji: "💬" },
+  { id: "colaboradores", label: "Colaboradores", emoji: "👥" },
+  { id: "politicas", label: "Documentos", emoji: "📄" },
+];
 import { Mural } from "@/components/kt/mural";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -687,7 +699,7 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
     .sort((a, b) => b.ts - a.ts);
 
   return (
-    <AppShell onLogout={onLogout}>
+    <AppShell onLogout={onLogout} aside={<SideNav titulo="Nesta página" itens={NAV_AZUMI} />}>
       <div className="grid gap-5">
         <div>
           <h1 className="text-2xl font-extrabold sm:text-3xl">
@@ -750,6 +762,7 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
 
         {/* Gráfico de clima */}
         <Section
+          id="clima"
           titulo="Clima por unidade"
           intro="Distribuição dos check-ins de humor. Clique em uma barra para ver os detalhes do dia."
           contagem={`${checkins.length} check-ins`}
@@ -958,6 +971,7 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
         {/* Notícia + Pesquisa — lado a lado */}
         <div className="grid gap-5 md:grid-cols-2">
           <Section
+            id="publicar"
             titulo="Publicar notícia ou vídeo"
             intro="Cole o link do YouTube e o vídeo aparece no painel do colaborador."
             contagem={`${noticias.length} publicados`}
@@ -1070,6 +1084,7 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
           </Section>
 
           <Section
+            id="pesquisa-clima"
             titulo="Pesquisa de clima"
             intro="Abra uma pesquisa e ela aparece no painel de colaboradores e gestores."
             contagem={pesquisa?.ativa ? "Ativa" : "Nenhuma ativa"}
@@ -1316,6 +1331,7 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
 
         {/* Pedidos de apoio — somente pedidos explícitos */}
         <Section
+          id="apoio"
           titulo="Pedidos de apoio"
           intro="Registros de colaboradores que solicitaram suporte explicitamente."
           contagem={`${pedidosReais.length} registros`}
@@ -1679,6 +1695,7 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
 
         {/* Sugestões — visão consolidada todas as filiais */}
         <Section
+          id="sugestoes"
           titulo="Caixinha de sugestão"
           intro="Sugestões anônimas de todas as unidades. Classifique o encaminhamento de cada uma."
           contagem={`${sugestoes.length} sugestões`}
@@ -1829,6 +1846,7 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
           const novos = feedbacks.filter((f) => !f.status).length;
           return (
             <Section
+              id="feedbacks"
               titulo="Feedbacks"
               intro="Todos os feedbacks enviados — Azumi vê tudo, independente do destino."
               contagem={`${feedbacks.length} total${novos > 0 ? ` · ${novos} sem status` : ""}`}
@@ -1962,6 +1980,7 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
               : colaboradores.filter((c) => filialNome(c.filial) === colabFiltroFilial);
           return (
             <Section
+              id="colaboradores"
               titulo="Colaboradores cadastrados"
               intro="Lista de todos os colaboradores por unidade."
               contagem={`${colaboradores.length} cadastrados`}
@@ -2026,6 +2045,7 @@ function PainelAzumi({ perfil, onLogout }: { perfil: KtPerfil; onLogout: () => v
 
         {/* Documentos */}
         <Section
+          id="politicas"
           titulo="Documentos e políticas"
           intro="Documentos publicados para colaboradores e gestores."
           contagem={`${documentos.length} publicados`}

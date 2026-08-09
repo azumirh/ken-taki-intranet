@@ -38,8 +38,9 @@ export function Section({
 }) {
   if (!collapsible) {
     return (
-      <section id={id} className="surface overflow-hidden">
+      <section id={id} className="surface scroll-mt-24 overflow-hidden">
         <header className="border-b border-border px-5 py-5 sm:px-7">
+
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div className="min-w-0 flex-1">
               <h2 className="text-lg font-bold sm:text-xl">{titulo}</h2>
@@ -61,7 +62,7 @@ export function Section({
   }
 
   return (
-    <div id={id} className="surface overflow-hidden">
+    <div id={id} className="surface scroll-mt-24 overflow-hidden">
       <AccordionPrimitive.Root
         type="single"
         collapsible

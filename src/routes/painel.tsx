@@ -4,6 +4,19 @@ import { toast } from "sonner";
 import { Camera, Inbox, Mail, MessageCircle } from "lucide-react";
 import { AppShell } from "@/components/kt/app-shell";
 import { Avatar, EmptyState, Section } from "@/components/kt/section";
+import { SideNav, type NavItem } from "@/components/kt/side-nav";
+
+const NAV_PAINEL: NavItem[] = [
+  { id: "checkin", label: "Check-in do dia", emoji: "🙂" },
+  { id: "politicas", label: "Políticas", emoji: "📄" },
+  { id: "mural", label: "Mural da equipe", emoji: "📌" },
+  { id: "clima", label: "Pesquisa de clima", emoji: "📊" },
+  { id: "aniversariantes", label: "Aniversariantes", emoji: "🎂" },
+  { id: "noticias", label: "Notícias e vídeos", emoji: "🎬" },
+  { id: "sugestoes", label: "Caixinha de sugestão", emoji: "💡" },
+  { id: "feedback", label: "Feedback ao gestor", emoji: "💬" },
+  { id: "historico-checkins", label: "Meu histórico", emoji: "🕘" },
+];
 import { CheckIn } from "@/components/kt/checkin";
 import { Documentos } from "@/components/kt/politicas";
 import { Mural } from "@/components/kt/mural";
@@ -174,7 +187,7 @@ function Painel() {
   );
 
   return (
-    <AppShell>
+    <AppShell aside={<SideNav titulo="Nesta página" itens={NAV_PAINEL} />}>
       <div className="grid gap-5">
         {/* Header — nome + unidade em destaque */}
         {(() => {
@@ -374,7 +387,9 @@ function Painel() {
           </div>
         )}
 
-        <CheckIn session={session} />
+        <div id="checkin" className="scroll-mt-24">
+          <CheckIn session={session} />
+        </div>
 
         {/* Banner: leu mas não assinou */}
         {(() => {
@@ -416,6 +431,7 @@ function Painel() {
         />
 
         <Section
+          id="clima"
           titulo="Pesquisa de clima"
           intro="Publicada pela Azumi RH. Quando houver uma pesquisa ativa, ela aparece aqui."
           contagem={pesquisa?.ativa ? "1 ativa" : "Nenhuma ativa"}
@@ -529,6 +545,7 @@ function Painel() {
         </Section>
 
         <Section
+          id="aniversariantes"
           titulo="Aniversariantes do mês"
           intro={`Quem faz aniversário este mês na unidade ${filialNome(session.filial)}.`}
           contagem={`${aniversariantes.length} este mês`}
@@ -758,6 +775,7 @@ function Painel() {
         </Section>
 
         <Section
+          id="noticias"
           titulo="Notícias e vídeos"
           intro="Conteúdos publicados pela Azumi RH para todas as unidades."
           contagem={`${noticias.length} publicados`}
@@ -817,6 +835,7 @@ function Painel() {
             : meusCheckins.slice(0, 30);
           return (
             <Section
+              id="historico-checkins"
               titulo="Meu histórico de check-ins"
               intro="Seus registros de humor anteriores."
               contagem={`${meusCheckins.length} registros`}
@@ -949,6 +968,7 @@ function Painel() {
 
         {/* Caixinha de sugestão */}
         <Section
+          id="sugestoes"
           titulo="Caixinha de sugestão"
           intro="Sem identificação. Sua unidade fica registrada só para direcionar para a área certa."
           contagem="Anônima"
@@ -1051,6 +1071,7 @@ function Painel() {
           };
           return (
             <Section
+              id="minhas-sugestoes"
               titulo="Minhas sugestões"
               intro="Sugestões enviadas nesta sessão do navegador. Como as sugestões são anônimas por design, só conseguimos rastrear as enviadas aqui agora — não as de sessões anteriores."
               contagem={`${minhasSugs.length} enviadas`}
@@ -1097,6 +1118,7 @@ function Painel() {
 
         {/* Feedback ao gestor */}
         <Section
+          id="feedback"
           titulo="Feedback ao gestor"
           intro="Elogio, crítica, dúvida ou uma situação pontual — você escolhe se assina ou não."
           contagem={fbEnviado ? "Enviado ✓" : fbAnon ? "Anônimo" : "Com meu nome"}
@@ -1338,6 +1360,7 @@ function Painel() {
           if (respostas.length === 0) return null;
           return (
             <Section
+              id="respostas-azumi"
               titulo="Respostas da equipe Azumi"
               intro="A equipe Azumi RH registrou anotações sobre seus pedidos de apoio."
               contagem={`${respostas.length} registro${respostas.length > 1 ? "s" : ""}`}
@@ -1380,6 +1403,7 @@ function Painel() {
           };
           return (
             <Section
+              id="meus-feedbacks"
               titulo="Meus feedbacks"
               intro="Histórico dos feedbacks que você enviou. Feedbacks anônimos aparecem apenas nesta sessão."
               contagem={`${meusFbs.length} registros`}
