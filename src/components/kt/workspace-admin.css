@@ -19,25 +19,15 @@
 :root[data-profile-background="plum-soft"] { --background: #f4eef2; }
 :root[data-profile-background="graphite-soft"] { --background: #efedec; }
 
-/* Manager / HR workspace refinements. Scoped so the collaborator content
-   structure is untouched even though the Ken Taki brand palette is shared. */
 [data-workspace-mode] {
   --workspace-accent: var(--profile-accent, var(--kt));
 }
 
-[data-workspace-mode] .legacy-workspace-content > .grid {
-  gap: 1rem;
-}
-
-[data-workspace-mode] .legacy-workspace-content .grid {
-  align-items: start;
-}
-
+[data-workspace-mode] .legacy-workspace-content > .grid { gap: 1rem; }
+[data-workspace-mode] .legacy-workspace-content .grid { align-items: start; }
 [data-workspace-mode] .legacy-workspace-content .surface,
 [data-workspace-mode] .legacy-workspace-content section,
-[data-workspace-mode] .legacy-workspace-content article {
-  align-self: start;
-}
+[data-workspace-mode] .legacy-workspace-content article { align-self: start; }
 
 [data-workspace-mode] .legacy-workspace-content .overflow-x-auto {
   border-radius: 0.5rem;
@@ -48,11 +38,9 @@
   background: var(--card);
   font-size: 0.8125rem;
 }
-
 [data-workspace-mode] .legacy-workspace-content thead tr {
   background: color-mix(in srgb, var(--muted) 70%, var(--card));
 }
-
 [data-workspace-mode] .legacy-workspace-content th {
   padding: 0.7rem 0.8rem !important;
   font-size: 0.6875rem;
@@ -61,26 +49,17 @@
   letter-spacing: 0.055em;
   white-space: nowrap;
 }
-
 [data-workspace-mode] .legacy-workspace-content td {
   padding: 0.72rem 0.8rem !important;
   line-height: 1.35;
 }
-
-[data-workspace-mode] .legacy-workspace-content tbody tr {
-  transition: background-color 140ms ease;
-}
-
+[data-workspace-mode] .legacy-workspace-content tbody tr { transition: background-color 140ms ease; }
 [data-workspace-mode] .legacy-workspace-content tbody tr:hover {
   background: color-mix(in srgb, var(--muted) 38%, transparent);
 }
-
 [data-workspace-mode] .legacy-workspace-content select,
 [data-workspace-mode] .legacy-workspace-content input,
-[data-workspace-mode] .legacy-workspace-content textarea {
-  border-radius: 0.45rem;
-}
-
+[data-workspace-mode] .legacy-workspace-content textarea { border-radius: 0.45rem; }
 [data-workspace-mode] .legacy-workspace-content section.surface > header,
 [data-workspace-mode] .legacy-workspace-content section.surface > div > div > header {
   background: color-mix(in srgb, var(--card) 92%, var(--background));
@@ -91,6 +70,8 @@
 [data-workspace-mode="hr"] .hr-workspace-content #feedbacks,
 [data-workspace-mode="hr"] .hr-workspace-content #apoio,
 [data-workspace-mode="hr"] .hr-workspace-content #clima,
+[data-workspace-mode="hr"] .hr-workspace-content #sugestoes,
+[data-workspace-mode="hr"] .hr-workspace-content #colaboradores,
 [data-workspace-mode="manager"] .manager-workspace-content #feedbacks,
 [data-workspace-mode="manager"] .manager-workspace-content #apoio,
 [data-workspace-mode="manager"] .manager-workspace-content #clima {
@@ -98,47 +79,33 @@
 }
 
 /* RH access management has moved to the new full-width Access Center rendered
-   after the legacy modules. The old narrow action/table bundle is the final
-   child of the current RH route and is intentionally retired during migration. */
+   after the legacy modules. */
 [data-workspace-mode="hr"] .hr-workspace-content > .grid > :last-child {
   display: none !important;
 }
 
-/* Give the remaining RH/manager sections room to use the content column. */
 [data-workspace-mode] .legacy-workspace-content > .grid,
 [data-workspace-mode] .legacy-workspace-content > .grid > * {
   width: 100%;
   min-width: 0;
 }
+[data-workspace-mode] .legacy-workspace-content .surface { overflow: clip; }
 
-[data-workspace-mode] .legacy-workspace-content .surface {
-  overflow: clip;
-}
-
-/* Personal accent is deliberately limited to navigation/progress/detail accents;
-   the core Ken Taki brand hero remains institutional. */
 [data-workspace-mode] button[aria-current="location"] {
   border-color: var(--workspace-accent) !important;
 }
 
-/* Data tables should use the available width first. Horizontal scrolling is a
-   fallback only for truly wide datasets, never the default desktop treatment. */
 @media (min-width: 1024px) {
-  [data-workspace-mode] .legacy-workspace-content .overflow-x-auto {
-    overflow-x: visible;
-  }
-
+  [data-workspace-mode] .legacy-workspace-content .overflow-x-auto { overflow-x: visible; }
   [data-workspace-mode] .legacy-workspace-content table {
     min-width: 0 !important;
     table-layout: auto;
   }
-
   [data-workspace-mode] .legacy-workspace-content > .grid > div.grid[class*="lg:grid-cols-2"] {
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)) !important;
     align-items: start;
     gap: 1rem;
   }
-
   [data-workspace-mode] .legacy-workspace-content > .grid > div.grid[class*="lg:grid-cols-2"] > * {
     min-width: 0;
     align-self: start;
@@ -146,12 +113,7 @@
 }
 
 @media (max-width: 639px) {
-  [data-workspace-mode] .legacy-workspace-content table {
-    min-width: 700px;
-  }
-
+  [data-workspace-mode] .legacy-workspace-content table { min-width: 700px; }
   [data-workspace-mode] .legacy-workspace-content th,
-  [data-workspace-mode] .legacy-workspace-content td {
-    padding-inline: 0.7rem !important;
-  }
+  [data-workspace-mode] .legacy-workspace-content td { padding-inline: 0.7rem !important; }
 }
