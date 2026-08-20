@@ -181,6 +181,13 @@
 @utility gradient-union { background-image: var(--gradient-union); }
 @utility text-union { color: var(--kt); }
 
+/* Enquanto os módulos grandes são decompostos, o novo workspace substitui
+   os cabeçalhos e KPIs legados para evitar informação duplicada. */
+[data-workspace-mode] .legacy-workspace-content > .grid > :first-child,
+[data-workspace-mode] .legacy-workspace-content > .grid > :nth-child(2) {
+  display: none;
+}
+
 /* Transitional normalization for legacy screens. These selectors deliberately
    affect controls/cards, not avatar circles. */
 button.rounded-full,
