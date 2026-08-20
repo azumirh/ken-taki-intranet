@@ -5,6 +5,7 @@ import { AZUMI_CONTACT } from "@/lib/kt-data";
 import { useSession } from "@/lib/kt-store";
 import { BRAND } from "@/lib/brand";
 import { Button } from "@/components/ui/button";
+import { NotificationCenter } from "@/components/kt/notification-center";
 
 export function Brand({ size = "sm" }: { size?: "sm" | "lg" }) {
   const big = size === "lg";
@@ -76,6 +77,7 @@ export function AppShell({
             <Brand />
           </Link>
           <div className="flex shrink-0 items-center gap-2">
+            {onLogout ? <NotificationCenter /> : null}
             <IconLink
               href={`https://wa.me/${AZUMI_CONTACT.whatsapp}`}
               label="Contato via WhatsApp"
