@@ -18,6 +18,7 @@ import { EmployeeProfileHeader } from "@/components/kt/employee-profile-header";
 import { NotificationCenter } from "@/components/kt/notification-center";
 import { WorkspaceAccessCenter } from "@/components/kt/workspace-access-center";
 import { WorkspaceCaseCenter } from "@/components/kt/workspace-case-center";
+import { WorkspaceClimateReport } from "@/components/kt/workspace-climate-report";
 import { WorkspaceOverview } from "@/components/kt/workspace-overview";
 import { WorkspacePersonalization } from "@/components/kt/workspace-personalization";
 import { WorkspacePhotoAdjuster } from "@/components/kt/workspace-photo-adjuster";
@@ -303,6 +304,7 @@ export function AppShell({
               <WorkspaceOverview mode={workspace.mode} />
               <WorkspacePersonalization />
               <WorkspaceCaseCenter mode={workspace.mode} />
+              <WorkspaceClimateReport mode={workspace.mode} />
               <WorkspacePhotoAdjuster mode={workspace.mode} />
               <div
                 className={`legacy-workspace-content min-w-0 ${
