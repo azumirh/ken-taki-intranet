@@ -7,7 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { FILIAIS } from "@/lib/kt-data";
 import { useSession } from "@/lib/kt-store";
-import { validarColaboradorFn } from "@/lib/server-fns";
+import { criarSessaoColaboradorFn } from "@/lib/employee-server-fns";
+import { saveEmployeeAccess } from "@/lib/employee-session";
 
 export const Route = createFileRoute("/colaborador")({
   head: () => ({
@@ -48,7 +49,7 @@ function ColaboradorLogin() {
 
     setCarregando(true);
     try {
-      const resultado = await validarColaboradorFn({
+      const resultado = await criarSessaoColaboradorFn({
         data: { nome, cpf3, filial },
       });
 
@@ -57,11 +58,12 @@ function ColaboradorLogin() {
         return;
       }
 
+      saveEmployeeAccess(resultado.access);
       setSession({
         tipo: "colaborador",
-        nome: resultado.colaborador.nome,
+        nome: resultado.access.nome,
         cpf3,
-        filial: resultado.colaborador.filial,
+        filial: resultado.access.filial,
       });
       navigate({ to: "/painel" });
     } catch {
