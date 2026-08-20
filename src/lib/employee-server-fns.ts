@@ -58,12 +58,20 @@ export function verifyEmployeeToken(token: string): EmployeeTokenPayload | null 
   }
 
   try {
-    const payload = JSON.parse(Buffer.from(encoded, "base64url").toString("utf8")) as EmployeeTokenPayload;
+    const payload = JSON.parse(
+      Buffer.from(encoded, "base64url").toString("utf8"),
+    ) as EmployeeTokenPayload;
     if (!payload.sub || !payload.nome || !payload.filial || payload.exp <= Date.now()) return null;
     return payload;
   } catch {
     return null;
   }
+}
+
+function requireEmployeeToken(token: string) {
+  const payload = verifyEmployeeToken(token);
+  if (!payload) throw new Error("Sessão do colaborador inválida ou expirada.");
+  return payload;
 }
 
 export const criarSessaoColaboradorFn = createServerFn({ method: "POST" })
@@ -114,5 +122,74 @@ export const criarSessaoColaboradorFn = createServerFn({ method: "POST" })
         nome: nomeCompleto,
         filial,
       },
+    };
+  });
+
+export const carregarHistoricoPrivadoColaboradorFn = createServerFn({ method: "POST" })
+  .validator((input: { token: string }) => input)
+  .handler(async ({ data }) => {
+    const employee = requireEmployeeToken(data.token);
+    const admin = adminClient();
+
+    const [feedbacksOwn, feedbacksLegacy, sugestoes, ajudaOwn, ajudaLegacy, assinaturasOwn, assinaturasLegacy, leiturasOwn, leiturasLegacy] =
+      await Promise.all([
+        admin.from("kt_feedbacks").select("*").eq("colaborador_id", employee.sub).order("ts", { ascending: false }),
+        admin
+          .from("kt_feedbacks")
+          .select("*")
+          .is("colaborador_id", null)
+          .eq("autor", employee.nome)
+          .eq("filial", employee.filial)
+          .order("ts", { ascending: false }),
+        admin.from("kt_sugestoes").select("*").eq("colaborador_id", employee.sub).order("ts", { ascending: false }),
+        admin.from("kt_ajuda").select("*").eq("colaborador_id", employee.sub).order("ts", { ascending: false }),
+        admin
+          .from("kt_ajuda")
+          .select("*")
+          .is("colaborador_id", null)
+          .eq("nome", employee.nome)
+          .eq("filial", employee.filial)
+          .order("ts", { ascending: false }),
+        admin.from("kt_assinaturas").select("*").eq("colaborador_id", employee.sub).order("ts", { ascending: false }),
+        admin
+          .from("kt_assinaturas")
+          .select("*")
+          .is("colaborador_id", null)
+          .eq("nome", employee.nome)
+          .eq("filial", employee.filial)
+          .order("ts", { ascending: false }),
+        admin.from("kt_leituras").select("*").eq("colaborador_id", employee.sub).order("ts", { ascending: false }),
+        admin
+          .from("kt_leituras")
+          .select("*")
+          .is("colaborador_id", null)
+          .eq("nome", employee.nome)
+          .eq("filial", employee.filial)
+          .order("ts", { ascending: false }),
+      ]);
+
+    const results = [
+      feedbacksOwn,
+      feedbacksLegacy,
+      sugestoes,
+      ajudaOwn,
+      ajudaLegacy,
+      assinaturasOwn,
+      assinaturasLegacy,
+      leiturasOwn,
+      leiturasLegacy,
+    ];
+    const failed = results.find((result) => result.error);
+    if (failed?.error) throw new Error(failed.error.message);
+
+    const dedupe = <T extends { id: string }>(rows: T[]) =>
+      Array.from(new Map(rows.map((row) => [row.id, row])).values());
+
+    return {
+      feedbacks: dedupe([...(feedbacksOwn.data ?? []), ...(feedbacksLegacy.data ?? [])]),
+      sugestoes: sugestoes.data ?? [],
+      ajuda: dedupe([...(ajudaOwn.data ?? []), ...(ajudaLegacy.data ?? [])]),
+      assinaturas: dedupe([...(assinaturasOwn.data ?? []), ...(assinaturasLegacy.data ?? [])]),
+      leituras: dedupe([...(leiturasOwn.data ?? []), ...(leiturasLegacy.data ?? [])]),
     };
   });
