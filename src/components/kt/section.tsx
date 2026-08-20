@@ -1,4 +1,10 @@
-import type { ReactNode } from "react";
+import {
+  Children,
+  cloneElement,
+  isValidElement,
+  type ReactElement,
+  type ReactNode,
+} from "react";
 import * as AccordionPrimitive from "@radix-ui/react-accordion";
 import { ChevronDown } from "lucide-react";
 import { iniciais } from "@/lib/kt-data";
@@ -12,6 +18,21 @@ function clientCopy(value: string) {
     .replace(/equipe Azumi RH/gi, "equipe de RH")
     .replace(/equipe Azumi/gi, "equipe de RH")
     .replace(/Azumi RH/gi, "RH");
+}
+
+function clientNode(node: ReactNode): ReactNode {
+  if (typeof node === "string") return clientCopy(node);
+  if (Array.isArray(node)) return node.map((child) => clientNode(child));
+  if (!isValidElement(node)) return node;
+
+  const element = node as ReactElement<{ children?: ReactNode }>;
+  if (element.props.children === undefined) return element;
+
+  return cloneElement(
+    element,
+    undefined,
+    Children.map(element.props.children, (child) => clientNode(child)),
+  );
 }
 
 export function Section({
@@ -35,6 +56,7 @@ export function Section({
 }) {
   const displayTitle = clientCopy(titulo);
   const displayIntro = clientCopy(intro);
+  const displayChildren = clientNode(children);
   const header = (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
       <div className="min-w-0 flex-1">
@@ -58,7 +80,7 @@ export function Section({
     return (
       <section id={id} className="surface scroll-mt-24 overflow-hidden">
         <header className="border-b border-border bg-card px-4 py-4 sm:px-5 lg:px-6">{header}</header>
-        <div className="px-4 py-4 sm:px-5 sm:py-5 lg:px-6">{children}</div>
+        <div className="px-4 py-4 sm:px-5 sm:py-5 lg:px-6">{displayChildren}</div>
       </section>
     );
   }
@@ -93,7 +115,7 @@ export function Section({
             </div>
           </AccordionPrimitive.Header>
           <AccordionPrimitive.Content className="overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
-            <div className="px-4 py-4 sm:px-5 sm:py-5 lg:px-6">{children}</div>
+            <div className="px-4 py-4 sm:px-5 sm:py-5 lg:px-6">{displayChildren}</div>
           </AccordionPrimitive.Content>
         </AccordionPrimitive.Item>
       </AccordionPrimitive.Root>
