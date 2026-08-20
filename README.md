@@ -1,19 +1,32 @@
-# Ken Taki Intranet
+# Kentucky Connect
 
-Aplicação interna do Ken Taki para colaboradores, gestores e RH.
+tem muita correção pra fazer, muita muita muita. Primeira coisa, você colocou a logo do Kentucky da Zoom, tanto no no top bar quanto agrupado. Eu não entendi porque está aparecendo só metade da tela e não está. Tem que ter uma visão web e visão aplicativo do celular, tá? E está tudo agrupado, eu acho que essa fonte está horrível. Não está com cara de moral, isso aqui. moral, tá? Também não gostei da fonte que você usou acho que não tem nada a ver, com, pode usar as fontes , só que é o é o da da Zoom. Acho que vai ficar menos feio. Eu pedi um monte de coisa pra estar nessa primeira página da internet e não tem nada, tipo, está um monte de. E aí? Bemvindo à internet do Kentucky já está ali, que é do Kentucky, já está lá em cima. entendeu? Quando eu clico no sou um colaborador legal aparece ali, gostei, aí prontos, beleza. Aí pergunta da filial, aí se identificar. Ok também. Está ciente e entra. Aí, eu quero que ele me diga aqui né, que seja na mesma tela. Não tem o botão de voltar também aqui em lugar nenhum. Então se ele vai me dizer como é que ele está, se está ótimo. Beleza. Não tem que ter um continuar, é enviar. E embaixo ter toda a parte de, de políticas e eu mandei uma foto de como que eu quero, eu quero que tenha uma capa, e ali, o o nome daquela sessão e uma introdução breve e a quantidade né que tem ali explícita, né explicando bonitinho, não esses ícones feios. A lista de aniversariantes, eu quero que apareça a foto da pessoa, o nome da pessoa, o cargo, a filial, a data de aniversário e a idade dela. E, você está fazendo um mockup Então eu preciso ver como é que fica a IA, entendeu? Quais seriam os ali em deixar um recado, a ideia super legal, colocou já alguns emojis selecionados, e etcétera. Pesquisa de clima, quando tiver vai aparecer aqui também, aqui. Cachinhas de sugestão. Tem que ter um botão também te deixar um feedback pra quem, pra um gestor, anônimo ou não, sobre alguma situação, elogio, crítica, dúvida, deixar tipo isso, sabe? Mas uma, você está separando por sessões né, eu quero numa única visualização. Deixa eu ver no do gestor. consigo acessar nada do gestor. Consegui. Ah, abriu. Gestor, solicitar vaga, registrar feedback, pesquisa de clima, não tem nenhum. Ok. Manol de, ok, ficou, está vendo que está está, tipo uma página no do gestor? É isso que eu quero. Deixa eu ver da Zoom como é que está. Lembrando que tudo tem que ter login, tá? Ninguém pode acessar as áreas sim, um login então, a a Zoom tem uma vez onde o login, onde dela. Ok. Publicar número a notícia vídeo, tem que ter o link do vídeo né e tem que aparecer o vídeo lá, entendeu? Quando vamos conhecer. E aí, quando tiver alguma como um pedido de ajuda. Tem que deixar registrado aqui que a pessoa clicou no WhatsApp da Zoom, então tipo a pessoa pode ser direcionada pelo WhatsApp já, com essa essa questão, está bom? Então tenho que arrumar toda essa parte de logo, eu não gostei. Ponto centralizado, tá? Lateral esquerda né, foi centralizado, e arruma versão web, eu não consigo ver a versão celular aqui porque eu estou no meu computador. E a mesma coisa, eu não quero esse ícone que você está usando aqui no seu colaborador, sou gestor, sou assume, tipo, eu quero imagens que depois eventualmente eu coloco. Aqui, no mural de equipe, você colocou em destaque o emoji, mas não colocou em destaque do que se trata, data comemorativa, não entendi isso aqui. Não sei se você está entendendo.
 
-## Fluxo de desenvolvimento
+Pedi pra ele construir isso, né, que tem como proposta ser uma wiki, uma intranet mais simples, né. Muito dos acessos dela vão ser redire-- vão ser botões que vão levar para outros lugares, ou seja, pra um drive, pra uma paaasta, pra outros lugares. Mas alguns precisam ficar registrados, né, todos os acessos precisam ter logins, os de gestão, né, login e senha. O dos colaboradores não precisa, basta o nome e o CPF. Os primeiros se-- ali do CPF e confirmar que é a pessoa mesmo, né, e a filial. Só que a construção do HTML ficou muito confuso, não tá numa versão boa pra web, porque o, o gestor também vai ver e o colaborador também vai ver pela web se ele quiser. A Azumi só vai ver pela web, mas o colaborador, na maioria das vezes, vai ver pela, pelo celular. Então ele tem que ter uma versão que se adapte bem a celular, né, que fique bonito e tudo mais, e que também se adapte à, à web. É, ele tá com fundo escuro, mas eu não quero esse fundo escuro, eu quero que esse fique num fundo claro, obviamente, né, branco, com as cores do Kentucky ali que são esses roxos e tudo mais, e tendo um, como se fosse um degradê com o da Azumi, se encontrassem as cores assim, mas bem suave, sabe? Fo-fontes boas de fazer leitura, no caso a Poppins, né, apenas elas, apenas a Poppins. É, Poppins negrito assim pra tudo que for destaque, títulos e etc. Ééé, eu quero que tenha capas, todos os-- as políticas tenham uma capa, o título, aí a pessoa acessa e etc., e tá-tá-tá. Ééé, que seja possível futuramente colocar foto do colaborador. Eu sei que-- só que assim, a gente tem que pensar que seja uma intranet que não precisa de back-end. A ideia é que seja simples mesmo pra empresa ver que é possível que eles tenham. Então assim, a gente vai usar algumas fotos sim, mas tudo em Supabase. Perdão, tudo, é, em Base 99, ou seja, dentro do código. Então é importantíssimo que não seja necessário construir um back-end, tá? Especificamente. É, a gente vai precisar do Resend, mas a gente pode fazer sim um Supabase pra ter o autenticador e tudo mais do, dooo, do login, mas, ééé, que não consuma muito, sabe? A ideia é que o su-- o back-end seja bem simples e que o foco seja no front-end e o máximo que a gente conseguir via código mesmo. Ééé, não quero nada que fique preso dentro do Lovable, você é o construtor, mas não é o, o principal, tá bom? Eu vou colocar ali no GitHub e vou subir ele na Vercel. Então você tenha essas informações já, por favor. Indiferentemente, crie algo que seja alinhado ao que eu falei, tá? Ééé, eu acho que a UX e a UI também têm muita oportunidade. Ééé, precisa ser uma, uma experiência agradável pro colaborador e obviamente pro RH
+
+This project was built with [Lovable](https://lovable.dev).
+
+## Build with Lovable
+
+Continue developing this project in the [Lovable editor](https://lovable.dev/projects/80dfba98-91f9-4d32-96a4-fbf574f2b1b7).
+
+- **Ship faster**: describe what you want to build and Lovable handles the code.
+- **Stay in sync**: every change made in Lovable is committed straight to this repository.
+- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
+
+## Development
+
+Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
+
+```sh
+git clone <this-repository-url>
+cd <repository-name>
+npm i
+npm run dev
+```
+
+## Production workflow
 
 Mudanças de produção devem passar por branch de trabalho, preview da Vercel, revisão em pull request e validação antes de merge na `main`.
 
-A branch `feat/production-hardening` concentra a atual revisão de identidade, notificações, segurança operacional e preparação de e-mails transacionais.
-
-## Integrações principais
-
-- Supabase: autenticação, banco, storage e realtime.
-- Vercel: build, previews e produção.
-- Resend: e-mails transacionais do servidor.
-
-## Segurança
-
-Não colocar `SUPABASE_SERVICE_ROLE_KEY` ou `RESEND_API_KEY` em código cliente. As chaves server-only devem permanecer em variáveis de ambiente do ambiente de execução.
+A branch `feat/production-hardening` concentra a revisão atual de identidade, notificações, segurança operacional e preparação de e-mails transacionais.
