@@ -7,6 +7,7 @@ import { BRAND } from "@/lib/brand";
 import { Button } from "@/components/ui/button";
 import { NotificationCenter } from "@/components/kt/notification-center";
 import { WorkspaceOverview } from "@/components/kt/workspace-overview";
+import { WorkspaceSupportRouting } from "@/components/kt/workspace-support-routing";
 
 type WorkspaceItem = { id: string; label: string };
 
@@ -159,6 +160,7 @@ export function AppShell({
             <WorkspaceNav items={workspace.items} label={workspace.label} />
             <div id="workspace-top" data-workspace-mode={workspace.mode} className="min-w-0 scroll-mt-24">
               <WorkspaceOverview mode={workspace.mode} />
+              <WorkspaceSupportRouting mode={workspace.mode} />
               <div className="legacy-workspace-content">{children}</div>
             </div>
           </div>
