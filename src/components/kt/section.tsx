@@ -3,6 +3,17 @@ import * as AccordionPrimitive from "@radix-ui/react-accordion";
 import { ChevronDown } from "lucide-react";
 import { iniciais } from "@/lib/kt-data";
 
+function clientCopy(value: string) {
+  return value
+    .replace(/Respostas da equipe Azumi RH?/gi, "Respostas do RH")
+    .replace(/pela equipe Azumi RH/gi, "pelo RH")
+    .replace(/pela Azumi RH/gi, "pelo RH")
+    .replace(/com a equipe Azumi RH/gi, "com o RH")
+    .replace(/equipe Azumi RH/gi, "equipe de RH")
+    .replace(/equipe Azumi/gi, "equipe de RH")
+    .replace(/Azumi RH/gi, "RH");
+}
+
 export function Section({
   id,
   titulo,
@@ -22,11 +33,13 @@ export function Section({
   collapsible?: boolean | undefined;
   defaultOpen?: boolean | undefined;
 }) {
+  const displayTitle = clientCopy(titulo);
+  const displayIntro = clientCopy(intro);
   const header = (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
       <div className="min-w-0 flex-1">
-        <h2 className="text-base font-bold leading-tight text-foreground sm:text-lg">{titulo}</h2>
-        <p className="mt-1 max-w-3xl text-sm leading-relaxed text-muted-foreground">{intro}</p>
+        <h2 className="text-base font-bold leading-tight text-foreground sm:text-lg">{displayTitle}</h2>
+        <p className="mt-1 max-w-3xl text-sm leading-relaxed text-muted-foreground">{displayIntro}</p>
       </div>
       {(contagem || acao) ? (
         <div className="flex shrink-0 flex-wrap items-center gap-2">
@@ -62,8 +75,8 @@ export function Section({
             <div className="flex items-start gap-3">
               <AccordionPrimitive.Trigger className="flex min-w-0 flex-1 cursor-pointer items-start gap-3 text-left [&[data-state=open]>svg]:rotate-180">
                 <div className="min-w-0 flex-1">
-                  <h2 className="text-base font-bold leading-tight text-foreground sm:text-lg">{titulo}</h2>
-                  <p className="mt-1 max-w-3xl text-sm leading-relaxed text-muted-foreground">{intro}</p>
+                  <h2 className="text-base font-bold leading-tight text-foreground sm:text-lg">{displayTitle}</h2>
+                  <p className="mt-1 max-w-3xl text-sm leading-relaxed text-muted-foreground">{displayIntro}</p>
                 </div>
                 <ChevronDown className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground transition-transform duration-200" />
               </AccordionPrimitive.Trigger>
@@ -105,7 +118,7 @@ export function Avatar({
       height={size}
       loading="lazy"
       className="shrink-0 rounded-full object-cover ring-1 ring-border"
-      style={{ width: size, height: size }}
+      style={{ width: size, height: size, objectPosition: "50% 35%" }}
     />
   ) : (
     <span
