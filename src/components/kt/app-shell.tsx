@@ -16,18 +16,19 @@ import { BRAND } from "@/lib/brand";
 import { Button } from "@/components/ui/button";
 import { EmployeeProfileHeader } from "@/components/kt/employee-profile-header";
 import { NotificationCenter } from "@/components/kt/notification-center";
+import { WorkspaceAccessCenter } from "@/components/kt/workspace-access-center";
+import { WorkspaceCaseCenter } from "@/components/kt/workspace-case-center";
 import { WorkspaceOverview } from "@/components/kt/workspace-overview";
 import { WorkspacePhotoAdjuster } from "@/components/kt/workspace-photo-adjuster";
-import { WorkspaceSupportRouting } from "@/components/kt/workspace-support-routing";
 
-type WorkspaceGroup = "Principal" | "Atenção" | "Rotina" | "Pessoas" | "Conteúdo";
+type WorkspaceGroup = "Principal" | "Atenção" | "Rotina" | "Pessoas" | "Conteúdo" | "Administração";
 type WorkspaceItem = { id: string; label: string; group: WorkspaceGroup };
 type EmployeeItem = { id: string; label: string; icon: ReactNode };
 
 const MANAGER_NAV: WorkspaceItem[] = [
   { id: "workspace-top", label: "Visão geral", group: "Principal" },
-  { id: "apoio", label: "Pedidos de conversa", group: "Atenção" },
   { id: "feedbacks", label: "Feedbacks", group: "Atenção" },
+  { id: "apoio", label: "Pedidos de conversa", group: "Atenção" },
   { id: "clima", label: "Clima da equipe", group: "Rotina" },
   { id: "politicas", label: "Documentos", group: "Rotina" },
   { id: "equipe", label: "Equipe", group: "Pessoas" },
@@ -37,14 +38,15 @@ const MANAGER_NAV: WorkspaceItem[] = [
 
 const HR_NAV: WorkspaceItem[] = [
   { id: "workspace-top", label: "Visão geral", group: "Principal" },
+  { id: "feedbacks", label: "Feedbacks e triagem", group: "Atenção" },
   { id: "apoio", label: "Pedidos de apoio", group: "Atenção" },
-  { id: "feedbacks", label: "Triagem e feedbacks", group: "Atenção" },
   { id: "sugestoes", label: "Sugestões", group: "Atenção" },
   { id: "clima", label: "Clima", group: "Pessoas" },
   { id: "colaboradores", label: "Colaboradores", group: "Pessoas" },
   { id: "politicas", label: "Documentos", group: "Conteúdo" },
   { id: "publicar", label: "Comunicação", group: "Conteúdo" },
   { id: "pesquisa-clima", label: "Pesquisas", group: "Conteúdo" },
+  { id: "acessos", label: "Acessos e permissões", group: "Administração" },
 ];
 
 const EMPLOYEE_NAV: EmployeeItem[] = [
@@ -290,7 +292,7 @@ export function AppShell({
         className={`app-container flex-1 py-5 sm:py-7 lg:py-8 ${employeeWorkspace ? "pb-24 sm:pb-7 lg:pb-8" : ""}`}
       >
         {workspace ? (
-          <div className="mx-auto w-full max-w-[1320px] lg:grid lg:grid-cols-[218px_minmax(0,1fr)] lg:gap-6 xl:grid-cols-[230px_minmax(0,1fr)] xl:gap-8">
+          <div className="mx-auto w-full max-w-[1400px] lg:grid lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-6 xl:grid-cols-[232px_minmax(0,1fr)] xl:gap-8">
             <WorkspaceNav items={workspace.items} label={workspace.label} />
             <div
               id="workspace-top"
@@ -298,7 +300,7 @@ export function AppShell({
               className="min-w-0 scroll-mt-24"
             >
               <WorkspaceOverview mode={workspace.mode} />
-              <WorkspaceSupportRouting mode={workspace.mode} />
+              <WorkspaceCaseCenter mode={workspace.mode} />
               <WorkspacePhotoAdjuster mode={workspace.mode} />
               <div
                 className={`legacy-workspace-content min-w-0 ${
@@ -307,6 +309,7 @@ export function AppShell({
               >
                 {children}
               </div>
+              {workspace.mode === "hr" ? <WorkspaceAccessCenter /> : null}
             </div>
           </div>
         ) : employeeWorkspace ? (
