@@ -25,6 +25,7 @@ type EmployeeItem = { id: string; label: string; icon: ReactNode };
 
 const MANAGER_NAV: WorkspaceItem[] = [
   { id: "workspace-top", label: "Visão geral", group: "Principal" },
+  { id: "apoio", label: "Pedidos de conversa", group: "Atenção" },
   { id: "feedbacks", label: "Feedbacks", group: "Atenção" },
   { id: "clima", label: "Clima da equipe", group: "Rotina" },
   { id: "politicas", label: "Documentos", group: "Rotina" },
