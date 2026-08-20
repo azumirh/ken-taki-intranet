@@ -83,11 +83,7 @@ export function WorkspaceSupportRouting({ mode }: { mode: Mode }) {
       setManagers(
         managerResult
           .filter((manager) => manager.ativo && manager.filial)
-          .map((manager) => ({
-            id: manager.id,
-            nome: manager.nome,
-            filial: manager.filial,
-          })),
+          .map((manager) => ({ id: manager.id, nome: manager.nome, filial: manager.filial })),
       );
       return;
     }
@@ -100,9 +96,7 @@ export function WorkspaceSupportRouting({ mode }: { mode: Mode }) {
       .or(`destino_inicial.eq.gestor,gestor_id.eq.${current.id}`)
       .order("ts", { ascending: false })
       .limit(20);
-    setSupports(
-      ((data ?? []) as SupportRow[]).filter((item) => item.status !== "resolvido"),
-    );
+    setSupports(((data ?? []) as SupportRow[]).filter((item) => item.status !== "resolvido"));
   }, [mode]);
 
   useEffect(() => {
@@ -158,7 +152,8 @@ export function WorkspaceSupportRouting({ mode }: { mode: Mode }) {
   if (mode === "manager") {
     return (
       <section
-        className="mb-5 overflow-hidden rounded-lg border border-border bg-card"
+        id="apoio"
+        className="mb-5 scroll-mt-24 overflow-hidden rounded-lg border border-border bg-card"
         aria-label="Pedidos de conversa da gestão"
       >
         <div className="flex items-start gap-3 border-b border-border px-4 py-3.5 sm:px-5">
@@ -168,27 +163,19 @@ export function WorkspaceSupportRouting({ mode }: { mode: Mode }) {
           <div>
             <p className="text-sm font-bold text-foreground">Pedidos de conversa em acompanhamento</p>
             <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-              O RH já acompanha todos os registros. Use a ação abaixo quando você precisar de atuação
-              direta do RH neste caso.
+              O RH já acompanha todos os registros. Use a ação abaixo quando você precisar de atuação direta do RH neste caso.
             </p>
           </div>
         </div>
         <div className="divide-y divide-border">
           {supports.slice(0, 6).map((item) => (
-            <div
-              key={item.id}
-              className="grid gap-3 px-4 py-4 sm:px-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center"
-            >
+            <div key={item.id} className="grid gap-3 px-4 py-4 sm:px-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
                   <p className="text-sm font-semibold text-foreground">{item.nome}</p>
-                  <span className="rounded-md bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
-                    {assuntoLabel(item)}
-                  </span>
+                  <span className="rounded-md bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">{assuntoLabel(item)}</span>
                 </div>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {filialNome(item.filial)} · {formatWhen(item.ts)}
-                </p>
+                <p className="mt-1 text-xs text-muted-foreground">{filialNome(item.filial)} · {formatWhen(item.ts)}</p>
               </div>
               <div className="flex items-center gap-2 lg:justify-end">
                 {item.rh_solicitado ? (
@@ -196,12 +183,7 @@ export function WorkspaceSupportRouting({ mode }: { mode: Mode }) {
                     <UserRoundCheck className="h-3.5 w-3.5" /> RH acionado
                   </span>
                 ) : (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={workingId === item.id}
-                    onClick={() => void escalateToHr(item)}
-                  >
+                  <Button variant="outline" size="sm" disabled={workingId === item.id} onClick={() => void escalateToHr(item)}>
                     Solicitar atuação do RH
                   </Button>
                 )}
@@ -215,7 +197,8 @@ export function WorkspaceSupportRouting({ mode }: { mode: Mode }) {
 
   return (
     <section
-      className="mb-5 overflow-hidden rounded-lg border border-border bg-card"
+      id="apoio"
+      className="mb-5 scroll-mt-24 overflow-hidden rounded-lg border border-border bg-card"
       aria-label="Encaminhamento de pedidos de apoio pelo RH"
     >
       <div className="flex items-start gap-3 border-b border-border px-4 py-3.5 sm:px-5">
@@ -225,8 +208,7 @@ export function WorkspaceSupportRouting({ mode }: { mode: Mode }) {
         <div>
           <p className="text-sm font-bold text-foreground">Encaminhamento de pedidos de apoio</p>
           <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-            O RH mantém a visão do caso. Quando fizer sentido envolver a liderança, escolha o gestor
-            da mesma unidade e faça o encaminhamento por aqui.
+            O RH mantém a visão do caso. Quando fizer sentido envolver a liderança, escolha o gestor da mesma unidade e faça o encaminhamento por aqui.
           </p>
         </div>
       </div>
@@ -235,27 +217,18 @@ export function WorkspaceSupportRouting({ mode }: { mode: Mode }) {
           const assigned = item.gestor_id ? managersById.get(item.gestor_id) : undefined;
           const eligible = managers.filter((manager) => manager.filial === item.filial);
           return (
-            <div
-              key={item.id}
-              className="grid gap-3 px-4 py-4 sm:px-5 xl:grid-cols-[minmax(0,1fr)_minmax(220px,300px)_auto] xl:items-center"
-            >
+            <div key={item.id} className="grid gap-3 px-4 py-4 sm:px-5 xl:grid-cols-[minmax(0,1fr)_minmax(220px,300px)_auto] xl:items-center">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
                   <p className="text-sm font-semibold text-foreground">{item.nome}</p>
                   <span className="rounded-md bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
-                    {item.destino_inicial === "gestor"
-                      ? "Colaborador pediu liderança"
-                      : "Entrada pelo RH"}
+                    {item.destino_inicial === "gestor" ? "Colaborador pediu liderança" : "Entrada pelo RH"}
                   </span>
                   {item.rh_solicitado ? (
-                    <span className="rounded-md bg-success-soft px-2 py-0.5 text-[10px] font-semibold text-success">
-                      Gestor pediu apoio do RH
-                    </span>
+                    <span className="rounded-md bg-success-soft px-2 py-0.5 text-[10px] font-semibold text-success">Gestor pediu apoio do RH</span>
                   ) : null}
                 </div>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {filialNome(item.filial)} · {formatWhen(item.ts)}
-                </p>
+                <p className="mt-1 text-xs text-muted-foreground">{filialNome(item.filial)} · {formatWhen(item.ts)}</p>
               </div>
 
               {assigned ? (
@@ -266,38 +239,23 @@ export function WorkspaceSupportRouting({ mode }: { mode: Mode }) {
               ) : (
                 <select
                   value={selectedManager[item.id] ?? ""}
-                  onChange={(event) =>
-                    setSelectedManager((previous) => ({
-                      ...previous,
-                      [item.id]: event.target.value,
-                    }))
-                  }
+                  onChange={(event) => setSelectedManager((previous) => ({ ...previous, [item.id]: event.target.value }))}
                   className="h-9 w-full rounded-md border border-border bg-card px-3 text-xs text-foreground outline-none focus:ring-2 focus:ring-ring/20"
                 >
                   <option value="">Selecionar gestor da unidade</option>
                   {eligible.map((manager) => (
-                    <option key={manager.id} value={manager.id}>
-                      {manager.nome}
-                    </option>
+                    <option key={manager.id} value={manager.id}>{manager.nome}</option>
                   ))}
                 </select>
               )}
 
               <div className="xl:text-right">
                 {assigned ? (
-                  <span className="text-[11px] font-semibold text-success">
-                    Notificado e em acompanhamento
-                  </span>
+                  <span className="text-[11px] font-semibold text-success">Notificado e em acompanhamento</span>
                 ) : eligible.length === 0 ? (
-                  <span className="text-[11px] font-semibold text-warn">
-                    Nenhum gestor ativo nesta unidade
-                  </span>
+                  <span className="text-[11px] font-semibold text-warn">Nenhum gestor ativo nesta unidade</span>
                 ) : (
-                  <Button
-                    size="sm"
-                    disabled={workingId === item.id || !selectedManager[item.id]}
-                    onClick={() => void assignManager(item)}
-                  >
+                  <Button size="sm" disabled={workingId === item.id || !selectedManager[item.id]} onClick={() => void assignManager(item)}>
                     Envolver gestor
                   </Button>
                 )}
