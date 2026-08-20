@@ -34,7 +34,21 @@ export function AdminVisibilityController() {
     return !visible;
   }).map((rule) => `[data-workspace-mode="hr"] [id="${rule.id}"]`);
 
-  if (hiddenSelectors.length === 0) return null;
+  const rules: string[] = [];
+  if (hiddenSelectors.length > 0) {
+    rules.push(`${hiddenSelectors.join(",\n")} { display: none !important; }`);
+  }
 
-  return <style>{`${hiddenSelectors.join(",\n")} { display: none !important; }`}</style>;
+  if (can("sugestoes", "view") && !can("sugestoes", "edit")) {
+    rules.push(`
+      [data-workspace-mode="hr"] #sugestoes .fixed textarea {
+        pointer-events: none !important;
+        opacity: 0.68;
+        background: var(--muted) !important;
+      }
+    `);
+  }
+
+  if (rules.length === 0) return null;
+  return <style>{rules.join("\n")}</style>;
 }
