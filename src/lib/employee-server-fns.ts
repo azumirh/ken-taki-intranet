@@ -1,8 +1,10 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import { createServerFn } from "@tanstack/react-start";
 import { createClient } from "@supabase/supabase-js";
 
 const SUPABASE_URL = "https://nxmwhtkygiljkbovwixk.supabase.co";
+const SUPABASE_ANON_KEY =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im54bXdodGt5Z2lsamtib3Z3aXhrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyMzU0MTcsImV4cCI6MjA5MjgxMTQxN30.vhFqRbCoArHrzsC65Pw6Ht9oPykvE3_lijn4unowKs8";
 const SESSION_TTL_MS = 8 * 60 * 60 * 1000;
 
 type EmployeeLoginInput = {
@@ -30,6 +32,12 @@ function adminClient() {
   });
 }
 
+function authClient() {
+  return createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+}
+
 function encodePayload(payload: EmployeeTokenPayload) {
   return Buffer.from(JSON.stringify(payload), "utf8").toString("base64url");
 }
@@ -41,6 +49,11 @@ function sign(encodedPayload: string) {
 function issueToken(payload: EmployeeTokenPayload) {
   const encoded = encodePayload(payload);
   return `${encoded}.${sign(encoded)}`;
+}
+
+function internalEmployeeEmail(colaboradorId: string) {
+  const suffix = createHash("sha256").update(colaboradorId).digest("hex").slice(0, 24);
+  return `employee-${suffix}@colaborador.kentaki.com.br`;
 }
 
 export function verifyEmployeeToken(token: string): EmployeeTokenPayload | null {
@@ -87,7 +100,7 @@ export const criarSessaoColaboradorFn = createServerFn({ method: "POST" })
     const admin = adminClient();
     const { data: colaboradores, error } = await admin
       .from("kt_colaboradores")
-      .select("id,nome,filial,cpf3,ativo")
+      .select("id,nome,filial,cpf3,ativo,auth_user_id")
       .eq("filial", data.filial)
       .eq("cpf3", cpf3)
       .eq("ativo", true)
@@ -113,6 +126,36 @@ export const criarSessaoColaboradorFn = createServerFn({ method: "POST" })
       exp: expiresAt,
     });
 
+    // The user never sees this synthetic email. generateLink creates the Auth identity
+    // when needed but does not send an email, preserving the passwordless employee UX.
+    const email = internalEmployeeEmail(colaboradorId);
+    const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
+      type: "magiclink",
+      email,
+    });
+    if (linkError) throw new Error(linkError.message);
+
+    const authUserId = linkData.user?.id;
+    const tokenHash = linkData.properties?.hashed_token;
+    if (!authUserId || !tokenHash) throw new Error("Não foi possível criar a sessão autenticada.");
+
+    if (match.auth_user_id !== authUserId) {
+      const { error: mapError } = await admin
+        .from("kt_colaboradores")
+        .update({ auth_user_id: authUserId, updated_at: new Date().toISOString() })
+        .eq("id", colaboradorId);
+      if (mapError) throw new Error(mapError.message);
+    }
+
+    const verifier = authClient();
+    const { data: verified, error: verifyError } = await verifier.auth.verifyOtp({
+      token_hash: tokenHash,
+      type: "email",
+    });
+    if (verifyError || !verified.session) {
+      throw new Error(verifyError?.message ?? "Sessão Supabase não criada.");
+    }
+
     return {
       ok: true as const,
       access: {
@@ -121,6 +164,10 @@ export const criarSessaoColaboradorFn = createServerFn({ method: "POST" })
         colaboradorId,
         nome: nomeCompleto,
         filial,
+      },
+      supabaseSession: {
+        accessToken: verified.session.access_token,
+        refreshToken: verified.session.refresh_token,
       },
     };
   });
