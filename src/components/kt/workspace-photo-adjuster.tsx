@@ -65,7 +65,7 @@ export function WorkspacePhotoAdjuster({ mode }: { mode: Mode }) {
 
   useEffect(() => {
     if (selected) setFrame(rowFrame(selected));
-  }, [selectedId]);
+  }, [selectedId, selected]);
 
   const save = async () => {
     if (!selected) return;
@@ -95,31 +95,25 @@ export function WorkspacePhotoAdjuster({ mode }: { mode: Mode }) {
 
   return (
     <>
-      <div className="mb-5 flex flex-col gap-3 rounded-lg border border-border bg-card px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-5">
-        <div className="flex min-w-0 items-start gap-3">
-          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-muted text-muted-foreground">
-            <ImageIcon className="h-4 w-4" />
-          </span>
-          <div>
-            <p className="text-sm font-bold text-foreground">Enquadramento das fotos</p>
-            <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-              {mode === "hr"
-                ? "Ajuste posição e zoom das fotos das equipes sem alterar o arquivo original."
-                : "Ajuste posição e zoom das fotos da sua unidade sem alterar o arquivo original."}
-            </p>
-          </div>
-        </div>
-        <Button variant="outline" size="sm" className="shrink-0" onClick={() => setOpen(true)}>
-          <SlidersHorizontal className="h-3.5 w-3.5" /> Ajustar fotos
+      <div className="mb-4 flex justify-end">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-8 gap-1.5 px-2.5 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
+          onClick={() => setOpen(true)}
+        >
+          <ImageIcon className="h-3.5 w-3.5" /> Ajustar fotos
         </Button>
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Ajustar enquadramento</DialogTitle>
+            <DialogTitle>Ajustar enquadramento das fotos</DialogTitle>
             <DialogDescription>
-              Escolha uma pessoa e ajuste o foco da foto. O mesmo recorte será usado nos pontos do portal que respeitam o enquadramento salvo.
+              {mode === "hr"
+                ? "Escolha uma pessoa das equipes e ajuste posição e zoom sem alterar a imagem original."
+                : "Escolha uma pessoa da sua unidade e ajuste posição e zoom sem alterar a imagem original."}
             </DialogDescription>
           </DialogHeader>
 
@@ -166,6 +160,11 @@ export function WorkspacePhotoAdjuster({ mode }: { mode: Mode }) {
               </div>
 
               <div className="grid content-start gap-4 rounded-lg border border-border bg-muted/25 p-4">
+                <div className="flex items-start gap-2 rounded-md bg-card px-3 py-2.5 text-xs text-muted-foreground ring-1 ring-border">
+                  <SlidersHorizontal className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                  O recorte salvo será reutilizado onde a foto desta pessoa aparecer no portal.
+                </div>
+
                 <label className="grid gap-2 text-xs font-semibold text-foreground">
                   Horizontal
                   <input
