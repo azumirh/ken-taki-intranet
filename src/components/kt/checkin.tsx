@@ -10,6 +10,7 @@ import { supabase } from "@/lib/supabase";
 import { uid, useCheckins, type Session } from "@/lib/kt-store";
 
 type SupportDestination = "rh" | "gestor";
+type MoodKind = "positive" | "neutral" | "negative";
 
 const HUMOR_HINT: Record<string, string> = {
   otimo: "Seu dia está fluindo muito bem.",
@@ -18,6 +19,46 @@ const HUMOR_HINT: Record<string, string> = {
   dificil: "Tem algo deixando o dia mais pesado.",
   "muito-dificil": "Você sinalizou que precisa de atenção e cuidado.",
 };
+
+const POSITIVE_PARTICLES = ["❤️", "✨", "🎉", "💛", "✦", "❤️", "✨", "🎊", "💫", "❤️", "✦", "🎉"];
+const NEUTRAL_PARTICLES = ["✨", "•", "✦", "✨", "•", "✦", "✨", "•"];
+
+function moodKind(category?: string): MoodKind {
+  if (category === "positiva") return "positive";
+  if (category === "neutra") return "neutral";
+  return "negative";
+}
+
+function MoodBurst({ id, kind }: { id: number; kind: MoodKind }) {
+  if (kind === "negative") {
+    return (
+      <div key={id} className="kt-mood-alert-burst" aria-hidden="true">
+        <span />
+        <span />
+        <span />
+      </div>
+    );
+  }
+
+  const particles = kind === "positive" ? POSITIVE_PARTICLES : NEUTRAL_PARTICLES;
+  return (
+    <div key={id} className={`kt-mood-burst kt-mood-burst-${kind}`} aria-hidden="true">
+      {particles.map((particle, index) => (
+        <span
+          key={`${id}-${index}`}
+          className="kt-mood-particle"
+          style={{
+            left: `${8 + ((index * 17) % 84)}%`,
+            animationDelay: `${(index % 5) * 55}ms`,
+            animationDuration: `${900 + (index % 4) * 120}ms`,
+          }}
+        >
+          {particle}
+        </span>
+      ))}
+    </div>
+  );
+}
 
 function gerarProtocolo() {
   return `KT-${Date.now().toString(36).toUpperCase().slice(-6)}`;
@@ -122,6 +163,7 @@ export function CheckIn({ session }: { session: Extract<Session, { tipo: "colabo
   const [showComment, setShowComment] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [support, setSupport] = useState<{ destination: SupportDestination; protocol: string } | null>(null);
+  const [burst, setBurst] = useState<{ id: number; kind: MoodKind } | null>(null);
 
   const today = new Date().toDateString();
   const todayItems = checkins
@@ -131,6 +173,14 @@ export function CheckIn({ session }: { session: Extract<Session, { tipo: "colabo
   const selected = HUMORES.find((item) => item.id === humor);
   const isNegative = selected?.categoria === "negativa";
   const isNeutral = selected?.categoria === "neutra";
+  const selectedKind = moodKind(selected?.categoria);
+
+  const chooseMood = (id: string, category: string) => {
+    setHumor(id);
+    setSubmitted(false);
+    setSupport(null);
+    setBurst({ id: Date.now(), kind: moodKind(category) });
+  };
 
   const submit = () => {
     if (!selected) return;
@@ -149,6 +199,7 @@ export function CheckIn({ session }: { session: Extract<Session, { tipo: "colabo
     setComentario("");
     setShowComment(false);
     setSupport(null);
+    setBurst({ id: Date.now(), kind: moodKind(selected.categoria) });
     toast.success("Check-in registrado.");
   };
 
@@ -156,6 +207,7 @@ export function CheckIn({ session }: { session: Extract<Session, { tipo: "colabo
     setHumor("");
     setSubmitted(false);
     setSupport(null);
+    setBurst(null);
   };
 
   return (
@@ -164,7 +216,9 @@ export function CheckIn({ session }: { session: Extract<Session, { tipo: "colabo
       intro="Um registro rápido para acompanhar o clima da equipe. Você pode atualizar novamente ao longo do turno."
       contagem="Check-in"
     >
-      <div className="grid gap-5">
+      <div className="relative grid gap-5 overflow-visible">
+        {burst ? <MoodBurst id={burst.id} kind={burst.kind} /> : null}
+
         {todayItems.length > 0 ? (
           <div className="flex flex-col gap-2 rounded-lg border border-success/20 bg-success-soft/55 px-3.5 py-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-2 text-sm font-semibold text-success">
@@ -188,32 +242,36 @@ export function CheckIn({ session }: { session: Extract<Session, { tipo: "colabo
               </div>
 
               <div className="relative pt-2">
-                <div className="absolute left-[9%] right-[9%] top-[27px] h-1 rounded-full bg-gradient-to-r from-destructive via-warn to-success opacity-35" />
+                <div className="absolute left-[9%] right-[9%] top-[27px] h-1 rounded-full bg-gradient-to-r from-destructive via-warn to-success opacity-45" />
                 <div className="relative grid grid-cols-5 gap-1.5 sm:gap-2">
                   {[...HUMORES].reverse().map((item) => {
                     const active = humor === item.id;
+                    const activeClass =
+                      item.categoria === "positiva"
+                        ? "border-success bg-success-soft/80 text-success ring-1 ring-success/20"
+                        : item.categoria === "neutra"
+                          ? "border-warn bg-warn-soft/85 text-warn ring-1 ring-warn/20"
+                          : "border-destructive bg-destructive/8 text-destructive ring-1 ring-destructive/20";
+                    const iconRing =
+                      item.categoria === "positiva"
+                        ? "ring-success/35"
+                        : item.categoria === "neutra"
+                          ? "ring-warn/35"
+                          : "ring-destructive/30";
                     return (
                       <button
                         key={item.id}
                         type="button"
                         aria-pressed={active}
-                        onClick={() => {
-                          setHumor(item.id);
-                          setSubmitted(false);
-                          setSupport(null);
-                        }}
+                        onClick={() => chooseMood(item.id, item.categoria)}
                         className={`relative flex min-h-[78px] flex-col items-center justify-start gap-1 rounded-lg border px-1.5 py-2.5 text-center transition-all sm:min-h-[88px] sm:px-2 ${
-                          active
-                            ? "border-kt bg-kt-soft shadow-sm ring-1 ring-kt/10"
-                            : "border-border bg-card hover:border-foreground/20 hover:bg-muted/30"
+                          active ? activeClass : "border-border bg-card text-muted-foreground hover:border-foreground/20 hover:bg-muted/30"
                         }`}
                       >
-                        <span className={`grid h-9 w-9 place-items-center rounded-full bg-card text-2xl shadow-sm ring-1 ${active ? "ring-kt/30" : "ring-border"}`}>
+                        <span className={`grid h-9 w-9 place-items-center rounded-full bg-card text-2xl shadow-sm ring-1 ${active ? iconRing : "ring-border"}`}>
                           {item.emoji}
                         </span>
-                        <span className={`text-[10px] font-semibold leading-tight sm:text-xs ${active ? "text-kt" : "text-muted-foreground"}`}>
-                          {item.label}
-                        </span>
+                        <span className="text-[10px] font-semibold leading-tight sm:text-xs">{item.label}</span>
                       </button>
                     );
                   })}
@@ -221,8 +279,18 @@ export function CheckIn({ session }: { session: Extract<Session, { tipo: "colabo
               </div>
 
               {selected ? (
-                <div className={`mt-3 rounded-lg border px-3.5 py-3 ${isNegative ? "border-destructive/20 bg-destructive/5" : isNeutral ? "border-warn/20 bg-warn-soft/55" : "border-success/20 bg-success-soft/45"}`}>
-                  <p className="text-sm font-semibold text-foreground">{HUMOR_HINT[selected.id]}</p>
+                <div
+                  className={`mt-3 rounded-lg border px-3.5 py-3 ${
+                    isNegative
+                      ? "border-destructive/30 bg-destructive/7"
+                      : isNeutral
+                        ? "border-warn/30 bg-warn-soft/70"
+                        : "border-success/30 bg-success-soft/65"
+                  }`}
+                >
+                  <p className={`text-sm font-semibold ${isNegative ? "text-destructive" : isNeutral ? "text-warn" : "text-success"}`}>
+                    {HUMOR_HINT[selected.id]}
+                  </p>
                   <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
                     {isNegative
                       ? "Depois de registrar, você poderá escolher se quer apoio do RH ou uma conversa direta com seu gestor."
@@ -275,11 +343,25 @@ export function CheckIn({ session }: { session: Extract<Session, { tipo: "colabo
           </>
         ) : (
           <div className="grid gap-4">
-            <div className="rounded-lg border border-border bg-muted/30 px-4 py-4">
+            <div
+              className={`rounded-lg border px-4 py-4 ${
+                selectedKind === "positive"
+                  ? "border-success/30 bg-success-soft/65"
+                  : selectedKind === "neutral"
+                    ? "border-warn/30 bg-warn-soft/70"
+                    : "border-destructive/30 bg-destructive/7"
+              }`}
+            >
               <div className="flex items-center gap-3">
                 <span className="text-2xl">{selected?.emoji}</span>
                 <div>
-                  <p className="text-sm font-bold text-foreground">Check-in registrado como {selected?.label}</p>
+                  <p
+                    className={`text-sm font-bold ${
+                      selectedKind === "positive" ? "text-success" : selectedKind === "neutral" ? "text-warn" : "text-destructive"
+                    }`}
+                  >
+                    Check-in registrado como {selected?.label}
+                  </p>
                   <p className="mt-0.5 text-xs text-muted-foreground">Você pode fazer um novo registro mais tarde se seu dia mudar.</p>
                 </div>
               </div>
