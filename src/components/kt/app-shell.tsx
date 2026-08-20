@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { EmployeeProfileHeader } from "@/components/kt/employee-profile-header";
 import { NotificationCenter } from "@/components/kt/notification-center";
 import { WorkspaceOverview } from "@/components/kt/workspace-overview";
+import { WorkspacePhotoAdjuster } from "@/components/kt/workspace-photo-adjuster";
 import { WorkspaceSupportRouting } from "@/components/kt/workspace-support-routing";
 
 type WorkspaceGroup = "Principal" | "Atenção" | "Rotina" | "Pessoas" | "Conteúdo";
@@ -252,6 +253,7 @@ export function AppShell({
             >
               <WorkspaceOverview mode={workspace.mode} />
               <WorkspaceSupportRouting mode={workspace.mode} />
+              <WorkspacePhotoAdjuster mode={workspace.mode} />
               <div className="legacy-workspace-content">{children}</div>
             </div>
           </div>
