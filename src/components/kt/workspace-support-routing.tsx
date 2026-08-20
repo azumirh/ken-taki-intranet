@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { filialNome } from "@/lib/kt-data";
+import { listarGestoresFn } from "@/lib/server-fns";
 import { supabase } from "@/lib/supabase";
 
 type Mode = "manager" | "hr";
@@ -76,15 +77,18 @@ export function WorkspaceSupportRouting({ mode }: { mode: Mode }) {
           .or("status.is.null,status.neq.resolvido")
           .order("ts", { ascending: false })
           .limit(30),
-        supabase
-          .from("kt_perfis")
-          .select("id,nome,filial")
-          .eq("tipo", "gestor")
-          .eq("ativo", true)
-          .order("nome"),
+        listarGestoresFn(),
       ]);
       setSupports((supportResult.data ?? []) as SupportRow[]);
-      setManagers((managerResult.data ?? []) as ManagerRow[]);
+      setManagers(
+        managerResult
+          .filter((manager) => manager.ativo && manager.filial)
+          .map((manager) => ({
+            id: manager.id,
+            nome: manager.nome,
+            filial: manager.filial,
+          })),
+      );
       return;
     }
 
@@ -153,7 +157,10 @@ export function WorkspaceSupportRouting({ mode }: { mode: Mode }) {
 
   if (mode === "manager") {
     return (
-      <section className="mb-5 overflow-hidden rounded-lg border border-border bg-card" aria-label="Pedidos de conversa da gestão">
+      <section
+        className="mb-5 overflow-hidden rounded-lg border border-border bg-card"
+        aria-label="Pedidos de conversa da gestão"
+      >
         <div className="flex items-start gap-3 border-b border-border px-4 py-3.5 sm:px-5">
           <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-muted text-foreground">
             <LifeBuoy className="h-4 w-4" />
@@ -161,13 +168,17 @@ export function WorkspaceSupportRouting({ mode }: { mode: Mode }) {
           <div>
             <p className="text-sm font-bold text-foreground">Pedidos de conversa em acompanhamento</p>
             <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-              O RH já acompanha todos os registros. Use a ação abaixo quando você precisar de atuação direta do RH neste caso.
+              O RH já acompanha todos os registros. Use a ação abaixo quando você precisar de atuação
+              direta do RH neste caso.
             </p>
           </div>
         </div>
         <div className="divide-y divide-border">
           {supports.slice(0, 6).map((item) => (
-            <div key={item.id} className="grid gap-3 px-4 py-4 sm:px-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+            <div
+              key={item.id}
+              className="grid gap-3 px-4 py-4 sm:px-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center"
+            >
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
                   <p className="text-sm font-semibold text-foreground">{item.nome}</p>
@@ -203,7 +214,10 @@ export function WorkspaceSupportRouting({ mode }: { mode: Mode }) {
   }
 
   return (
-    <section className="mb-5 overflow-hidden rounded-lg border border-border bg-card" aria-label="Encaminhamento de pedidos de apoio pelo RH">
+    <section
+      className="mb-5 overflow-hidden rounded-lg border border-border bg-card"
+      aria-label="Encaminhamento de pedidos de apoio pelo RH"
+    >
       <div className="flex items-start gap-3 border-b border-border px-4 py-3.5 sm:px-5">
         <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-kt-soft text-kt">
           <UserRoundCheck className="h-4 w-4" />
@@ -211,7 +225,8 @@ export function WorkspaceSupportRouting({ mode }: { mode: Mode }) {
         <div>
           <p className="text-sm font-bold text-foreground">Encaminhamento de pedidos de apoio</p>
           <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-            O RH mantém a visão do caso. Quando fizer sentido envolver a liderança, escolha o gestor da mesma unidade e faça o encaminhamento por aqui.
+            O RH mantém a visão do caso. Quando fizer sentido envolver a liderança, escolha o gestor
+            da mesma unidade e faça o encaminhamento por aqui.
           </p>
         </div>
       </div>
@@ -220,15 +235,22 @@ export function WorkspaceSupportRouting({ mode }: { mode: Mode }) {
           const assigned = item.gestor_id ? managersById.get(item.gestor_id) : undefined;
           const eligible = managers.filter((manager) => manager.filial === item.filial);
           return (
-            <div key={item.id} className="grid gap-3 px-4 py-4 sm:px-5 xl:grid-cols-[minmax(0,1fr)_minmax(220px,300px)_auto] xl:items-center">
+            <div
+              key={item.id}
+              className="grid gap-3 px-4 py-4 sm:px-5 xl:grid-cols-[minmax(0,1fr)_minmax(220px,300px)_auto] xl:items-center"
+            >
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
                   <p className="text-sm font-semibold text-foreground">{item.nome}</p>
                   <span className="rounded-md bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
-                    {item.destino_inicial === "gestor" ? "Colaborador pediu liderança" : "Entrada pelo RH"}
+                    {item.destino_inicial === "gestor"
+                      ? "Colaborador pediu liderança"
+                      : "Entrada pelo RH"}
                   </span>
                   {item.rh_solicitado ? (
-                    <span className="rounded-md bg-success-soft px-2 py-0.5 text-[10px] font-semibold text-success">Gestor pediu apoio do RH</span>
+                    <span className="rounded-md bg-success-soft px-2 py-0.5 text-[10px] font-semibold text-success">
+                      Gestor pediu apoio do RH
+                    </span>
                   ) : null}
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">
@@ -263,9 +285,13 @@ export function WorkspaceSupportRouting({ mode }: { mode: Mode }) {
 
               <div className="xl:text-right">
                 {assigned ? (
-                  <span className="text-[11px] font-semibold text-success">Notificado e em acompanhamento</span>
+                  <span className="text-[11px] font-semibold text-success">
+                    Notificado e em acompanhamento
+                  </span>
                 ) : eligible.length === 0 ? (
-                  <span className="text-[11px] font-semibold text-warn">Nenhum gestor ativo nesta unidade</span>
+                  <span className="text-[11px] font-semibold text-warn">
+                    Nenhum gestor ativo nesta unidade
+                  </span>
                 ) : (
                   <Button
                     size="sm"
