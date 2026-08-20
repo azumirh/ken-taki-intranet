@@ -125,6 +125,7 @@
   }
 
   table {
+    width: 100%;
     border-collapse: collapse;
     font-variant-numeric: tabular-nums;
   }
@@ -181,10 +182,16 @@
 @utility gradient-union { background-image: var(--gradient-union); }
 @utility text-union { color: var(--kt); }
 
-/* Enquanto os módulos grandes são decompostos, o novo workspace substitui
-   os cabeçalhos e KPIs legados para evitar informação duplicada. */
+/* The new workspace replaces the old greeting and KPI blocks. Keeping both
+   created the exact duplicated/empty feeling the redesign is removing. */
 [data-workspace-mode] .legacy-workspace-content > .grid > :first-child,
 [data-workspace-mode] .legacy-workspace-content > .grid > :nth-child(2) {
+  display: none;
+}
+
+/* RH also had an older pending-alert banner immediately after the KPIs.
+   Its information now lives in the role-aware queue above. */
+[data-workspace-mode="hr"] .legacy-workspace-content > .grid > :nth-child(3) {
   display: none;
 }
 
@@ -213,9 +220,30 @@ main .shadow-2xl {
   box-shadow: var(--shadow-lift) !important;
 }
 
+/* Prevent legacy modules from pushing the page outside the viewport. Wide
+   data remains scrollable inside its own frame rather than moving the whole UI. */
+.legacy-workspace-content,
+.legacy-workspace-content > *,
+.legacy-workspace-content .surface {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.legacy-workspace-content .overflow-x-auto {
+  max-width: 100%;
+  overscroll-behavior-inline: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
 @media (max-width: 639px) {
-  main table { min-width: 680px; }
+  main .legacy-workspace-content table { min-width: 680px; }
   main .surface { box-shadow: none; }
+
+  .legacy-workspace-content select,
+  .legacy-workspace-content input,
+  .legacy-workspace-content textarea {
+    max-width: 100%;
+  }
 }
 
 @media (min-width: 640px) {
