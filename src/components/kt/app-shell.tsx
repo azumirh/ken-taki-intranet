@@ -6,6 +6,7 @@ import { useSession } from "@/lib/kt-store";
 import { BRAND } from "@/lib/brand";
 import { Button } from "@/components/ui/button";
 import { NotificationCenter } from "@/components/kt/notification-center";
+import { WorkspaceOverview } from "@/components/kt/workspace-overview";
 
 type WorkspaceItem = { id: string; label: string };
 
@@ -121,9 +122,9 @@ export function AppShell({
   const podeSair = (session || onLogout) && onExit !== false;
   const workspace = onLogout
     ? pathname === "/gestor"
-      ? { items: MANAGER_NAV, label: "Gestão da unidade" }
+      ? { items: MANAGER_NAV, label: "Gestão da unidade", mode: "manager" as const }
       : pathname === "/azumi"
-        ? { items: HR_NAV, label: "RH · visão consolidada" }
+        ? { items: HR_NAV, label: "RH · visão consolidada", mode: "hr" as const }
         : null
     : null;
 
@@ -156,7 +157,10 @@ export function AppShell({
         {workspace ? (
           <div className="lg:grid lg:grid-cols-[210px_minmax(0,1fr)] lg:gap-6 xl:grid-cols-[230px_minmax(0,1fr)] xl:gap-8">
             <WorkspaceNav items={workspace.items} label={workspace.label} />
-            <div id="workspace-top" className="min-w-0 scroll-mt-24">{children}</div>
+            <div id="workspace-top" className="min-w-0 scroll-mt-24">
+              <WorkspaceOverview mode={workspace.mode} />
+              {children}
+            </div>
           </div>
         ) : (
           children
