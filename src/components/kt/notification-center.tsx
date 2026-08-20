@@ -29,6 +29,7 @@ const ATTENTION_TYPES = new Set([
   "manager_escalated_to_hr",
   "manager_escalated_support_to_hr",
   "hr_involved",
+  "employee_record_updated",
 ]);
 
 function formatWhen(value: string) {
@@ -54,6 +55,9 @@ function metaFor(type: string, title: string): NotificationMeta {
   if (type === "support_requested") {
     return { label: "Apoio", tone: "attention", icon: <LifeBuoy className="h-4 w-4" /> };
   }
+  if (type === "employee_record_updated") {
+    return { label: "Cadastro", tone: "attention", icon: <UserRoundCheck className="h-4 w-4" /> };
+  }
   if (type === "feedback_released_by_hr" || type.includes("manager") || title.toLowerCase().includes("gestor")) {
     return { label: "Gestão", tone: "attention", icon: <UserRoundCheck className="h-4 w-4" /> };
   }
@@ -66,7 +70,7 @@ function metaFor(type: string, title: string): NotificationMeta {
 
 function toneClasses(tone: NotificationMeta["tone"], read: boolean) {
   if (read) return "border-border bg-muted text-muted-foreground";
-  if (tone === "critical") return "border-destructive/25 bg-destructive/8 text-destructive";
+  if (tone === "critical") return "border-destructive/25 bg-destructive/10 text-destructive";
   if (tone === "attention") return "border-warn/25 bg-warn-soft text-warn";
   if (tone === "success") return "border-success/25 bg-success-soft text-success";
   return "border-kt/20 bg-kt-soft text-kt";
@@ -76,6 +80,7 @@ function actionLabel(actionUrl?: string | null) {
   if (!actionUrl) return "Abrir";
   if (actionUrl.includes("feedback")) return "Ver feedback";
   if (actionUrl.includes("apoio")) return "Abrir atendimento";
+  if (actionUrl.includes("equipe")) return "Ver equipe";
   if (actionUrl.includes("document") || actionUrl.includes("politicas")) return "Ver documentos";
   return "Abrir item";
 }
@@ -114,16 +119,16 @@ export function NotificationCenter() {
       </button>
 
       {open ? (
-        <div className="fixed inset-0 z-[70]">
+        <div className="fixed inset-0 z-[90] isolate">
           <button
             type="button"
             aria-label="Fechar notificações"
-            className="absolute inset-0 bg-black/25 backdrop-blur-[1px]"
+            className="absolute inset-0 bg-[#211a1f]/35"
             onClick={() => setOpen(false)}
           />
 
-          <aside className="absolute inset-y-0 right-0 flex w-full max-w-[500px] flex-col border-l border-border bg-card shadow-2xl sm:w-[min(94vw,500px)]">
-            <header className="border-b border-border px-4 py-4 sm:px-5">
+          <aside className="absolute inset-y-0 right-0 z-10 flex w-full max-w-[500px] flex-col border-l border-[#ddd5d9] bg-[#fffdf9] opacity-100 shadow-[-18px_0_55px_-28px_rgba(28,19,25,0.55)] sm:w-[min(94vw,500px)]">
+            <header className="border-b border-[#e1dbd6] bg-[#fffdf9] px-4 py-4 sm:px-5">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-base font-bold text-foreground">Central de atividades</p>
@@ -133,7 +138,7 @@ export function NotificationCenter() {
                 </div>
                 <button
                   type="button"
-                  className="grid h-9 w-9 place-items-center rounded-md border border-border text-muted-foreground hover:bg-muted hover:text-foreground"
+                  className="grid h-9 w-9 place-items-center rounded-md border border-border bg-[#fffdf9] text-muted-foreground hover:bg-muted hover:text-foreground"
                   onClick={() => setOpen(false)}
                   aria-label="Fechar"
                 >
@@ -142,23 +147,23 @@ export function NotificationCenter() {
               </div>
 
               <div className="mt-4 grid grid-cols-3 gap-2">
-                <div className="rounded-md border border-border bg-muted/35 px-3 py-2">
+                <div className="rounded-md border border-border bg-[#f5f1ed] px-3 py-2">
                   <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">Não lidas</p>
                   <p className="mt-0.5 text-lg font-bold tabular-nums text-foreground">{unreadCount}</p>
                 </div>
-                <div className="rounded-md border border-warn/20 bg-warn-soft/45 px-3 py-2">
+                <div className="rounded-md border border-warn/25 bg-[#faf2e2] px-3 py-2">
                   <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-warn">Atenção</p>
                   <p className="mt-0.5 text-lg font-bold tabular-nums text-warn">{attentionCount}</p>
                 </div>
-                <div className="rounded-md border border-border bg-muted/35 px-3 py-2">
+                <div className="rounded-md border border-border bg-[#f5f1ed] px-3 py-2">
                   <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">Total</p>
                   <p className="mt-0.5 text-lg font-bold tabular-nums text-foreground">{items.length}</p>
                 </div>
               </div>
             </header>
 
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-2.5 sm:px-5">
-              <div className="flex gap-1 rounded-md bg-muted p-1">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#e1dbd6] bg-[#fffdf9] px-4 py-2.5 sm:px-5">
+              <div className="flex gap-1 rounded-md bg-[#f1ede9] p-1">
                 {([
                   ["all", "Todas"],
                   ["unread", "Não lidas"],
@@ -169,7 +174,7 @@ export function NotificationCenter() {
                     type="button"
                     onClick={() => setFilter(value)}
                     className={`rounded px-2.5 py-1.5 text-[11px] font-semibold transition-colors ${
-                      filter === value ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                      filter === value ? "bg-[#fffdf9] text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
                     }`}
                   >
                     {label}
@@ -189,7 +194,7 @@ export function NotificationCenter() {
               ) : null}
             </div>
 
-            <div className="min-h-0 flex-1 overflow-y-auto">
+            <div className="min-h-0 flex-1 overflow-y-auto bg-[#fffdf9]">
               {loading ? (
                 <p className="px-5 py-10 text-center text-sm text-muted-foreground">Carregando atividades...</p>
               ) : visibleItems.length === 0 ? (
@@ -203,7 +208,7 @@ export function NotificationCenter() {
                   </p>
                 </div>
               ) : (
-                <div className="divide-y divide-border">
+                <div className="divide-y divide-[#e5dfda]">
                   {visibleItems.map((item) => {
                     const meta = metaFor(item.type, item.title);
                     return (
@@ -215,8 +220,8 @@ export function NotificationCenter() {
                           if (item.actionUrl) window.location.href = item.actionUrl;
                           setOpen(false);
                         }}
-                        className={`block w-full px-4 py-4 text-left transition-colors hover:bg-muted/45 sm:px-5 ${
-                          item.readAt ? "bg-card" : "bg-background/55"
+                        className={`block w-full px-4 py-4 text-left transition-colors hover:bg-[#f5f1ed] sm:px-5 ${
+                          item.readAt ? "bg-[#fffdf9]" : "bg-[#f1e9ee]"
                         }`}
                       >
                         <div className="flex items-start gap-3.5">
