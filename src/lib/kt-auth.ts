@@ -3,10 +3,11 @@ import { supabase } from "./supabase";
 
 export type KtPerfil = {
   id: string;
-  tipo: "gestor" | "azumi";
+  tipo: "gestor" | "azumi" | "rh";
   filial: "cristo-rei" | "champagnat" | null;
   nome: string;
   precisa_trocar_senha: boolean;
+  ativo?: boolean;
 };
 
 export type KtAuthState =
@@ -18,11 +19,14 @@ export function useKtAuth() {
   const [state, setState] = useState<KtAuthState>({ status: "loading" });
 
   const loadPerfil = useCallback(async (userId: string, email: string) => {
-    const { data } = await supabase.from("kt_perfis").select("*").eq("id", userId).single();
-    if (!data) {
+    const { data, error } = await supabase.from("kt_perfis").select("*").eq("id", userId).single();
+
+    if (error || !data || data.ativo === false) {
+      await supabase.auth.signOut().catch(() => undefined);
       setState({ status: "anon" });
       return;
     }
+
     setState({ status: "autenticado", perfil: data as KtPerfil, email });
   }, []);
 
@@ -32,7 +36,7 @@ export function useKtAuth() {
         setState({ status: "anon" });
         return;
       }
-      loadPerfil(session.user.id, session.user.email ?? "");
+      void loadPerfil(session.user.id, session.user.email ?? "");
     });
 
     const {
@@ -42,7 +46,7 @@ export function useKtAuth() {
         setState({ status: "anon" });
         return;
       }
-      loadPerfil(session.user.id, session.user.email ?? "");
+      void loadPerfil(session.user.id, session.user.email ?? "");
     });
 
     return () => subscription.unsubscribe();
@@ -80,7 +84,7 @@ export function useKtAuth() {
         .from("kt_perfis")
         .update({ precisa_trocar_senha: false, updated_at: new Date().toISOString() })
         .eq("id", user.id);
-      loadPerfil(user.id, user.email ?? "");
+      void loadPerfil(user.id, user.email ?? "");
     }
   }
 
