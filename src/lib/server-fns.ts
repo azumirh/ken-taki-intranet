@@ -14,6 +14,12 @@ type CriarGestorInput = {
   admissao?: string | undefined;
 };
 
+type ValidarColaboradorInput = {
+  nome: string;
+  cpf3: string;
+  filial: "cristo-rei" | "champagnat";
+};
+
 function gerarSenhaTemp(): string {
   const num = Math.floor(1000 + Math.random() * 9000);
   const suf = Math.random().toString(36).slice(2, 5).toUpperCase();
@@ -43,14 +49,55 @@ function validarServiceKey(key: string | undefined): string {
   return clean;
 }
 
+function criarAdminClient() {
+  const serviceKey = validarServiceKey(process.env["SUPABASE_SERVICE_ROLE_KEY"]);
+  return createClient(SUPABASE_URL, serviceKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+}
+
+export const validarColaboradorFn = createServerFn({ method: "POST" })
+  .validator((input: ValidarColaboradorInput) => input)
+  .handler(async ({ data }) => {
+    const nome = data.nome.trim();
+    const cpf3 = data.cpf3.trim();
+
+    if (nome.length < 3 || !/^\d{3}$/.test(cpf3)) {
+      return { ok: false as const, motivo: "dados_invalidos" as const };
+    }
+
+    const admin = criarAdminClient();
+    const { data: colaboradores, error } = await admin
+      .from("kt_colaboradores")
+      .select("id,nome,filial,cpf3,ativo")
+      .eq("filial", data.filial)
+      .eq("cpf3", cpf3)
+      .eq("ativo", true)
+      .limit(10);
+
+    if (error) throw new Error(error.message);
+
+    const nomeNorm = nome.toLocaleLowerCase("pt-BR");
+    const match = (colaboradores ?? []).find((c) =>
+      String(c.nome).toLocaleLowerCase("pt-BR").startsWith(nomeNorm),
+    );
+
+    if (!match) return { ok: false as const, motivo: "nao_encontrado" as const };
+
+    return {
+      ok: true as const,
+      colaborador: {
+        id: String(match.id),
+        nome: String(match.nome),
+        filial: String(match.filial) as "cristo-rei" | "champagnat",
+      },
+    };
+  });
+
 export const criarGestorFn = createServerFn({ method: "POST" })
   .validator((input: CriarGestorInput) => input)
   .handler(async ({ data }) => {
-    const serviceKey = validarServiceKey(process.env["SUPABASE_SERVICE_ROLE_KEY"]);
-
-    const admin = createClient(SUPABASE_URL, serviceKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    });
+    const admin = criarAdminClient();
 
     const senhaTemp = gerarSenhaTemp();
 
@@ -137,10 +184,7 @@ export const criarGestorFn = createServerFn({ method: "POST" })
   });
 
 export const listarGestoresFn = createServerFn({ method: "GET" }).handler(async () => {
-  const serviceKey = validarServiceKey(process.env["SUPABASE_SERVICE_ROLE_KEY"]);
-  const admin = createClient(SUPABASE_URL, serviceKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
+  const admin = criarAdminClient();
   const { data, error } = await admin
     .from("kt_perfis")
     .select("id, nome, tipo, filial, ativo, created_at")
@@ -177,10 +221,7 @@ export const listarGestoresFn = createServerFn({ method: "GET" }).handler(async 
 export const desativarGestorFn = createServerFn({ method: "POST" })
   .validator((input: { userId: string }) => input)
   .handler(async ({ data }) => {
-    const serviceKey = validarServiceKey(process.env["SUPABASE_SERVICE_ROLE_KEY"]);
-    const admin = createClient(SUPABASE_URL, serviceKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    });
+    const admin = criarAdminClient();
 
     const { error: perfilError } = await admin
       .from("kt_perfis")
