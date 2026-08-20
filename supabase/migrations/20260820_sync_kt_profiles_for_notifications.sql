@@ -18,11 +18,13 @@ begin
   select email into v_email from auth.users where id = p_user_id;
   if v_email is null or v_email = '' then return; end if;
 
+  -- Respect the existing shared profiles_role_check contract.
   v_role := case
-    when v_kt.tipo = 'gestor' then 'gestor'
-    when v_kt.tipo in ('azumi','rh') then 'rh'
-    else v_kt.tipo
+    when v_kt.tipo = 'gestor' then 'gestor_cliente'
+    when v_kt.tipo in ('azumi','rh') then 'admin_azumi'
+    else null
   end;
+  if v_role is null then return; end if;
 
   insert into public.profiles (id,nome,email,role,ativo)
   values (v_kt.id,v_kt.nome,v_email,v_role,coalesce(v_kt.ativo,true))
