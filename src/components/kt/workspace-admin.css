@@ -86,12 +86,14 @@
   background: color-mix(in srgb, var(--card) 92%, var(--background));
 }
 
-/* The managed case center above is now the canonical feedback/support UI.
-   Suppress the old tables inside the legacy route to avoid duplicated workflows. */
+/* New operational centers are canonical. Hide the legacy equivalents inside
+   route files so users never see two versions of the same process. */
 [data-workspace-mode="hr"] .hr-workspace-content #feedbacks,
 [data-workspace-mode="hr"] .hr-workspace-content #apoio,
+[data-workspace-mode="hr"] .hr-workspace-content #clima,
 [data-workspace-mode="manager"] .manager-workspace-content #feedbacks,
-[data-workspace-mode="manager"] .manager-workspace-content #apoio {
+[data-workspace-mode="manager"] .manager-workspace-content #apoio,
+[data-workspace-mode="manager"] .manager-workspace-content #clima {
   display: none !important;
 }
 
