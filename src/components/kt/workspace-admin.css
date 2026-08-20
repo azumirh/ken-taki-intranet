@@ -14,7 +14,12 @@
   --gradient-union: linear-gradient(120deg, #342330 0%, #4b3142 58%, #67515f 100%);
 }
 
-/* Manager / RH workspace refinements. Scoped so the collaborator content
+:root[data-profile-background="ivory"] { --background: #f6f4f0; }
+:root[data-profile-background="paper"] { --background: #fbfaf7; }
+:root[data-profile-background="plum-soft"] { --background: #f4eef2; }
+:root[data-profile-background="graphite-soft"] { --background: #efedec; }
+
+/* Manager / HR workspace refinements. Scoped so the collaborator content
    structure is untouched even though the Ken Taki brand palette is shared. */
 [data-workspace-mode] {
   --workspace-accent: var(--profile-accent, var(--kt));
@@ -106,6 +111,12 @@
 
 [data-workspace-mode] .legacy-workspace-content .surface {
   overflow: clip;
+}
+
+/* Personal accent is deliberately limited to navigation/progress/detail accents;
+   the core Ken Taki brand hero remains institutional. */
+[data-workspace-mode] button[aria-current="location"] {
+  border-color: var(--workspace-accent) !important;
 }
 
 /* Data tables should use the available width first. Horizontal scrolling is a
