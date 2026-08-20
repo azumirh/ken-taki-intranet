@@ -19,6 +19,7 @@ import { NotificationCenter } from "@/components/kt/notification-center";
 import { WorkspaceAccessCenter } from "@/components/kt/workspace-access-center";
 import { WorkspaceCaseCenter } from "@/components/kt/workspace-case-center";
 import { WorkspaceOverview } from "@/components/kt/workspace-overview";
+import { WorkspacePersonalization } from "@/components/kt/workspace-personalization";
 import { WorkspacePhotoAdjuster } from "@/components/kt/workspace-photo-adjuster";
 
 type WorkspaceGroup = "Principal" | "Atenção" | "Rotina" | "Pessoas" | "Conteúdo" | "Administração";
@@ -300,6 +301,7 @@ export function AppShell({
               className="min-w-0 scroll-mt-24"
             >
               <WorkspaceOverview mode={workspace.mode} />
+              <WorkspacePersonalization />
               <WorkspaceCaseCenter mode={workspace.mode} />
               <WorkspacePhotoAdjuster mode={workspace.mode} />
               <div
