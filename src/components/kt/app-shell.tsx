@@ -19,30 +19,30 @@ import { NotificationCenter } from "@/components/kt/notification-center";
 import { WorkspaceOverview } from "@/components/kt/workspace-overview";
 import { WorkspaceSupportRouting } from "@/components/kt/workspace-support-routing";
 
-type WorkspaceItem = { id: string; label: string };
-
-type EmployeeItem = WorkspaceItem & { icon: ReactNode };
+type WorkspaceGroup = "Principal" | "Atenção" | "Rotina" | "Pessoas" | "Conteúdo";
+type WorkspaceItem = { id: string; label: string; group: WorkspaceGroup };
+type EmployeeItem = { id: string; label: string; icon: ReactNode };
 
 const MANAGER_NAV: WorkspaceItem[] = [
-  { id: "workspace-top", label: "Visão geral" },
-  { id: "clima", label: "Clima" },
-  { id: "politicas", label: "Documentos" },
-  { id: "feedbacks", label: "Feedbacks" },
-  { id: "sugestoes", label: "Sugestões" },
-  { id: "pesquisa-clima", label: "Pesquisa" },
-  { id: "equipe", label: "Equipe" },
+  { id: "workspace-top", label: "Visão geral", group: "Principal" },
+  { id: "feedbacks", label: "Feedbacks", group: "Atenção" },
+  { id: "clima", label: "Clima da equipe", group: "Rotina" },
+  { id: "politicas", label: "Documentos", group: "Rotina" },
+  { id: "equipe", label: "Equipe", group: "Pessoas" },
+  { id: "sugestoes", label: "Sugestões", group: "Pessoas" },
+  { id: "pesquisa-clima", label: "Pesquisa", group: "Conteúdo" },
 ];
 
 const HR_NAV: WorkspaceItem[] = [
-  { id: "workspace-top", label: "Visão geral" },
-  { id: "clima", label: "Clima" },
-  { id: "apoio", label: "Apoio" },
-  { id: "feedbacks", label: "Triagem e feedbacks" },
-  { id: "sugestoes", label: "Sugestões" },
-  { id: "politicas", label: "Documentos" },
-  { id: "colaboradores", label: "Pessoas" },
-  { id: "publicar", label: "Comunicação" },
-  { id: "pesquisa-clima", label: "Pesquisas" },
+  { id: "workspace-top", label: "Visão geral", group: "Principal" },
+  { id: "apoio", label: "Pedidos de apoio", group: "Atenção" },
+  { id: "feedbacks", label: "Triagem e feedbacks", group: "Atenção" },
+  { id: "sugestoes", label: "Sugestões", group: "Atenção" },
+  { id: "clima", label: "Clima", group: "Pessoas" },
+  { id: "colaboradores", label: "Colaboradores", group: "Pessoas" },
+  { id: "politicas", label: "Documentos", group: "Conteúdo" },
+  { id: "publicar", label: "Comunicação", group: "Conteúdo" },
+  { id: "pesquisa-clima", label: "Pesquisas", group: "Conteúdo" },
 ];
 
 const EMPLOYEE_NAV: EmployeeItem[] = [
@@ -88,6 +88,7 @@ function goToSection(id: string) {
 }
 
 function WorkspaceNav({ items, label }: { items: WorkspaceItem[]; label: string }) {
+  const groups = Array.from(new Set(items.map((item) => item.group)));
   return (
     <>
       <div className="sticky top-16 z-30 -mx-4 mb-4 border-b border-border bg-background/95 px-4 py-2 backdrop-blur lg:hidden">
@@ -97,7 +98,7 @@ function WorkspaceNav({ items, label }: { items: WorkspaceItem[]; label: string 
               key={item.id}
               type="button"
               onClick={() => goToSection(item.id)}
-              className="shrink-0 rounded-md border border-border bg-card px-3 py-2 text-xs font-semibold text-muted-foreground hover:border-kt/30 hover:bg-kt-soft/40 hover:text-foreground"
+              className="shrink-0 rounded-md border border-border bg-card px-3 py-2 text-xs font-semibold text-muted-foreground transition-colors hover:border-kt/30 hover:bg-kt-soft/40 hover:text-foreground"
             >
               {item.label}
             </button>
@@ -106,23 +107,38 @@ function WorkspaceNav({ items, label }: { items: WorkspaceItem[]; label: string 
       </div>
 
       <aside className="hidden lg:block">
-        <div className="sticky top-24 overflow-hidden rounded-lg border border-border bg-card">
-          <div className="border-b border-border px-4 py-3">
-            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
-              Workspace
+        <div className="sticky top-24 overflow-hidden rounded-lg border border-sidebar-border bg-sidebar text-sidebar-foreground shadow-sm">
+          <div className="border-b border-sidebar-border px-4 py-4">
+            <p className="text-[10px] font-bold uppercase tracking-[0.17em] text-sidebar-foreground/55">
+              Ken Taki · Intranet
             </p>
-            <p className="mt-1 text-sm font-bold text-foreground">{label}</p>
+            <p className="mt-1 text-sm font-bold text-sidebar-foreground">{label}</p>
           </div>
-          <nav className="grid p-2">
-            {items.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => goToSection(item.id)}
-                className="rounded-md px-3 py-2.5 text-left text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              >
-                {item.label}
-              </button>
+          <nav className="grid gap-1 p-2.5">
+            {groups.map((group) => (
+              <div key={group} className="grid gap-1">
+                {group !== "Principal" ? (
+                  <p className="px-3 pb-1 pt-3 text-[9px] font-bold uppercase tracking-[0.16em] text-sidebar-foreground/40">
+                    {group}
+                  </p>
+                ) : null}
+                {items
+                  .filter((item) => item.group === group)
+                  .map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => goToSection(item.id)}
+                      className={`rounded-md px-3 py-2.5 text-left text-sm font-medium transition-colors ${
+                        item.id === "workspace-top"
+                          ? "bg-sidebar-accent text-sidebar-foreground"
+                          : "text-sidebar-foreground/72 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                      }`}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+              </div>
             ))}
           </nav>
         </div>
@@ -226,7 +242,7 @@ export function AppShell({
         className={`app-container flex-1 py-5 sm:py-7 lg:py-8 ${employeeWorkspace ? "pb-24 sm:pb-7 lg:pb-8" : ""}`}
       >
         {workspace ? (
-          <div className="lg:grid lg:grid-cols-[210px_minmax(0,1fr)] lg:gap-6 xl:grid-cols-[230px_minmax(0,1fr)] xl:gap-8">
+          <div className="mx-auto w-full max-w-[1320px] lg:grid lg:grid-cols-[218px_minmax(0,1fr)] lg:gap-6 xl:grid-cols-[230px_minmax(0,1fr)] xl:gap-8">
             <WorkspaceNav items={workspace.items} label={workspace.label} />
             <div
               id="workspace-top"
@@ -249,9 +265,7 @@ export function AppShell({
         )}
       </main>
 
-      <footer
-        className={`mt-8 border-t border-border bg-card/70 ${employeeWorkspace ? "hidden sm:block" : ""}`}
-      >
+      <footer className={`mt-8 border-t border-border bg-card/70 ${employeeWorkspace ? "hidden sm:block" : ""}`}>
         <div className="app-container flex flex-col gap-4 py-6 sm:flex-row sm:items-end sm:justify-between">
           <div className="grid gap-2">
             <Brand />
