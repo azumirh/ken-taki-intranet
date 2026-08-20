@@ -69,6 +69,9 @@ export function EmployeeContentInstrumentation() {
   const newsKey = noticias.map((item) => item.id).join("|");
   const muralKey = muralFiltrado.map((item) => item.id).join("|");
   const surveyKey = pesquisa?.id ?? "";
+  const surveyActionKey = pesquisa
+    ? [...(actions[mapKey("pesquisa", pesquisa.id)] ?? [])].sort().join("|")
+    : "";
 
   useEffect(() => {
     let cancelled = false;
@@ -175,18 +178,42 @@ export function EmployeeContentInstrumentation() {
           surveySection.dataset["ktContentId"] = pesquisa.id;
           observer.observe(surveySection);
 
+          const buttons = Array.from(surveySection.querySelectorAll<HTMLButtonElement>("button"));
+          const yesButton = buttons.find((button) => button.textContent?.includes("Já respondi"));
+          const noButton = buttons.find((button) => button.textContent?.includes("Ainda não respondi"));
+          const responseRow = yesButton?.parentElement ?? noButton?.parentElement ?? null;
+          const surveyActions = actions[mapKey("pesquisa", pesquisa.id)] ?? [];
+          const shouldShowResponse =
+            surveyActions.includes("click") ||
+            surveyActions.includes("responded_yes") ||
+            surveyActions.includes("responded_no");
+
+          if (responseRow && !shouldShowResponse) {
+            responseRow.classList.add("hidden");
+            cleanups.push(() => responseRow.classList.remove("hidden"));
+          }
+
+          const revealResponse = () => {
+            if (!responseRow) return;
+            responseRow.classList.remove("hidden");
+            responseRow.scrollIntoView({ behavior: "smooth", block: "nearest" });
+          };
+
           const surveyAnchor = Array.from(
             surveySection.querySelectorAll<HTMLAnchorElement>("a[href]"),
           ).find((anchor) => anchor.href === pesquisa.link || anchor.getAttribute("href") === pesquisa.link);
           if (surveyAnchor) {
-            const onClick = () => void recordContentAction("pesquisa", pesquisa.id, "click");
+            const onClick = () => {
+              void recordContentAction("pesquisa", pesquisa.id, "click").then((result) => {
+                if (result.ok) {
+                  setActions((current) => addLocalAction(current, "pesquisa", pesquisa.id, "click"));
+                }
+              });
+              window.setTimeout(revealResponse, 250);
+            };
             surveyAnchor.addEventListener("click", onClick);
             cleanups.push(() => surveyAnchor.removeEventListener("click", onClick));
           }
-
-          const buttons = Array.from(surveySection.querySelectorAll<HTMLButtonElement>("button"));
-          const yesButton = buttons.find((button) => button.textContent?.includes("Já respondi"));
-          const noButton = buttons.find((button) => button.textContent?.includes("Ainda não respondi"));
 
           if (yesButton) {
             const onYes = () => {
@@ -241,9 +268,8 @@ export function EmployeeContentInstrumentation() {
       viewTimers.forEach((timer) => window.clearTimeout(timer));
       observer.disconnect();
       cleanups.forEach((cleanup) => cleanup());
-      setTargets([]);
     };
-  }, [session, newsKey, muralKey, surveyKey, pesquisa?.ativa, pesquisa?.link]);
+  }, [session, newsKey, muralKey, surveyKey, surveyActionKey, pesquisa?.ativa, pesquisa?.link]);
 
   const hasAction = (type: ContentType, id: string, action: ContentAction) =>
     (actions[mapKey(type, id)] ?? []).includes(action);
