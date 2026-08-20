@@ -1,3 +1,4 @@
+import "./workspace-admin.css";
 import {
   Bell,
   CheckCheck,
@@ -40,32 +41,16 @@ function formatWhen(value: string) {
 
 function metaFor(type: string, title: string): NotificationMeta {
   if (type === "document_signed") {
-    return {
-      label: "Documento",
-      tone: "success",
-      icon: <FileCheck2 className="h-4 w-4" />,
-    };
+    return { label: "Documento", tone: "success", icon: <FileCheck2 className="h-4 w-4" /> };
   }
   if (type === "manager_escalated_support_to_hr") {
-    return {
-      label: "Escalonamento",
-      tone: "critical",
-      icon: <ShieldAlert className="h-4 w-4" />,
-    };
+    return { label: "Escalonamento", tone: "critical", icon: <ShieldAlert className="h-4 w-4" /> };
   }
   if (type === "support_requested") {
-    return {
-      label: "Apoio",
-      tone: "attention",
-      icon: <LifeBuoy className="h-4 w-4" />,
-    };
+    return { label: "Apoio", tone: "attention", icon: <LifeBuoy className="h-4 w-4" /> };
   }
   if (type.includes("manager") || title.toLowerCase().includes("gestor")) {
-    return {
-      label: "Gestão",
-      tone: "attention",
-      icon: <UserRoundCheck className="h-4 w-4" />,
-    };
+    return { label: "Gestão", tone: "attention", icon: <UserRoundCheck className="h-4 w-4" /> };
   }
   return {
     label: "Feedback",
