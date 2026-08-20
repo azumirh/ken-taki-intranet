@@ -1,4 +1,25 @@
-/* Manager / HR workspace refinements. Scoped so the collaborator experience is untouched. */
+/* Ken Taki workspace identity. The core system remains neutral/ivory; operational
+   accents use the deep aubergine/plum language visible in the restaurant brand. */
+:root {
+  --kt: #4b3142;
+  --kt-soft: #efe7ed;
+  --primary: #4b3142;
+  --ring: #4b3142;
+  --az: #7b6659;
+  --az-soft: #f0ebe6;
+  --sidebar: #2d2029;
+  --sidebar-accent: #463340;
+  --sidebar-border: #584650;
+  --sidebar-ring: #b99eae;
+  --gradient-union: linear-gradient(120deg, #342330 0%, #4b3142 58%, #67515f 100%);
+}
+
+/* Manager / RH workspace refinements. Scoped so the collaborator content
+   structure is untouched even though the Ken Taki brand palette is shared. */
+[data-workspace-mode] {
+  --workspace-accent: var(--profile-accent, var(--kt));
+}
+
 [data-workspace-mode] .legacy-workspace-content > .grid {
   gap: 1rem;
 }
@@ -60,7 +81,45 @@
   background: color-mix(in srgb, var(--card) 92%, var(--background));
 }
 
+/* The managed case center above is now the canonical feedback/support UI.
+   Suppress the old tables inside the legacy route to avoid duplicated workflows. */
+[data-workspace-mode="hr"] .hr-workspace-content #feedbacks,
+[data-workspace-mode="hr"] .hr-workspace-content #apoio,
+[data-workspace-mode="manager"] .manager-workspace-content #feedbacks,
+[data-workspace-mode="manager"] .manager-workspace-content #apoio {
+  display: none !important;
+}
+
+/* RH access management has moved to the new full-width Access Center rendered
+   after the legacy modules. The old narrow action/table bundle is the final
+   child of the current RH route and is intentionally retired during migration. */
+[data-workspace-mode="hr"] .hr-workspace-content > .grid > :last-child {
+  display: none !important;
+}
+
+/* Give the remaining RH/manager sections room to use the content column. */
+[data-workspace-mode] .legacy-workspace-content > .grid,
+[data-workspace-mode] .legacy-workspace-content > .grid > * {
+  width: 100%;
+  min-width: 0;
+}
+
+[data-workspace-mode] .legacy-workspace-content .surface {
+  overflow: clip;
+}
+
+/* Data tables should use the available width first. Horizontal scrolling is a
+   fallback only for truly wide datasets, never the default desktop treatment. */
 @media (min-width: 1024px) {
+  [data-workspace-mode] .legacy-workspace-content .overflow-x-auto {
+    overflow-x: visible;
+  }
+
+  [data-workspace-mode] .legacy-workspace-content table {
+    min-width: 0 !important;
+    table-layout: auto;
+  }
+
   [data-workspace-mode] .legacy-workspace-content > .grid > div.grid[class*="lg:grid-cols-2"] {
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)) !important;
     align-items: start;
