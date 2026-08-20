@@ -6,23 +6,26 @@
 - Contador de não lidas.
 - Marcação individual e em massa como lida.
 - Atualização via Supabase Realtime.
-- Migration versionada com triggers para:
-  - assinatura de documento;
-  - feedback;
-  - pedido de apoio.
-- Compatibilidade temporária com perfis `azumi` e futuros perfis `rh`.
+- Triggers para assinatura de documento, feedback e pedido de apoio.
+- Fila transacional `kt_email_outbox` com status, tentativas, erro e ID do provedor.
+- Compatibilidade temporária com perfis técnicos `azumi` e futuros perfis `rh`.
+- Sessão autenticada de colaborador preservando a UX nome + filial + 3 últimos dígitos do CPF.
+- RLS endurecido validado para colaborador, gestor e RH; produção mantém camada compatível até o rollout do novo frontend.
 
-## Antes do merge para produção
+## Ordem segura de rollout
 
-1. Aplicar a migration em ambiente seguro/branch do Supabase.
-2. Testar um gestor de cada filial.
-3. Testar o perfil RH.
-4. Confirmar que feedback anônimo não revela autor ao gestor.
-5. Confirmar que pedido de apoio sem `gestor_id` vai apenas para RH.
-6. Confirmar que pedido com `gestor_id` também notifica o gestor indicado.
-7. Validar Realtime de `app_notifications`.
-8. Validar links de ação das notificações.
+1. Publicar a branch da aplicação e validar o login autenticado de colaborador no preview/produção controlada.
+2. Confirmar leitura/gravação dos históricos privados com `colaborador_id`.
+3. Reativar as policies RLS endurecidas para feedbacks, sugestões, apoio, assinaturas e leituras.
+4. Confirmar gestor limitado à própria filial e RH com visão autorizada completa.
+5. Conectar o worker da fila `kt_email_outbox` ao Resend.
+6. Validar entrega, retry e registro de erro do provedor.
+7. Somente depois avançar para refino visual e demais itens P1/P2.
 
-## E-mail transacional
+## Regras de e-mail
 
-O e-mail de primeiro acesso já usa Resend e passou a registrar falhas nos logs. O próximo passo é conectar os mesmos eventos de negócio a um dispatcher transacional com histórico de entrega, sem bloquear a gravação do evento principal caso o provedor de e-mail esteja indisponível.
+- Assinatura de documento: e-mail para destinatários operacionais elegíveis.
+- Feedback relevante: e-mail conforme roteamento e confidencialidade.
+- Pedido de apoio: RH por padrão; gestor apenas quando explicitamente associado.
+- Leituras comuns não geram e-mail para evitar excesso de notificações.
+- Falha do provedor nunca deve desfazer a ação principal do usuário.
