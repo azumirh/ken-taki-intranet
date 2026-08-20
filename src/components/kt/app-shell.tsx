@@ -14,11 +14,13 @@ import { AZUMI_CONTACT } from "@/lib/kt-data";
 import { useSession } from "@/lib/kt-store";
 import { BRAND } from "@/lib/brand";
 import { Button } from "@/components/ui/button";
+import { EmployeeContentInstrumentation } from "@/components/kt/employee-content-instrumentation";
 import { EmployeeProfileHeader } from "@/components/kt/employee-profile-header";
 import { NotificationCenter } from "@/components/kt/notification-center";
 import { WorkspaceAccessCenter } from "@/components/kt/workspace-access-center";
 import { WorkspaceCaseCenter } from "@/components/kt/workspace-case-center";
 import { WorkspaceClimateReport } from "@/components/kt/workspace-climate-report";
+import { WorkspaceContentAnalytics } from "@/components/kt/workspace-content-analytics";
 import { WorkspaceOverview } from "@/components/kt/workspace-overview";
 import { WorkspacePeopleAdmin } from "@/components/kt/workspace-people-admin";
 import { WorkspacePersonalization } from "@/components/kt/workspace-personalization";
@@ -50,6 +52,7 @@ const HR_NAV: WorkspaceItem[] = [
   { id: "politicas", label: "Documentos", group: "Conteúdo" },
   { id: "publicar", label: "Comunicação", group: "Conteúdo" },
   { id: "pesquisa-clima", label: "Pesquisas", group: "Conteúdo" },
+  { id: "engajamento", label: "Engajamento", group: "Conteúdo" },
   { id: "acessos", label: "Acessos e permissões", group: "Administração" },
 ];
 
@@ -224,6 +227,7 @@ export function AppShell({ children, back, onExit, onLogout }: { children: React
               <WorkspaceClimateReport mode={workspace.mode} />
               {workspace.mode === "hr" ? <WorkspaceSuggestions /> : null}
               {workspace.mode === "hr" ? <WorkspacePeopleAdmin /> : null}
+              {workspace.mode === "hr" ? <WorkspaceContentAnalytics /> : null}
               <WorkspacePhotoAdjuster mode={workspace.mode} />
               <div className={`legacy-workspace-content min-w-0 ${workspace.mode === "hr" ? "hr-workspace-content" : "manager-workspace-content"} [&>div.grid]:gap-4 [&>div.grid>div.grid]:min-w-0 [&>div.grid>div.grid]:items-start [&>div.grid>div.grid]:gap-4 [&_.surface]:min-w-0 [&_.surface]:max-w-full`}>
                 {children}
@@ -232,7 +236,7 @@ export function AppShell({ children, back, onExit, onLogout }: { children: React
             </div>
           </div>
         ) : employeeWorkspace ? (
-          <div id="employee-top" data-employee-workspace className="min-w-0 scroll-mt-24"><EmployeeProfileHeader /><EmployeeNav />{children}</div>
+          <div id="employee-top" data-employee-workspace className="min-w-0 scroll-mt-24"><EmployeeProfileHeader /><EmployeeNav />{children}<EmployeeContentInstrumentation /></div>
         ) : children}
       </main>
 
