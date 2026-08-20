@@ -9,6 +9,7 @@ import {
   ThumbsUp,
   UsersRound,
 } from "lucide-react";
+import { useAdminPermissions } from "@/lib/admin-permissions";
 import { supabase } from "@/lib/supabase";
 
 type ContentType = "noticia" | "mural" | "pesquisa";
@@ -78,6 +79,7 @@ function PersonList({ label, people, tone = "default" }: { label: string; people
 }
 
 export function WorkspaceContentAnalytics() {
+  const { loading: permissionLoading, can } = useAdminPermissions();
   const [filter, setFilter] = useState<Filter>("all");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -85,7 +87,24 @@ export function WorkspaceContentAnalytics() {
   const [people, setPeople] = useState<Person[]>([]);
   const [content, setContent] = useState<ContentItem[]>([]);
 
+  const allowedTypes = useMemo<ContentType[]>(() => {
+    const result: ContentType[] = [];
+    if (can("noticias", "view")) result.push("noticia");
+    if (can("mural", "view")) result.push("mural");
+    if (can("pesquisas", "view")) result.push("pesquisa");
+    return result;
+  }, [can]);
+  const allowedKey = allowedTypes.join("|");
+
   const load = useCallback(async () => {
+    if (permissionLoading || allowedTypes.length === 0) {
+      setInteractions([]);
+      setPeople([]);
+      setContent([]);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
@@ -93,27 +112,22 @@ export function WorkspaceContentAnalytics() {
         supabase
           .from("kt_content_interactions")
           .select("actor_auth_id,content_type,content_id,action,created_at")
+          .in("content_type", allowedTypes)
           .order("created_at", { ascending: false })
           .limit(5000),
         supabase
           .from("kt_colaboradores")
           .select("nome,filial,auth_user_id")
           .eq("ativo", true),
-        supabase
-          .from("kt_noticias")
-          .select("id,titulo,created_at")
-          .order("created_at", { ascending: false })
-          .limit(40),
-        supabase
-          .from("kt_mural")
-          .select("id,titulo,mensagem,filial,created_at")
-          .order("created_at", { ascending: false })
-          .limit(50),
-        supabase
-          .from("kt_pesquisas")
-          .select("id,titulo,ts,ativa")
-          .order("ts", { ascending: false })
-          .limit(30),
+        allowedTypes.includes("noticia")
+          ? supabase.from("kt_noticias").select("id,titulo,created_at").order("created_at", { ascending: false }).limit(40)
+          : Promise.resolve({ data: [], error: null }),
+        allowedTypes.includes("mural")
+          ? supabase.from("kt_mural").select("id,titulo,mensagem,filial,created_at").order("created_at", { ascending: false }).limit(50)
+          : Promise.resolve({ data: [], error: null }),
+        allowedTypes.includes("pesquisa")
+          ? supabase.from("kt_pesquisas").select("id,titulo,ts,ativa").order("ts", { ascending: false }).limit(30)
+          : Promise.resolve({ data: [], error: null }),
       ]);
 
       const firstError = [interactionRes.error, peopleRes.error, newsRes.error, muralRes.error, surveyRes.error].find(Boolean);
@@ -152,16 +166,29 @@ export function WorkspaceContentAnalytics() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [allowedKey, permissionLoading]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
+  useEffect(() => {
+    if (filter !== "all" && !allowedTypes.includes(filter)) setFilter("all");
+  }, [allowedKey, filter]);
+
   const visible = useMemo(
-    () => content.filter((item) => filter === "all" || item.type === filter).slice(0, 16),
-    [content, filter],
+    () => content.filter((item) => allowedTypes.includes(item.type) && (filter === "all" || item.type === filter)).slice(0, 16),
+    [content, filter, allowedKey],
   );
+
+  const filterOptions: Array<[Filter, string]> = [
+    ["all", "Todos"],
+    ...(allowedTypes.includes("noticia") ? [["noticia", "Notícias e vídeos"] as [Filter, string]] : []),
+    ...(allowedTypes.includes("mural") ? [["mural", "Mural"] as [Filter, string]] : []),
+    ...(allowedTypes.includes("pesquisa") ? [["pesquisa", "Pesquisas"] as [Filter, string]] : []),
+  ];
+
+  if (permissionLoading || allowedTypes.length === 0) return null;
 
   return (
     <section id="engajamento" className="mb-5 scroll-mt-24 rounded-lg border border-border bg-card shadow-sm">
@@ -184,12 +211,7 @@ export function WorkspaceContentAnalytics() {
       </div>
 
       <div className="flex flex-wrap gap-1.5 border-b border-border px-4 py-3 sm:px-5 lg:px-6">
-        {([
-          ["all", "Todos"],
-          ["noticia", "Notícias e vídeos"],
-          ["mural", "Mural"],
-          ["pesquisa", "Pesquisas"],
-        ] as const).map(([value, label]) => (
+        {filterOptions.map(([value, label]) => (
           <button
             key={value}
             type="button"
