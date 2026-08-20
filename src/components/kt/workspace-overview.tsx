@@ -1,4 +1,12 @@
-import { AlertTriangle, ArrowUpRight, FileCheck2, LifeBuoy, MessageSquareText, ShieldCheck } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowUpRight,
+  FileCheck2,
+  LifeBuoy,
+  MessageSquareText,
+  ShieldCheck,
+  UserRoundCheck,
+} from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -49,6 +57,10 @@ function when(value: string) {
   });
 }
 
+function needsRhTriage(item: FeedbackRow) {
+  return item.triagem_rh_status === "pendente" || item.triagem_rh_status === "em_analise";
+}
+
 function Metric({
   label,
   value,
@@ -63,9 +75,21 @@ function Metric({
   attention?: boolean;
 }) {
   return (
-    <div className={`rounded-lg border p-4 ${attention && value > 0 ? "border-warn/30 bg-warn-soft/45" : "border-border bg-card"}`}>
+    <div
+      className={`rounded-lg border p-4 ${
+        attention && value > 0
+          ? "border-warn/30 bg-warn-soft/45"
+          : "border-border bg-card"
+      }`}
+    >
       <div className="flex items-start justify-between gap-3">
-        <span className={`grid h-9 w-9 place-items-center rounded-md ${attention && value > 0 ? "bg-card text-warn" : "bg-muted text-muted-foreground"}`}>
+        <span
+          className={`grid h-9 w-9 place-items-center rounded-md ${
+            attention && value > 0
+              ? "bg-card text-warn"
+              : "bg-muted text-muted-foreground"
+          }`}
+        >
           {icon}
         </span>
         {attention && value > 0 ? <span className="h-2 w-2 rounded-full bg-warn" /> : null}
@@ -98,64 +122,83 @@ export function WorkspaceOverview({ mode }: { mode: Mode }) {
         .eq("id", auth.user.id)
         .maybeSingle();
       if (!p) return;
+
       const current = p as Profile;
       setProfile(current);
 
       if (mode === "hr") {
-        const [fb, help, sg, docs, signatures] = await Promise.all([
+        const [fb, help, sg] = await Promise.all([
           supabase
             .from("kt_feedbacks")
-            .select("id,tipo,mensagem,anonimo,autor,filial,ts,status,destino,triagem_rh_status,gestor_liberado,escalado_rh")
-            .in("triagem_rh_status", ["pendente", "em_analise", "retido_rh"])
+            .select(
+              "id,tipo,mensagem,anonimo,autor,filial,ts,status,destino,triagem_rh_status,gestor_liberado,escalado_rh",
+            )
+            .or("triagem_rh_status.in.(pendente,em_analise),escalado_rh.eq.true")
             .order("ts", { ascending: false })
-            .limit(20),
+            .limit(30),
           supabase
             .from("kt_ajuda")
             .select("id,nome,filial,assunto,ts,status,destino_inicial,gestor_id")
-            .neq("status", "resolvido")
+            .or("status.is.null,status.neq.resolvido")
             .order("ts", { ascending: false })
             .limit(40),
           supabase.from("kt_sugestoes").select("id,status").is("status", null),
-          supabase.from("kt_documentos").select("id"),
-          supabase.from("kt_assinaturas").select("politica"),
         ]);
-        setFeedbacks((fb.data ?? []) as FeedbackRow[]);
+
+        setFeedbacks(
+          ((fb.data ?? []) as FeedbackRow[]).filter(
+            (item) => item.status !== "concluido" && item.status !== "cancelado",
+          ),
+        );
         setSupports((help.data ?? []) as SupportRow[]);
         setSuggestionsPending(sg.data?.length ?? 0);
-        const docIds = new Set((docs.data ?? []).map((d) => String(d.id)));
-        const signedIds = new Set((signatures.data ?? []).map((s) => String(s.politica)));
-        setDocumentsPending([...docIds].filter((id) => !signedIds.has(id)).length);
-      } else {
-        const filial = current.filial;
-        if (!filial) return;
-        const [fb, help, docs, signatures] = await Promise.all([
-          supabase
-            .from("kt_feedbacks")
-            .select("id,tipo,mensagem,anonimo,autor,filial,ts,status,destino,triagem_rh_status,gestor_liberado,escalado_rh")
-            .eq("filial", filial)
-            .eq("destino", "gestor")
-            .order("ts", { ascending: false })
-            .limit(20),
-          supabase
-            .from("kt_ajuda")
-            .select("id,nome,filial,assunto,ts,status,destino_inicial,gestor_id")
-            .eq("filial", filial)
-            .or(`destino_inicial.eq.gestor,gestor_id.eq.${current.id}`)
-            .order("ts", { ascending: false })
-            .limit(30),
-          supabase.from("kt_documentos").select("id,filial").or(`filial.eq.${filial},filial.eq.todas`),
-          supabase.from("kt_assinaturas").select("politica,nome").eq("nome", current.nome),
-        ]);
-        setFeedbacks(
-          ((fb.data ?? []) as FeedbackRow[]).filter((item) => item.status !== "concluido" && item.status !== "cancelado"),
-        );
-        setSupports(
-          ((help.data ?? []) as SupportRow[]).filter((item) => item.status !== "resolvido"),
-        );
-        const signed = new Set((signatures.data ?? []).map((item) => String(item.politica)));
-        setDocumentsPending((docs.data ?? []).filter((item) => !signed.has(String(item.id))).length);
-        setSuggestionsPending(0);
+        setDocumentsPending(0);
+        return;
       }
+
+      const filial = current.filial;
+      if (!filial) return;
+
+      const [fb, help, docs, signatures] = await Promise.all([
+        supabase
+          .from("kt_feedbacks")
+          .select(
+            "id,tipo,mensagem,anonimo,autor,filial,ts,status,destino,triagem_rh_status,gestor_liberado,escalado_rh",
+          )
+          .eq("filial", filial)
+          .eq("destino", "gestor")
+          .order("ts", { ascending: false })
+          .limit(20),
+        supabase
+          .from("kt_ajuda")
+          .select("id,nome,filial,assunto,ts,status,destino_inicial,gestor_id")
+          .eq("filial", filial)
+          .or(`destino_inicial.eq.gestor,gestor_id.eq.${current.id}`)
+          .order("ts", { ascending: false })
+          .limit(30),
+        supabase
+          .from("kt_documentos")
+          .select("id,filial")
+          .or(`filial.eq.${filial},filial.eq.todas`),
+        supabase
+          .from("kt_assinaturas")
+          .select("politica,nome")
+          .eq("nome", current.nome),
+      ]);
+
+      setFeedbacks(
+        ((fb.data ?? []) as FeedbackRow[]).filter(
+          (item) => item.status !== "concluido" && item.status !== "cancelado",
+        ),
+      );
+      setSupports(
+        ((help.data ?? []) as SupportRow[]).filter((item) => item.status !== "resolvido"),
+      );
+      const signed = new Set((signatures.data ?? []).map((item) => String(item.politica)));
+      setDocumentsPending(
+        (docs.data ?? []).filter((item) => !signed.has(String(item.id))).length,
+      );
+      setSuggestionsPending(0);
     } finally {
       setLoading(false);
     }
@@ -168,7 +211,9 @@ export function WorkspaceOverview({ mode }: { mode: Mode }) {
   const releaseToManager = async (id: string) => {
     setWorkingId(id);
     try {
-      const { error } = await supabase.rpc("kt_liberar_feedback_gestor", { p_feedback_id: id });
+      const { error } = await supabase.rpc("kt_liberar_feedback_gestor", {
+        p_feedback_id: id,
+      });
       if (error) throw error;
       toast.success("Relato compartilhado com a gestão da unidade.");
       await load();
@@ -182,7 +227,9 @@ export function WorkspaceOverview({ mode }: { mode: Mode }) {
   const keepWithHr = async (id: string) => {
     setWorkingId(id);
     try {
-      const { error } = await supabase.rpc("kt_reter_feedback_rh", { p_feedback_id: id });
+      const { error } = await supabase.rpc("kt_reter_feedback_rh", {
+        p_feedback_id: id,
+      });
       if (error) throw error;
       toast.success("Relato mantido restrito ao RH.");
       await load();
@@ -196,7 +243,9 @@ export function WorkspaceOverview({ mode }: { mode: Mode }) {
   const escalateToHr = async (id: string) => {
     setWorkingId(id);
     try {
-      const { error } = await supabase.rpc("kt_escalar_feedback_rh", { p_feedback_id: id });
+      const { error } = await supabase.rpc("kt_escalar_feedback_rh", {
+        p_feedback_id: id,
+      });
       if (error) throw error;
       toast.success("RH envolvido neste acompanhamento.");
       await load();
@@ -209,8 +258,14 @@ export function WorkspaceOverview({ mode }: { mode: Mode }) {
 
   if (!profile) return null;
 
-  const directSupport = supports.filter((item) => item.destino_inicial === "gestor" || item.gestor_id === profile.id);
-  const triageCount = mode === "hr" ? feedbacks.length : 0;
+  const directSupport = supports.filter(
+    (item) => item.destino_inicial === "gestor" || item.gestor_id === profile.id,
+  );
+  const triageItems = mode === "hr" ? feedbacks.filter(needsRhTriage) : [];
+  const escalatedItems =
+    mode === "hr"
+      ? feedbacks.filter((item) => Boolean(item.escalado_rh) && !needsRhTriage(item))
+      : [];
   const managerFeedbackCount = mode === "manager" ? feedbacks.length : 0;
 
   return (
@@ -218,14 +273,20 @@ export function WorkspaceOverview({ mode }: { mode: Mode }) {
       <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
-            {mode === "hr" ? "Operação de pessoas" : `Unidade ${filialNome(profile.filial ?? undefined)}`}
+            {mode === "hr"
+              ? "Operação de pessoas"
+              : `Unidade ${filialNome(profile.filial ?? undefined)}`}
           </p>
           <h1 className="mt-1 text-2xl font-bold text-foreground sm:text-3xl">
             {mode === "hr" ? "O que precisa da atenção do RH" : "O que precisa da sua atenção"}
           </h1>
         </div>
         {!loading ? (
-          <button type="button" onClick={() => void load()} className="w-fit text-xs font-semibold text-muted-foreground hover:text-foreground">
+          <button
+            type="button"
+            onClick={() => void load()}
+            className="w-fit text-xs font-semibold text-muted-foreground hover:text-foreground"
+          >
             Atualizar
           </button>
         ) : null}
@@ -234,17 +295,62 @@ export function WorkspaceOverview({ mode }: { mode: Mode }) {
       <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
         {mode === "hr" ? (
           <>
-            <Metric label="Triagens sensíveis" value={triageCount} detail="Relatos que ainda não foram liberados à gestão." icon={<ShieldCheck className="h-4 w-4" />} attention />
-            <Metric label="Pedidos de apoio" value={supports.length} detail="Atendimentos em acompanhamento pelo RH." icon={<LifeBuoy className="h-4 w-4" />} attention />
-            <Metric label="Sugestões sem status" value={suggestionsPending} detail="Itens que ainda precisam de classificação." icon={<MessageSquareText className="h-4 w-4" />} />
-            <Metric label="Documentos sem assinatura RH" value={documentsPending} detail="Referência de documentos ainda sem assinatura registrada." icon={<FileCheck2 className="h-4 w-4" />} />
+            <Metric
+              label="Triagens sensíveis"
+              value={triageItems.length}
+              detail="Relatos que ainda não foram liberados à gestão."
+              icon={<ShieldCheck className="h-4 w-4" />}
+              attention
+            />
+            <Metric
+              label="Gestores pediram RH"
+              value={escalatedItems.length}
+              detail="Casos em que a liderança pediu atuação direta do RH."
+              icon={<UserRoundCheck className="h-4 w-4" />}
+              attention
+            />
+            <Metric
+              label="Pedidos de apoio"
+              value={supports.length}
+              detail="Atendimentos em acompanhamento pelo RH."
+              icon={<LifeBuoy className="h-4 w-4" />}
+              attention
+            />
+            <Metric
+              label="Sugestões sem status"
+              value={suggestionsPending}
+              detail="Itens que ainda precisam de classificação."
+              icon={<MessageSquareText className="h-4 w-4" />}
+            />
           </>
         ) : (
           <>
-            <Metric label="Feedbacks em acompanhamento" value={managerFeedbackCount} detail="Somente itens destinados ou liberados para sua unidade." icon={<MessageSquareText className="h-4 w-4" />} attention />
-            <Metric label="Pedidos de conversa" value={directSupport.length} detail="Colaboradores que pediram contato da liderança ou foram direcionados pelo RH." icon={<LifeBuoy className="h-4 w-4" />} attention />
-            <Metric label="Documentos pendentes" value={documentsPending} detail="Documentos da sua unidade sem sua assinatura registrada." icon={<FileCheck2 className="h-4 w-4" />} />
-            <Metric label="Privacidade preservada" value={0} detail="Relatos restritos ao RH não aparecem para a gestão." icon={<ShieldCheck className="h-4 w-4" />} />
+            <Metric
+              label="Feedbacks em acompanhamento"
+              value={managerFeedbackCount}
+              detail="Somente itens destinados ou liberados para sua unidade."
+              icon={<MessageSquareText className="h-4 w-4" />}
+              attention
+            />
+            <Metric
+              label="Pedidos de conversa"
+              value={directSupport.length}
+              detail="Pedidos diretos ou encaminhados pelo RH para sua atuação."
+              icon={<LifeBuoy className="h-4 w-4" />}
+              attention
+            />
+            <Metric
+              label="Documentos pendentes"
+              value={documentsPending}
+              detail="Documentos da sua unidade sem sua assinatura registrada."
+              icon={<FileCheck2 className="h-4 w-4" />}
+            />
+            <Metric
+              label="Privacidade preservada"
+              value={0}
+              detail="Relatos restritos ao RH não aparecem para a gestão."
+              icon={<ShieldCheck className="h-4 w-4" />}
+            />
           </>
         )}
       </div>
@@ -254,33 +360,79 @@ export function WorkspaceOverview({ mode }: { mode: Mode }) {
           <div className="flex items-start gap-3 border-b border-border bg-warn-soft/45 px-4 py-3.5">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warn" />
             <div>
-              <p className="text-sm font-bold text-foreground">Fila de triagem confidencial</p>
-              <p className="mt-0.5 text-xs text-muted-foreground">O gestor não enxerga estes relatos até o RH decidir compartilhar.</p>
+              <p className="text-sm font-bold text-foreground">Fila de atenção do RH</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Reúne triagens confidenciais e casos que a gestão escalou para atuação do RH.
+              </p>
             </div>
           </div>
           <div className="divide-y divide-border">
-            {feedbacks.slice(0, 6).map((item) => (
-              <div key={item.id} className="grid gap-3 px-4 py-4 xl:grid-cols-[160px_minmax(0,1fr)_auto] xl:items-center">
-                <div>
-                  <span className="inline-flex rounded-md bg-destructive/8 px-2 py-1 text-[11px] font-bold text-destructive">{item.tipo}</span>
-                  <p className="mt-1.5 text-[11px] text-muted-foreground">{filialNome(item.filial)} · {when(item.ts)}</p>
+            {feedbacks.slice(0, 6).map((item) => {
+              const triage = needsRhTriage(item);
+              return (
+                <div
+                  key={item.id}
+                  className="grid gap-3 px-4 py-4 xl:grid-cols-[160px_minmax(0,1fr)_auto] xl:items-center"
+                >
+                  <div>
+                    <div className="flex flex-wrap gap-1.5">
+                      <span className="inline-flex rounded-md bg-destructive/8 px-2 py-1 text-[11px] font-bold text-destructive">
+                        {item.tipo}
+                      </span>
+                      {!triage && item.escalado_rh ? (
+                        <span className="inline-flex rounded-md bg-success-soft px-2 py-1 text-[11px] font-bold text-success">
+                          Gestor solicitou RH
+                        </span>
+                      ) : null}
+                    </div>
+                    <p className="mt-1.5 text-[11px] text-muted-foreground">
+                      {filialNome(item.filial)} · {when(item.ts)}
+                    </p>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold text-foreground">
+                      {item.anonimo ? "Relato anônimo" : item.autor || "Colaborador"}
+                    </p>
+                    <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+                      {item.mensagem}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2 xl:justify-end">
+                    {triage ? (
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={workingId === item.id}
+                          onClick={() => void keepWithHr(item.id)}
+                        >
+                          Manter restrito ao RH
+                        </Button>
+                        <Button
+                          size="sm"
+                          disabled={workingId === item.id}
+                          onClick={() => void releaseToManager(item.id)}
+                        >
+                          Compartilhar com gestor
+                        </Button>
+                      </>
+                    ) : (
+                      <span className="text-[11px] font-semibold text-success">
+                        Aguardando atuação do RH
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <div className="min-w-0">
-                  <p className="text-xs font-semibold text-foreground">{item.anonimo ? "Relato anônimo" : item.autor || "Colaborador"}</p>
-                  <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">{item.mensagem}</p>
-                </div>
-                <div className="flex flex-wrap gap-2 xl:justify-end">
-                  <Button variant="outline" size="sm" disabled={workingId === item.id} onClick={() => void keepWithHr(item.id)}>
-                    Manter no RH
-                  </Button>
-                  <Button size="sm" disabled={workingId === item.id} onClick={() => void releaseToManager(item.id)}>
-                    Compartilhar com gestor
-                  </Button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
-          <button type="button" onClick={() => document.getElementById("feedbacks")?.scrollIntoView({ behavior: "smooth" })} className="flex w-full items-center justify-center gap-1.5 border-t border-border px-4 py-3 text-xs font-semibold text-kt hover:bg-kt-soft/35">
+          <button
+            type="button"
+            onClick={() =>
+              document.getElementById("feedbacks")?.scrollIntoView({ behavior: "smooth" })
+            }
+            className="flex w-full items-center justify-center gap-1.5 border-t border-border px-4 py-3 text-xs font-semibold text-kt hover:bg-kt-soft/35"
+          >
             Ver todos os feedbacks <ArrowUpRight className="h-3.5 w-3.5" />
           </button>
         </div>
@@ -292,23 +444,36 @@ export function WorkspaceOverview({ mode }: { mode: Mode }) {
             <div className="overflow-hidden rounded-lg border border-border bg-card">
               <div className="border-b border-border px-4 py-3.5">
                 <p className="text-sm font-bold text-foreground">Feedbacks para acompanhamento</p>
-                <p className="mt-0.5 text-xs text-muted-foreground">Somente o que foi direcionado à sua gestão.</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  Somente o que foi direcionado à sua gestão.
+                </p>
               </div>
               <div className="divide-y divide-border">
                 {feedbacks.slice(0, 4).map((item) => (
                   <div key={item.id} className="px-4 py-3.5">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="text-xs font-bold text-foreground">{item.tipo} · {item.anonimo ? "Anônimo" : item.autor}</p>
-                        <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">{item.mensagem}</p>
+                        <p className="text-xs font-bold text-foreground">
+                          {item.tipo} · {item.anonimo ? "Anônimo" : item.autor}
+                        </p>
+                        <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+                          {item.mensagem}
+                        </p>
                       </div>
-                      <span className="shrink-0 text-[10px] text-muted-foreground">{when(item.ts)}</span>
+                      <span className="shrink-0 text-[10px] text-muted-foreground">
+                        {when(item.ts)}
+                      </span>
                     </div>
                     <div className="mt-2.5">
                       {item.escalado_rh ? (
                         <span className="text-[11px] font-semibold text-success">RH já envolvido</span>
                       ) : (
-                        <button type="button" disabled={workingId === item.id} onClick={() => void escalateToHr(item.id)} className="text-[11px] font-semibold text-kt hover:underline">
+                        <button
+                          type="button"
+                          disabled={workingId === item.id}
+                          onClick={() => void escalateToHr(item.id)}
+                          className="text-[11px] font-semibold text-kt hover:underline"
+                        >
                           Envolver RH neste acompanhamento
                         </button>
                       )}
@@ -327,10 +492,17 @@ export function WorkspaceOverview({ mode }: { mode: Mode }) {
               </div>
               <div className="divide-y divide-border">
                 {directSupport.slice(0, 4).map((item) => (
-                  <div key={item.id} className="flex items-start justify-between gap-3 px-4 py-3.5">
+                  <div
+                    key={item.id}
+                    className="flex items-start justify-between gap-3 px-4 py-3.5"
+                  >
                     <div>
                       <p className="text-xs font-bold text-foreground">{item.nome}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">{item.gestor_id ? "Direcionado pelo RH" : "Pedido direto do colaborador"}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {item.gestor_id
+                          ? "Direcionado pelo RH"
+                          : "Pedido direto do colaborador"}
+                      </p>
                     </div>
                     <span className="text-[10px] text-muted-foreground">{when(item.ts)}</span>
                   </div>
