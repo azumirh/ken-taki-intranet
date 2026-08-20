@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useRouterState } from "@tanstack/react-router";
 import { ChevronLeft, LogOut, Mail, MessageCircle } from "lucide-react";
 import type { ReactNode } from "react";
 import { AZUMI_CONTACT } from "@/lib/kt-data";
@@ -7,13 +7,35 @@ import { BRAND } from "@/lib/brand";
 import { Button } from "@/components/ui/button";
 import { NotificationCenter } from "@/components/kt/notification-center";
 
+type WorkspaceItem = { id: string; label: string };
+
+const MANAGER_NAV: WorkspaceItem[] = [
+  { id: "workspace-top", label: "Visão geral" },
+  { id: "clima", label: "Clima" },
+  { id: "politicas", label: "Documentos" },
+  { id: "feedbacks", label: "Feedbacks" },
+  { id: "sugestoes", label: "Sugestões" },
+  { id: "pesquisa-clima", label: "Pesquisa" },
+  { id: "equipe", label: "Equipe" },
+];
+
+const HR_NAV: WorkspaceItem[] = [
+  { id: "workspace-top", label: "Visão geral" },
+  { id: "clima", label: "Clima" },
+  { id: "apoio", label: "Apoio" },
+  { id: "feedbacks", label: "Triagem e feedbacks" },
+  { id: "sugestoes", label: "Sugestões" },
+  { id: "politicas", label: "Documentos" },
+  { id: "colaboradores", label: "Pessoas" },
+  { id: "publicar", label: "Comunicação" },
+  { id: "pesquisa-clima", label: "Pesquisas" },
+];
+
 export function Brand({ size = "sm" }: { size?: "sm" | "lg" }) {
   const big = size === "lg";
   return (
     <span className="flex min-w-0 items-baseline gap-2">
-      <span
-        className={`truncate font-bold tracking-tight text-foreground ${big ? "text-2xl" : "text-base sm:text-lg"}`}
-      >
+      <span className={`truncate font-bold tracking-tight text-foreground ${big ? "text-2xl" : "text-base sm:text-lg"}`}>
         Ken Taki
       </span>
       <span className={`shrink-0 font-medium uppercase tracking-[0.16em] text-muted-foreground ${big ? "text-xs" : "text-[10px] sm:text-[11px]"}`}>
@@ -23,13 +45,7 @@ export function Brand({ size = "sm" }: { size?: "sm" | "lg" }) {
   );
 }
 
-function FooterLink({
-  href,
-  children,
-}: {
-  href: string;
-  children: ReactNode;
-}) {
+function FooterLink({ href, children }: { href: string; children: ReactNode }) {
   return (
     <a
       href={href}
@@ -39,6 +55,52 @@ function FooterLink({
     >
       {children}
     </a>
+  );
+}
+
+function WorkspaceNav({ items, label }: { items: WorkspaceItem[]; label: string }) {
+  const go = (id: string) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  return (
+    <>
+      <div className="sticky top-16 z-30 -mx-4 mb-4 border-b border-border bg-background/95 px-4 py-2 backdrop-blur lg:hidden">
+        <div className="flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {items.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => go(item.id)}
+              className="shrink-0 rounded-md border border-border bg-card px-3 py-2 text-xs font-semibold text-muted-foreground hover:border-kt/30 hover:bg-kt-soft/40 hover:text-foreground"
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <aside className="hidden lg:block">
+        <div className="sticky top-24 overflow-hidden rounded-lg border border-border bg-card">
+          <div className="border-b border-border px-4 py-3">
+            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Workspace</p>
+            <p className="mt-1 text-sm font-bold text-foreground">{label}</p>
+          </div>
+          <nav className="grid p-2">
+            {items.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => go(item.id)}
+                className="rounded-md px-3 py-2.5 text-left text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              >
+                {item.label}
+              </button>
+            ))}
+          </nav>
+        </div>
+      </aside>
+    </>
   );
 }
 
@@ -54,8 +116,16 @@ export function AppShell({
   onLogout?: () => void;
 }) {
   const [session, setSession] = useSession();
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
   const handleSair = onLogout ?? (() => setSession(null));
   const podeSair = (session || onLogout) && onExit !== false;
+  const workspace = onLogout
+    ? pathname === "/gestor"
+      ? { items: MANAGER_NAV, label: "Gestão da unidade" }
+      : pathname === "/azumi"
+        ? { items: HR_NAV, label: "RH · visão consolidada" }
+        : null
+    : null;
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -64,7 +134,6 @@ export function AppShell({
           <Link to="/" className="min-w-0 py-2" aria-label="Ir para o início">
             <Brand />
           </Link>
-
           <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
             {onLogout ? <NotificationCenter /> : null}
             {podeSair ? (
@@ -80,14 +149,18 @@ export function AppShell({
             ) : null}
           </div>
         </div>
-
-        {back ? (
-          <div className="app-container pb-2">{back}</div>
-        ) : null}
+        {back ? <div className="app-container pb-2">{back}</div> : null}
       </header>
 
       <main className="app-container flex-1 py-5 sm:py-7 lg:py-8">
-        {children}
+        {workspace ? (
+          <div className="lg:grid lg:grid-cols-[210px_minmax(0,1fr)] lg:gap-6 xl:grid-cols-[230px_minmax(0,1fr)] xl:gap-8">
+            <WorkspaceNav items={workspace.items} label={workspace.label} />
+            <div id="workspace-top" className="min-w-0 scroll-mt-24">{children}</div>
+          </div>
+        ) : (
+          children
+        )}
       </main>
 
       <footer className="mt-8 border-t border-border bg-card/70">
@@ -98,7 +171,6 @@ export function AppShell({
               Canal interno de pessoas, comunicação e documentos do Ken Taki.
             </p>
           </div>
-
           <div className="flex flex-col gap-2 sm:items-end">
             <div className="flex flex-wrap gap-x-4 gap-y-2">
               <FooterLink href={`https://wa.me/${AZUMI_CONTACT.whatsapp}`}>
