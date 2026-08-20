@@ -23,9 +23,11 @@ type NotificationMeta = {
 
 const ATTENTION_TYPES = new Set([
   "feedback_received",
+  "feedback_triage_required",
+  "feedback_released_by_hr",
   "support_requested",
+  "manager_escalated_to_hr",
   "manager_escalated_support_to_hr",
-  "feedback_released_to_manager",
   "hr_involved",
 ]);
 
@@ -43,13 +45,16 @@ function metaFor(type: string, title: string): NotificationMeta {
   if (type === "document_signed") {
     return { label: "Documento", tone: "success", icon: <FileCheck2 className="h-4 w-4" /> };
   }
-  if (type === "manager_escalated_support_to_hr") {
+  if (type === "feedback_triage_required") {
+    return { label: "Triagem", tone: "critical", icon: <ShieldAlert className="h-4 w-4" /> };
+  }
+  if (type === "manager_escalated_to_hr" || type === "manager_escalated_support_to_hr") {
     return { label: "Escalonamento", tone: "critical", icon: <ShieldAlert className="h-4 w-4" /> };
   }
   if (type === "support_requested") {
     return { label: "Apoio", tone: "attention", icon: <LifeBuoy className="h-4 w-4" /> };
   }
-  if (type.includes("manager") || title.toLowerCase().includes("gestor")) {
+  if (type === "feedback_released_by_hr" || type.includes("manager") || title.toLowerCase().includes("gestor")) {
     return { label: "Gestão", tone: "attention", icon: <UserRoundCheck className="h-4 w-4" /> };
   }
   return {
@@ -71,7 +76,7 @@ function actionLabel(actionUrl?: string | null) {
   if (!actionUrl) return "Abrir";
   if (actionUrl.includes("feedback")) return "Ver feedback";
   if (actionUrl.includes("apoio")) return "Abrir atendimento";
-  if (actionUrl.includes("document")) return "Ver documentos";
+  if (actionUrl.includes("document") || actionUrl.includes("politicas")) return "Ver documentos";
   return "Abrir item";
 }
 
