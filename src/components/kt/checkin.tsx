@@ -1,517 +1,350 @@
-import confetti from "canvas-confetti";
+import { Check, MessageCircle, Plus, ShieldCheck, UserRound } from "lucide-react";
 import { useState } from "react";
-import { ChevronDown, ChevronUp, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Section } from "@/components/kt/section";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { AZUMI_CONTACT, HUMORES, filialNome } from "@/lib/kt-data";
-import { uid, useAjuda, useCheckins, useFeedbacks, type Session } from "@/lib/kt-store";
+import { readEmployeeAccess } from "@/lib/employee-session";
+import { supabase } from "@/lib/supabase";
+import { uid, useCheckins, type Session } from "@/lib/kt-store";
 
-const MENSAGENS_APOIO: Record<string, string> = {
-  dificil: "Hoje está difícil — isso é válido. Você não precisa guardar isso sozinho(a).",
-  "muito-dificil":
-    "Estamos aqui por você. Dias muito difíceis também fazem parte, e você não está só.",
+type SupportDestination = "rh" | "gestor";
+
+const HUMOR_HINT: Record<string, string> = {
+  otimo: "Seu dia está fluindo muito bem.",
+  bem: "O turno está indo bem.",
+  neutro: "Um dia regular, sem grandes altos ou baixos.",
+  dificil: "Tem algo deixando o dia mais pesado.",
+  "muito-dificil": "Você sinalizou que precisa de atenção e cuidado.",
 };
 
-function FloatingHearts({ ativo }: { ativo: boolean }) {
-  if (!ativo) return null;
-  return (
-    <div className="pointer-events-none fixed inset-0 z-50 overflow-hidden" aria-hidden>
-      {[10, 24, 38, 54, 68, 82].map((left, i) => (
-        <span
-          key={i}
-          style={{
-            position: "absolute",
-            left: `${left}%`,
-            bottom: "35%",
-            fontSize: "1.4rem",
-            opacity: 0,
-            animation: `kt-heart-float 1.4s ease-out ${i * 0.14}s forwards`,
-          }}
-        >
-          ❤️
-        </span>
-      ))}
-    </div>
-  );
+function gerarProtocolo() {
+  return `KT-${Date.now().toString(36).toUpperCase().slice(-6)}`;
 }
 
-const FRASES_POSITIVAS = [
-  "Que bom! Times animados fazem a diferença. Continue assim!",
-  "Energia boa contagia! Obrigado por trazer isso hoje.",
-  "Ótimo clima começa com você. Valeu por compartilhar!",
-];
+async function registrarPedidoApoio(
+  session: Extract<Session, { tipo: "colaborador" }>,
+  destino: SupportDestination,
+  assunto: string,
+) {
+  const access = readEmployeeAccess();
+  const protocolo = gerarProtocolo();
+  const { error } = await supabase.from("kt_ajuda").insert({
+    id: uid(),
+    nome: session.nome,
+    filial: session.filial,
+    assunto,
+    ts: new Date().toISOString(),
+    protocolo,
+    colaborador_id: access?.colaboradorId ?? null,
+    destino_inicial: destino,
+  });
+  if (error) throw error;
+  return protocolo;
+}
 
-function dispararConfete() {
-  if (typeof window === "undefined") return;
-  const end = Date.now() + 1500;
-  const cores = ["#a855f7", "#ec4899", "#3b82f6"];
-  const frame = () => {
-    confetti({ particleCount: 4, angle: 60, spread: 55, origin: { x: 0 }, colors: cores });
-    confetti({ particleCount: 4, angle: 120, spread: 55, origin: { x: 1 }, colors: cores });
-    if (Date.now() < end) requestAnimationFrame(frame);
+function SupportChoice({
+  session,
+  onDone,
+}: {
+  session: Extract<Session, { tipo: "colaborador" }>;
+  onDone: (destination: SupportDestination, protocol: string) => void;
+}) {
+  const [loading, setLoading] = useState<SupportDestination | null>(null);
+
+  const request = async (destination: SupportDestination) => {
+    setLoading(destination);
+    try {
+      const protocol = await registrarPedidoApoio(
+        session,
+        destination,
+        destination === "gestor"
+          ? "Colaborador solicitou conversa com a liderança pelo check-in"
+          : "Colaborador solicitou apoio confidencial do RH pelo check-in",
+      );
+      onDone(destination, protocol);
+      toast.success("Pedido registrado.");
+    } catch {
+      toast.error("Não foi possível registrar o pedido agora. Tente novamente.");
+    } finally {
+      setLoading(null);
+    }
   };
-  requestAnimationFrame(frame);
-}
 
-type OpcaoNeg = "gestor" | "azumi" | "nao-agora";
-
-function BotaoWa({
-  session,
-  assunto,
-}: {
-  session: Extract<Session, { tipo: "colaborador" }>;
-  assunto: string;
-}) {
-  const [ajuda, setAjuda] = useAjuda();
   return (
-    <Button
-      className="w-full rounded-full sm:w-fit"
-      onClick={() => {
-        setAjuda([
-          { id: uid(), nome: session.nome, filial: session.filial, assunto, ts: Date.now() },
-          ...ajuda,
-        ]);
-        window.open(
-          `https://wa.me/${AZUMI_CONTACT.whatsapp}?text=${encodeURIComponent(
-            `Olá, equipe Azumi RH! Sou do Ken Taki, unidade ${filialNome(session.filial)}, e gostaria de conversar.`,
-          )}`,
-          "_blank",
-        );
-      }}
-    >
-      <MessageCircle className="h-4 w-4" /> Falar com a Azumi pelo WhatsApp
-    </Button>
-  );
-}
+    <div className="grid gap-2 sm:grid-cols-2">
+      <button
+        type="button"
+        disabled={loading !== null}
+        onClick={() => void request("rh")}
+        className="flex min-h-[94px] items-start gap-3 rounded-lg border border-kt/25 bg-kt-soft/45 p-4 text-left transition-colors hover:border-kt/45 hover:bg-kt-soft disabled:opacity-60"
+      >
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-card text-kt ring-1 ring-kt/15">
+          <ShieldCheck className="h-4 w-4" />
+        </span>
+        <span>
+          <span className="block text-sm font-bold text-foreground">
+            {loading === "rh" ? "Registrando..." : "Falar primeiro com o RH"}
+          </span>
+          <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">
+            Confidencial. A liderança só será envolvida depois se o RH entender que é necessário.
+          </span>
+        </span>
+      </button>
 
-function CvvInfo() {
-  return (
-    <div className="mt-3 rounded-xl border border-destructive/30 bg-destructive/5 px-3 py-3 text-sm sm:px-4">
-      <p className="font-semibold text-destructive">Você não está sozinho.</p>
-      <p className="mt-0.5 break-words text-muted-foreground">
-        Se precisar conversar agora: <strong className="text-foreground">CVV — ligue 188</strong>{" "}
-        (gratuito, 24h, todos os dias) ou acesse{" "}
-        <a
-          href="https://cvv.org.br"
-          target="_blank"
-          rel="noreferrer"
-          className="text-kt underline underline-offset-2"
-        >
-          cvv.org.br
-        </a>{" "}
-        (chat e e-mail disponíveis).
-      </p>
-    </div>
-  );
-}
-
-function BlocoNegativo({
-  session,
-  opcaoNeg,
-  setOpcaoNeg,
-  feedbacks,
-  setFeedbacks,
-  ajuda,
-  setAjuda,
-}: {
-  session: Extract<Session, { tipo: "colaborador" }>;
-  opcaoNeg: OpcaoNeg | null;
-  setOpcaoNeg: (o: OpcaoNeg) => void;
-  feedbacks: ReturnType<typeof useFeedbacks>[0];
-  setFeedbacks: ReturnType<typeof useFeedbacks>[1];
-  ajuda: ReturnType<typeof useAjuda>[0];
-  setAjuda: ReturnType<typeof useAjuda>[1];
-}) {
-  return (
-    <div className="overflow-hidden rounded-2xl border border-destructive/40 bg-destructive/5 px-3 py-4 sm:px-4">
-      <p className="font-semibold text-destructive">
-        Hoje está difícil — tudo bem falar sobre isso.
-      </p>
-      <p className="mt-0.5 text-sm text-muted-foreground">Como você prefere?</p>
-
-      {!opcaoNeg && (
-        <div className="mt-3 grid gap-2">
-          <Button
-            variant="outline"
-            className="h-auto w-full justify-start rounded-2xl border-destructive/30 px-3 py-3 text-left hover:bg-destructive/5 sm:px-4"
-            onClick={() => {
-              setFeedbacks([
-                {
-                  id: uid(),
-                  tipo: "Situação urgente",
-                  mensagem: `${session.nome} sinalizou que está passando por um momento difícil e gostaria de conversar.`,
-                  anonimo: false,
-                  autor: session.nome,
-                  filial: session.filial,
-                  ts: Date.now(),
-                },
-                ...feedbacks,
-              ]);
-              setOpcaoNeg("gestor");
-            }}
-          >
-            <span className="grid gap-0.5">
-              <span className="font-semibold">Conversar com meu gestor</span>
-              <span className="text-xs font-normal text-muted-foreground">
-                Seu gestor vai saber que você pediu uma conversa.
-              </span>
-            </span>
-          </Button>
-          <Button
-            variant="outline"
-            className="h-auto w-full justify-start rounded-2xl border-destructive/30 px-3 py-3 text-left hover:bg-destructive/5 sm:px-4"
-            onClick={() => {
-              setAjuda([
-                {
-                  id: uid(),
-                  nome: session.nome,
-                  filial: session.filial,
-                  assunto: "Apoio - check-in negativo",
-                  ts: Date.now(),
-                },
-                ...ajuda,
-              ]);
-              setOpcaoNeg("azumi");
-              window.open(
-                `https://wa.me/${AZUMI_CONTACT.whatsapp}?text=${encodeURIComponent(
-                  `Olá, equipe Azumi RH! Sou do Ken Taki, unidade ${filialNome(session.filial)}, e estou passando por um momento difícil. Gostaria de conversar.`,
-                )}`,
-                "_blank",
-              );
-            }}
-          >
-            <span className="grid gap-0.5">
-              <span className="font-semibold">Falar com a equipe Azumi</span>
-              <span className="text-xs font-normal text-muted-foreground">
-                Conversa privada — seu gestor não é identificado.
-              </span>
-            </span>
-          </Button>
-          <Button
-            variant="ghost"
-            className="h-auto w-full justify-start rounded-2xl px-3 py-3 text-left text-muted-foreground sm:px-4"
-            onClick={() => setOpcaoNeg("nao-agora")}
-          >
-            Prefiro não falar agora
-          </Button>
-        </div>
-      )}
-
-      {opcaoNeg && (
-        <div className="mt-3 grid gap-3">
-          <p className="text-sm text-muted-foreground">
-            {opcaoNeg === "gestor" &&
-              "Seu gestor foi notificado. Quando quiser, fale também com a equipe Azumi:"}
-            {opcaoNeg === "azumi" && "Pedido registrado. Se o WhatsApp não abriu automaticamente:"}
-            {opcaoNeg === "nao-agora" && "Tudo bem. Quando você precisar, a Azumi está disponível:"}
-          </p>
-          <BotaoWa session={session} assunto={`WhatsApp pós check-in negativo (${opcaoNeg})`} />
-        </div>
-      )}
-
-      <CvvInfo />
+      <button
+        type="button"
+        disabled={loading !== null}
+        onClick={() => void request("gestor")}
+        className="flex min-h-[94px] items-start gap-3 rounded-lg border border-border bg-card p-4 text-left transition-colors hover:border-foreground/25 hover:bg-muted/35 disabled:opacity-60"
+      >
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-muted text-foreground">
+          <UserRound className="h-4 w-4" />
+        </span>
+        <span>
+          <span className="block text-sm font-bold text-foreground">
+            {loading === "gestor" ? "Registrando..." : "Quero falar com meu gestor"}
+          </span>
+          <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">
+            Seu gestor recebe o pedido. O RH também acompanha o registro para dar suporte quando necessário.
+          </span>
+        </span>
+      </button>
     </div>
   );
 }
 
 export function CheckIn({ session }: { session: Extract<Session, { tipo: "colaborador" }> }) {
   const [checkins, setCheckins] = useCheckins();
-  const [feedbacks, setFeedbacks] = useFeedbacks();
-  const [ajuda, setAjuda] = useAjuda();
+  const [humor, setHumor] = useState("");
+  const [comentario, setComentario] = useState("");
+  const [showComment, setShowComment] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [support, setSupport] = useState<{ destination: SupportDestination; protocol: string } | null>(null);
 
-  const hoje = new Date().toDateString();
-  const hojeCheckins = checkins
-    .filter((c) => c.nome === session.nome && new Date(c.ts).toDateString() === hoje)
+  const today = new Date().toDateString();
+  const todayItems = checkins
+    .filter((item) => item.nome === session.nome && new Date(item.ts).toDateString() === today)
     .sort((a, b) => b.ts - a.ts);
 
-  const [humor, setHumor] = useState<string>("");
-  const [recado, setRecado] = useState("");
-  const [mostrarRecado, setMostrarRecado] = useState(false);
-  const [opcaoNeg, setOpcaoNeg] = useState<OpcaoNeg | null>(null);
-  const [enviado, setEnviado] = useState(false);
-  const [heartsActive, setHeartsActive] = useState(false);
+  const selected = HUMORES.find((item) => item.id === humor);
+  const isNegative = selected?.categoria === "negativa";
+  const isNeutral = selected?.categoria === "neutra";
 
-  const humorObj = HUMORES.find((h) => h.id === humor);
-  const categoria = humorObj?.categoria;
-
-  const selecionarHumor = (id: string) => {
-    if (humor !== id) {
-      setOpcaoNeg(null);
-      setEnviado(false);
-      const h = HUMORES.find((x) => x.id === id);
-      if (h?.categoria === "positiva") {
-        dispararConfete();
-      } else if (id === "dificil" || id === "muito-dificil") {
-        setHeartsActive(true);
-        setTimeout(() => setHeartsActive(false), 1800);
-      }
-    }
-    setHumor(id);
-  };
-
-  const enviar = () => {
-    if (!humor) return;
-    if (categoria === "positiva") dispararConfete();
-    setCheckins([
+  const submit = () => {
+    if (!selected) return;
+    setCheckins((previous) => [
       {
         id: uid(),
         nome: session.nome,
         filial: session.filial,
-        humor,
-        recado: recado.trim() || undefined,
+        humor: selected.id,
         ts: Date.now(),
+        ...(comentario.trim() ? { recado: comentario.trim() } : {}),
       },
-      ...checkins,
+      ...previous,
     ]);
-    setEnviado(true);
-    setRecado("");
-    setMostrarRecado(false);
+    setSubmitted(true);
+    setComentario("");
+    setShowComment(false);
+    setSupport(null);
+    toast.success("Check-in registrado.");
   };
 
-  const frasePosIdx = hojeCheckins.length % FRASES_POSITIVAS.length;
-  const frasePos = FRASES_POSITIVAS[frasePosIdx] ?? FRASES_POSITIVAS[0]!;
+  const reset = () => {
+    setHumor("");
+    setSubmitted(false);
+    setSupport(null);
+  };
 
   return (
     <Section
-      titulo="Conta pra gente como você tá hoje"
-      intro="Sem certo ou errado — é só pra sua liderança entender o clima do time."
-      contagem="Leva 20 segundos"
+      titulo="Como está seu dia?"
+      intro="Um registro rápido para acompanhar o clima da equipe. Você pode atualizar novamente ao longo do turno."
+      contagem="Check-in"
     >
-      <FloatingHearts ativo={heartsActive} />
-      <div className="grid gap-4">
-        {/* Badge "já fez check-in hoje" */}
-        {hojeCheckins.length > 0 && (
-          <div className="flex flex-wrap items-start gap-3">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-success-soft px-3 py-1.5 text-sm font-semibold text-success">
-              ✓ Você já fez check-in hoje
-            </span>
-            <div className="grid gap-0.5">
-              {hojeCheckins.map((c) => {
-                const h = HUMORES.find((x) => x.id === c.humor);
-                return (
-                  <span key={c.id} className="text-sm text-muted-foreground">
-                    {h?.emoji} {h?.label} ·{" "}
-                    {new Date(c.ts).toLocaleTimeString("pt-BR", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                    {c.recado ? <em className="ml-1">"{c.recado}"</em> : null}
-                  </span>
-                );
-              })}
-              <span className="text-xs text-muted-foreground">
-                Quer registrar como está agora? É permitido.
-              </span>
+      <div className="grid gap-5">
+        {todayItems.length > 0 ? (
+          <div className="flex flex-col gap-2 rounded-lg border border-success/20 bg-success-soft/55 px-3.5 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2 text-sm font-semibold text-success">
+              <Check className="h-4 w-4" />
+              Você já registrou {todayItems.length === 1 ? "seu check-in" : `${todayItems.length} check-ins`} hoje.
+            </div>
+            <div className="text-xs text-muted-foreground">
+              Último: {HUMORES.find((h) => h.id === todayItems[0]?.humor)?.emoji}{" "}
+              {HUMORES.find((h) => h.id === todayItems[0]?.humor)?.label} ·{" "}
+              {new Date(todayItems[0]!.ts).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
             </div>
           </div>
-        )}
+        ) : null}
 
-        {/* Confirmação pós-envio (positivo) */}
-        {enviado && categoria === "positiva" && (
-          <div className="rounded-2xl bg-success-soft px-4 py-4">
-            <p className="font-semibold">
-              {humorObj?.emoji} Check-in registrado — {humorObj?.label}!
-            </p>
-            <p className="mt-0.5 text-sm text-muted-foreground">{frasePos}</p>
-            <Button
-              variant="outline"
-              size="sm"
-              className="mt-3 rounded-full"
-              onClick={() => {
-                setHumor("");
-                setEnviado(false);
-                document.getElementById("mural")?.scrollIntoView({ behavior: "smooth" });
-              }}
-            >
-              Deixar um recado no mural
-            </Button>
-          </div>
-        )}
-
-        {/* Confirmação pós-envio (neutro) */}
-        {enviado && categoria === "neutra" && (
-          <div className="rounded-2xl bg-warn-soft px-4 py-4">
-            <p className="font-semibold">
-              {humorObj?.emoji} Check-in registrado — {humorObj?.label}.
-            </p>
-            <p className="mt-0.5 text-sm text-muted-foreground">
-              Tudo bem não estar 100%. Se quiser conversar, a Azumi está aqui.
-            </p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <Button
-                size="sm"
-                className="rounded-full"
-                onClick={() => {
-                  setAjuda([
-                    {
-                      id: uid(),
-                      nome: session.nome,
-                      filial: session.filial,
-                      assunto: "Apoio - check-in neutro",
-                      ts: Date.now(),
-                    },
-                    ...ajuda,
-                  ]);
-                  window.open(
-                    `https://wa.me/${AZUMI_CONTACT.whatsapp}?text=${encodeURIComponent(
-                      `Olá, equipe Azumi RH! Sou ${session.nome} do Ken Taki, unidade ${filialNome(session.filial)}. Quero conversar um pouco.`,
-                    )}`,
-                    "_blank",
-                  );
-                }}
-              >
-                <MessageCircle className="h-4 w-4" /> Quero falar com a equipe Azumi
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="rounded-full"
-                onClick={() => {
-                  setHumor("");
-                  setEnviado(false);
-                  toast.success("Tudo bem! Bom turno por aí.");
-                }}
-              >
-                Tudo bem, seguir em frente
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* Confirmação pós-envio (negativo) - só aviso que foi registrado, o bloco de apoio já está visível */}
-        {enviado && categoria === "negativa" && (
-          <div className="rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-3">
-            <p className="text-sm font-medium text-destructive">
-              {humorObj?.emoji} Check-in registrado — as opções de apoio estão logo abaixo.
-            </p>
-          </div>
-        )}
-
-        {/* Grade de emojis — sempre visível enquanto não enviou positivo/neutro */}
-        {!(enviado && (categoria === "positiva" || categoria === "neutra")) && (
+        {!submitted ? (
           <>
-            <div className="grid grid-cols-5 gap-2 sm:max-w-lg">
-              {HUMORES.map((h) => {
-                const isSelected = humor === h.id;
-                const selectedClass = isSelected
-                  ? h.categoria === "positiva"
-                    ? "border-success bg-success-soft shadow-[var(--shadow-soft)]"
-                    : h.categoria === "neutra"
-                      ? "border-warn bg-warn-soft shadow-[var(--shadow-soft)]"
-                      : "border-destructive bg-destructive/10 shadow-[var(--shadow-soft)]"
-                  : "border-border bg-card hover:border-kt/40";
-                return (
-                  <button
-                    key={h.id}
-                    onClick={() => selecionarHumor(h.id)}
-                    className={`rounded-2xl border px-1 py-3 text-center transition-all ${selectedClass}`}
-                  >
-                    <span className="block text-2xl">{h.emoji}</span>
-                    <span className="mt-1 block text-[11px] font-medium leading-tight">
-                      {h.label}
-                    </span>
-                  </button>
-                );
-              })}
+            <div>
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <p className="text-sm font-semibold text-foreground">Selecione como você está agora</p>
+                <span className="text-[11px] text-muted-foreground">{filialNome(session.filial)}</span>
+              </div>
+
+              <div className="relative pt-2">
+                <div className="absolute left-[9%] right-[9%] top-[27px] h-1 rounded-full bg-gradient-to-r from-destructive via-warn to-success opacity-35" />
+                <div className="relative grid grid-cols-5 gap-1.5 sm:gap-2">
+                  {[...HUMORES].reverse().map((item) => {
+                    const active = humor === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        aria-pressed={active}
+                        onClick={() => {
+                          setHumor(item.id);
+                          setSubmitted(false);
+                          setSupport(null);
+                        }}
+                        className={`relative flex min-h-[78px] flex-col items-center justify-start gap-1 rounded-lg border px-1.5 py-2.5 text-center transition-all sm:min-h-[88px] sm:px-2 ${
+                          active
+                            ? "border-kt bg-kt-soft shadow-sm ring-1 ring-kt/10"
+                            : "border-border bg-card hover:border-foreground/20 hover:bg-muted/30"
+                        }`}
+                      >
+                        <span className={`grid h-9 w-9 place-items-center rounded-full bg-card text-2xl shadow-sm ring-1 ${active ? "ring-kt/30" : "ring-border"}`}>
+                          {item.emoji}
+                        </span>
+                        <span className={`text-[10px] font-semibold leading-tight sm:text-xs ${active ? "text-kt" : "text-muted-foreground"}`}>
+                          {item.label}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {selected ? (
+                <div className={`mt-3 rounded-lg border px-3.5 py-3 ${isNegative ? "border-destructive/20 bg-destructive/5" : isNeutral ? "border-warn/20 bg-warn-soft/55" : "border-success/20 bg-success-soft/45"}`}>
+                  <p className="text-sm font-semibold text-foreground">{HUMOR_HINT[selected.id]}</p>
+                  <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                    {isNegative
+                      ? "Depois de registrar, você poderá escolher se quer apoio do RH ou uma conversa direta com seu gestor."
+                      : isNeutral
+                        ? "Se quiser, após registrar você também pode pedir uma conversa confidencial com o RH."
+                        : "Obrigado por registrar. Essa informação compõe a leitura de clima da equipe."}
+                  </p>
+                </div>
+              ) : null}
             </div>
 
-            {/* Mensagem de acolhimento ao selecionar humor negativo */}
-            {humor && (humor === "dificil" || humor === "muito-dificil") && !enviado && (
-              <div className="rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm">
-                <p className="font-semibold text-destructive">❤️ {MENSAGENS_APOIO[humor]}</p>
-              </div>
-            )}
-
-            {/* Bloco de apoio negativo — aparece ao selecionar emoji negativo */}
-            {humor && categoria === "negativa" && (
-              <BlocoNegativo
-                session={session}
-                opcaoNeg={opcaoNeg}
-                setOpcaoNeg={setOpcaoNeg}
-                feedbacks={feedbacks}
-                setFeedbacks={setFeedbacks}
-                ajuda={ajuda}
-                setAjuda={setAjuda}
-              />
-            )}
-
-            {/* Botão opcional de comentário */}
-            {humor && !enviado && (
-              <div>
-                {!mostrarRecado ? (
-                  <button
-                    className="flex items-center gap-1 text-sm text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-                    onClick={() => setMostrarRecado(true)}
-                  >
-                    <ChevronDown className="h-3.5 w-3.5" />
-                    Deixar um comentário (opcional)
-                  </button>
-                ) : (
-                  <div className="grid gap-1.5">
-                    <button
-                      className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-                      onClick={() => {
-                        setMostrarRecado(false);
-                        setRecado("");
-                      }}
-                    >
-                      <ChevronUp className="h-3.5 w-3.5" />
-                      Fechar comentário
-                    </button>
+            {selected ? (
+              <div className="grid gap-3">
+                {showComment ? (
+                  <div className="grid gap-2">
                     <Textarea
-                      placeholder="O que você quer compartilhar? (opcional)"
-                      value={recado}
-                      onChange={(e) => setRecado(e.target.value)}
-                      maxLength={400}
-                      rows={2}
-                      className="text-sm"
+                      rows={3}
+                      maxLength={500}
+                      value={comentario}
+                      onChange={(event) => setComentario(event.target.value)}
+                      placeholder="Comentário opcional sobre seu dia..."
+                      className="resize-none"
                     />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowComment(false);
+                        setComentario("");
+                      }}
+                      className="w-fit text-xs font-medium text-muted-foreground hover:text-foreground"
+                    >
+                      Remover comentário
+                    </button>
                   </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setShowComment(true)}
+                    className="inline-flex w-fit items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground"
+                  >
+                    <Plus className="h-3.5 w-3.5" /> Adicionar comentário opcional
+                  </button>
                 )}
-              </div>
-            )}
 
-            {/* Botão de envio */}
-            {humor && !enviado && (
-              <div>
-                <Button className="rounded-full" size="lg" onClick={enviar}>
-                  Enviar — {humorObj?.emoji} {humorObj?.label}
+                <Button className="h-11 w-full sm:w-fit sm:min-w-44" onClick={submit}>
+                  Registrar check-in
                 </Button>
               </div>
-            )}
-
-            {/* Botão para novo check-in após envio */}
-            {enviado && categoria === "negativa" && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-fit rounded-full text-muted-foreground"
-                onClick={() => {
-                  setHumor("");
-                  setEnviado(false);
-                  setOpcaoNeg(null);
-                }}
-              >
-                Alterar resposta
-              </Button>
-            )}
+            ) : null}
           </>
-        )}
+        ) : (
+          <div className="grid gap-4">
+            <div className="rounded-lg border border-border bg-muted/30 px-4 py-4">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">{selected?.emoji}</span>
+                <div>
+                  <p className="text-sm font-bold text-foreground">Check-in registrado como {selected?.label}</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">Você pode fazer um novo registro mais tarde se seu dia mudar.</p>
+                </div>
+              </div>
+            </div>
 
-        {/* Botão "novo check-in" quando positivo/neutro já foi enviado */}
-        {enviado && (categoria === "positiva" || categoria === "neutra") && (
-          <button
-            className="w-fit text-sm text-muted-foreground underline-offset-2 hover:underline"
-            onClick={() => {
-              setHumor("");
-              setEnviado(false);
-              setOpcaoNeg(null);
-            }}
-          >
-            Registrar de novo mais tarde
-          </button>
+            {(isNegative || isNeutral) && !support ? (
+              <div className="grid gap-3">
+                <div>
+                  <p className="text-sm font-bold text-foreground">Quer conversar com alguém?</p>
+                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                    Escolha quem deve receber seu pedido primeiro. O RH acompanha os registros de apoio para garantir continuidade e cuidado.
+                  </p>
+                </div>
+                {isNegative ? (
+                  <SupportChoice session={session} onDone={(destination, protocol) => setSupport({ destination, protocol })} />
+                ) : (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        const protocol = await registrarPedidoApoio(session, "rh", "Colaborador solicitou contato do RH após check-in neutro");
+                        setSupport({ destination: "rh", protocol });
+                        toast.success("Pedido registrado.");
+                      } catch {
+                        toast.error("Não foi possível registrar o pedido agora.");
+                      }
+                    }}
+                    className="flex min-h-[72px] items-start gap-3 rounded-lg border border-kt/25 bg-kt-soft/45 p-4 text-left hover:bg-kt-soft"
+                  >
+                    <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-kt" />
+                    <span>
+                      <span className="block text-sm font-bold">Quero falar com o RH</span>
+                      <span className="mt-0.5 block text-xs text-muted-foreground">Pedido confidencial; o gestor não é notificado neste primeiro momento.</span>
+                    </span>
+                  </button>
+                )}
+              </div>
+            ) : null}
+
+            {support ? (
+              <div className="rounded-lg border border-success/25 bg-success-soft px-4 py-4">
+                <p className="text-sm font-bold text-success">Pedido de apoio registrado</p>
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                  {support.destination === "rh"
+                    ? "O RH recebeu seu pedido. Seu gestor não foi notificado neste momento."
+                    : "Sua liderança recebeu o pedido e o RH também acompanha o registro."}
+                </p>
+                <p className="mt-2 text-[11px] font-semibold text-muted-foreground">Protocolo: {support.protocol}</p>
+                {support.destination === "rh" ? (
+                  <a
+                    href={`https://wa.me/${AZUMI_CONTACT.whatsapp}?text=${encodeURIComponent(`Olá, sou ${session.nome} do Ken Taki ${filialNome(session.filial)}. Registrei o protocolo ${support.protocol} na intranet e gostaria de conversar com o RH.`)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-3 inline-flex min-h-9 items-center gap-2 rounded-md border border-success/25 bg-card px-3 text-xs font-semibold text-success hover:bg-success-soft"
+                  >
+                    <MessageCircle className="h-3.5 w-3.5" /> Abrir WhatsApp do RH
+                  </a>
+                ) : null}
+              </div>
+            ) : null}
+
+            <button type="button" onClick={reset} className="w-fit text-xs font-semibold text-muted-foreground hover:text-foreground">
+              Fazer outro check-in
+            </button>
+          </div>
         )}
       </div>
     </Section>
