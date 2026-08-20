@@ -3,6 +3,7 @@ import { ChevronLeft, LogOut, Mail, MessageCircle } from "lucide-react";
 import type { ReactNode } from "react";
 import { AZUMI_CONTACT } from "@/lib/kt-data";
 import { useSession } from "@/lib/kt-store";
+import { BRAND } from "@/lib/brand";
 import { Button } from "@/components/ui/button";
 
 export function Brand({ size = "sm" }: { size?: "sm" | "lg" }) {
@@ -13,12 +14,11 @@ export function Brand({ size = "sm" }: { size?: "sm" | "lg" }) {
         className={`font-extrabold tracking-tight text-kt ${big ? "text-2xl" : "text-lg"}`}
         style={{ letterSpacing: "-0.04em" }}
       >
-        ken<span className="text-muted-foreground font-light">·</span>taki
+        Ken Taki
       </span>
-      <span className={`text-muted-foreground font-light ${big ? "text-base" : "text-xs"}`}>×</span>
-      <span className={`font-extrabold tracking-tight text-az ${big ? "text-2xl" : "text-lg"}`}>
-        azumi
-        <span className={`align-super font-bold ${big ? "text-xs" : "text-[9px]"}`}> RH</span>
+      <span className={`text-muted-foreground font-light ${big ? "text-base" : "text-xs"}`}>·</span>
+      <span className={`text-muted-foreground font-medium ${big ? "text-base" : "text-xs"}`}>
+        {BRAND.product}
       </span>
     </span>
   );
@@ -78,12 +78,12 @@ export function AppShell({
           <div className="flex shrink-0 items-center gap-2">
             <IconLink
               href={`https://wa.me/${AZUMI_CONTACT.whatsapp}`}
-              label={`WhatsApp Azumi RH · ${AZUMI_CONTACT.whatsappLabel}`}
+              label="Contato via WhatsApp"
               tone="success"
             >
               <MessageCircle className="h-4 w-4" />
             </IconLink>
-            <IconLink href={`mailto:${AZUMI_CONTACT.email}`} label={AZUMI_CONTACT.email}>
+            <IconLink href={`mailto:${AZUMI_CONTACT.email}`} label="Contato por e-mail">
               <Mail className="h-4 w-4" />
             </IconLink>
             {podeSair ? (
@@ -111,10 +111,7 @@ export function AppShell({
       <footer className="mt-10 border-t border-border bg-card/60">
         <div className="mx-auto grid w-full max-w-[1400px] gap-4 px-4 py-8 text-xs text-muted-foreground sm:px-6 md:grid-cols-[auto_minmax(0,1fr)] md:items-center lg:px-8">
           <Brand />
-          <p className="md:text-right">
-            Intranet interna do Ken Taki, operada com a Azumi RH · {AZUMI_CONTACT.whatsappLabel} ·{" "}
-            {AZUMI_CONTACT.email}
-          </p>
+          <p className="md:text-right">{BRAND.footerCredit}</p>
         </div>
       </footer>
     </div>
