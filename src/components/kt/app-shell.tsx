@@ -157,9 +157,9 @@ export function AppShell({
         {workspace ? (
           <div className="lg:grid lg:grid-cols-[210px_minmax(0,1fr)] lg:gap-6 xl:grid-cols-[230px_minmax(0,1fr)] xl:gap-8">
             <WorkspaceNav items={workspace.items} label={workspace.label} />
-            <div id="workspace-top" className="min-w-0 scroll-mt-24">
+            <div id="workspace-top" data-workspace-mode={workspace.mode} className="min-w-0 scroll-mt-24">
               <WorkspaceOverview mode={workspace.mode} />
-              {children}
+              <div className="legacy-workspace-content">{children}</div>
             </div>
           </div>
         ) : (
