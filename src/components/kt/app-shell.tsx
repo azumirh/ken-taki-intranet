@@ -1,5 +1,14 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { ChevronLeft, LogOut, Mail, MessageCircle } from "lucide-react";
+import {
+  ChevronLeft,
+  ClipboardCheck,
+  FileText,
+  LogOut,
+  Mail,
+  Megaphone,
+  MessageCircle,
+  MessagesSquare,
+} from "lucide-react";
 import type { ReactNode } from "react";
 import { AZUMI_CONTACT } from "@/lib/kt-data";
 import { useSession } from "@/lib/kt-store";
@@ -10,6 +19,8 @@ import { WorkspaceOverview } from "@/components/kt/workspace-overview";
 import { WorkspaceSupportRouting } from "@/components/kt/workspace-support-routing";
 
 type WorkspaceItem = { id: string; label: string };
+
+type EmployeeItem = WorkspaceItem & { icon: ReactNode };
 
 const MANAGER_NAV: WorkspaceItem[] = [
   { id: "workspace-top", label: "Visão geral" },
@@ -33,14 +44,25 @@ const HR_NAV: WorkspaceItem[] = [
   { id: "pesquisa-clima", label: "Pesquisas" },
 ];
 
+const EMPLOYEE_NAV: EmployeeItem[] = [
+  { id: "checkin", label: "Hoje", icon: <ClipboardCheck className="h-4 w-4" /> },
+  { id: "politicas", label: "Docs", icon: <FileText className="h-4 w-4" /> },
+  { id: "mural", label: "Mural", icon: <Megaphone className="h-4 w-4" /> },
+  { id: "feedback", label: "Falar", icon: <MessagesSquare className="h-4 w-4" /> },
+];
+
 export function Brand({ size = "sm" }: { size?: "sm" | "lg" }) {
   const big = size === "lg";
   return (
     <span className="flex min-w-0 items-baseline gap-2">
-      <span className={`truncate font-bold tracking-tight text-foreground ${big ? "text-2xl" : "text-base sm:text-lg"}`}>
+      <span
+        className={`truncate font-bold tracking-tight text-foreground ${big ? "text-2xl" : "text-base sm:text-lg"}`}
+      >
         Ken Taki
       </span>
-      <span className={`shrink-0 font-medium uppercase tracking-[0.16em] text-muted-foreground ${big ? "text-xs" : "text-[10px] sm:text-[11px]"}`}>
+      <span
+        className={`shrink-0 font-medium uppercase tracking-[0.16em] text-muted-foreground ${big ? "text-xs" : "text-[10px] sm:text-[11px]"}`}
+      >
         {BRAND.product}
       </span>
     </span>
@@ -60,11 +82,11 @@ function FooterLink({ href, children }: { href: string; children: ReactNode }) {
   );
 }
 
-function WorkspaceNav({ items, label }: { items: WorkspaceItem[]; label: string }) {
-  const go = (id: string) => {
-    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
+function goToSection(id: string) {
+  document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
 
+function WorkspaceNav({ items, label }: { items: WorkspaceItem[]; label: string }) {
   return (
     <>
       <div className="sticky top-16 z-30 -mx-4 mb-4 border-b border-border bg-background/95 px-4 py-2 backdrop-blur lg:hidden">
@@ -73,7 +95,7 @@ function WorkspaceNav({ items, label }: { items: WorkspaceItem[]; label: string 
             <button
               key={item.id}
               type="button"
-              onClick={() => go(item.id)}
+              onClick={() => goToSection(item.id)}
               className="shrink-0 rounded-md border border-border bg-card px-3 py-2 text-xs font-semibold text-muted-foreground hover:border-kt/30 hover:bg-kt-soft/40 hover:text-foreground"
             >
               {item.label}
@@ -85,7 +107,9 @@ function WorkspaceNav({ items, label }: { items: WorkspaceItem[]; label: string 
       <aside className="hidden lg:block">
         <div className="sticky top-24 overflow-hidden rounded-lg border border-border bg-card">
           <div className="border-b border-border px-4 py-3">
-            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Workspace</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+              Workspace
+            </p>
             <p className="mt-1 text-sm font-bold text-foreground">{label}</p>
           </div>
           <nav className="grid p-2">
@@ -93,7 +117,7 @@ function WorkspaceNav({ items, label }: { items: WorkspaceItem[]; label: string 
               <button
                 key={item.id}
                 type="button"
-                onClick={() => go(item.id)}
+                onClick={() => goToSection(item.id)}
                 className="rounded-md px-3 py-2.5 text-left text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               >
                 {item.label}
@@ -102,6 +126,48 @@ function WorkspaceNav({ items, label }: { items: WorkspaceItem[]; label: string 
           </nav>
         </div>
       </aside>
+    </>
+  );
+}
+
+function EmployeeNav() {
+  return (
+    <>
+      <nav
+        aria-label="Atalhos do colaborador"
+        className="mb-4 hidden items-center gap-1 rounded-lg border border-border bg-card p-1 sm:flex"
+      >
+        {EMPLOYEE_NAV.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            onClick={() => goToSection(item.id)}
+            className="inline-flex min-h-9 items-center gap-2 rounded-md px-3 text-xs font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            {item.icon}
+            {item.label === "Docs" ? "Documentos" : item.label}
+          </button>
+        ))}
+      </nav>
+
+      <nav
+        aria-label="Navegação do colaborador"
+        className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-card/97 px-2 pb-[max(0.45rem,env(safe-area-inset-bottom))] pt-1.5 shadow-[0_-8px_24px_-22px_rgba(38,35,33,0.5)] backdrop-blur sm:hidden"
+      >
+        <div className="mx-auto grid max-w-md grid-cols-4 gap-1">
+          {EMPLOYEE_NAV.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => goToSection(item.id)}
+              className="flex min-h-[48px] flex-col items-center justify-center gap-1 rounded-md px-1 text-[10px] font-semibold text-muted-foreground transition-colors active:bg-kt-soft active:text-kt"
+            >
+              {item.icon}
+              {item.label}
+            </button>
+          ))}
+        </div>
+      </nav>
     </>
   );
 }
@@ -121,6 +187,7 @@ export function AppShell({
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const handleSair = onLogout ?? (() => setSession(null));
   const podeSair = (session || onLogout) && onExit !== false;
+  const employeeWorkspace = pathname === "/painel" && session?.tipo === "colaborador";
   const workspace = onLogout
     ? pathname === "/gestor"
       ? { items: MANAGER_NAV, label: "Gestão da unidade", mode: "manager" as const }
@@ -154,22 +221,35 @@ export function AppShell({
         {back ? <div className="app-container pb-2">{back}</div> : null}
       </header>
 
-      <main className="app-container flex-1 py-5 sm:py-7 lg:py-8">
+      <main
+        className={`app-container flex-1 py-5 sm:py-7 lg:py-8 ${employeeWorkspace ? "pb-24 sm:pb-7 lg:pb-8" : ""}`}
+      >
         {workspace ? (
           <div className="lg:grid lg:grid-cols-[210px_minmax(0,1fr)] lg:gap-6 xl:grid-cols-[230px_minmax(0,1fr)] xl:gap-8">
             <WorkspaceNav items={workspace.items} label={workspace.label} />
-            <div id="workspace-top" data-workspace-mode={workspace.mode} className="min-w-0 scroll-mt-24">
+            <div
+              id="workspace-top"
+              data-workspace-mode={workspace.mode}
+              className="min-w-0 scroll-mt-24"
+            >
               <WorkspaceOverview mode={workspace.mode} />
               <WorkspaceSupportRouting mode={workspace.mode} />
               <div className="legacy-workspace-content">{children}</div>
             </div>
+          </div>
+        ) : employeeWorkspace ? (
+          <div id="employee-top" data-employee-workspace className="min-w-0 scroll-mt-24">
+            <EmployeeNav />
+            {children}
           </div>
         ) : (
           children
         )}
       </main>
 
-      <footer className="mt-8 border-t border-border bg-card/70">
+      <footer
+        className={`mt-8 border-t border-border bg-card/70 ${employeeWorkspace ? "hidden sm:block" : ""}`}
+      >
         <div className="app-container flex flex-col gap-4 py-6 sm:flex-row sm:items-end sm:justify-between">
           <div className="grid gap-2">
             <Brand />
