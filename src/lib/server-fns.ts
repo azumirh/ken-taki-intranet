@@ -26,7 +26,6 @@ function validarServiceKey(key: string | undefined): string {
   try {
     const parts = clean.split(".");
     if (parts.length !== 3) throw new Error("formato inválido");
-    // JWTs usam base64url; Buffer.from lida corretamente no Node.js
     const b64 = (parts[1] ?? "").replace(/-/g, "+").replace(/_/g, "/");
     const padding = b64.length % 4 ? "=".repeat(4 - (b64.length % 4)) : "";
     const payload = JSON.parse(Buffer.from(b64 + padding, "base64").toString("utf-8")) as {
@@ -69,6 +68,7 @@ export const criarGestorFn = createServerFn({ method: "POST" })
       filial: data.filial,
       nome: data.nome.trim(),
       precisa_trocar_senha: true,
+      ativo: true,
       updated_at: new Date().toISOString(),
     });
 
@@ -77,8 +77,6 @@ export const criarGestorFn = createServerFn({ method: "POST" })
       throw new Error(perfilError.message);
     }
 
-    // O acesso já é criado mesmo quando o provedor de e-mail estiver indisponível.
-    // Registramos a falha em log para diagnóstico em produção, em vez de silenciá-la.
     let emailEnviado = false;
     const resendKey = process.env["RESEND_API_KEY"];
     if (resendKey) {
@@ -145,23 +143,32 @@ export const listarGestoresFn = createServerFn({ method: "GET" }).handler(async 
   });
   const { data, error } = await admin
     .from("kt_perfis")
-    .select("id, nome, email:id, tipo, filial, created_at")
+    .select("id, nome, tipo, filial, ativo, created_at")
     .eq("tipo", "gestor")
     .order("created_at", { ascending: true });
   if (error) throw new Error(error.message);
-  // Buscar emails dos usuários Auth (batch)
+
   const ids: string[] = (data ?? []).map((r: { id: string }) => r.id);
   const emailMap: Record<string, string> = {};
   for (const id of ids) {
     const { data: user } = await admin.auth.admin.getUserById(id);
     if (user?.user?.email) emailMap[id] = user.user.email;
   }
+
   return (data ?? []).map(
-    (r: { id: string; nome: string; tipo: string; filial: string | null; created_at: string }) => ({
+    (r: {
+      id: string;
+      nome: string;
+      tipo: string;
+      filial: string | null;
+      ativo: boolean;
+      created_at: string;
+    }) => ({
       id: r.id,
       nome: r.nome,
       email: emailMap[r.id] ?? "",
       filial: r.filial,
+      ativo: r.ativo,
       created_at: r.created_at,
     }),
   );
@@ -174,7 +181,24 @@ export const desativarGestorFn = createServerFn({ method: "POST" })
     const admin = createClient(SUPABASE_URL, serviceKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     });
-    const { error } = await admin.auth.admin.deleteUser(data.userId);
-    if (error) throw new Error(error.message);
+
+    const { error: perfilError } = await admin
+      .from("kt_perfis")
+      .update({ ativo: false, updated_at: new Date().toISOString() })
+      .eq("id", data.userId);
+    if (perfilError) throw new Error(perfilError.message);
+
+    const { error: authError } = await admin.auth.admin.updateUserById(data.userId, {
+      ban_duration: "876000h",
+    });
+
+    if (authError) {
+      await admin
+        .from("kt_perfis")
+        .update({ ativo: true, updated_at: new Date().toISOString() })
+        .eq("id", data.userId);
+      throw new Error(authError.message);
+    }
+
     return { ok: true };
   });
