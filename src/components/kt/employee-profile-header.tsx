@@ -8,6 +8,12 @@ import { supabase } from "@/lib/supabase";
 import { useColaboradores, useSession } from "@/lib/kt-store";
 
 type PhotoFrame = { x: number; y: number; zoom: number };
+type PhotoFrameRow = {
+  nome: string;
+  foto_pos_x: number | null;
+  foto_pos_y: number | null;
+  foto_zoom: number | string | null;
+};
 
 const DEFAULT_FRAME: PhotoFrame = { x: 50, y: 35, zoom: 1 };
 
@@ -19,6 +25,14 @@ function frameStyle(frame: PhotoFrame) {
   };
 }
 
+function toFrame(row: PhotoFrameRow): PhotoFrame {
+  return {
+    x: Number(row.foto_pos_x ?? DEFAULT_FRAME.x),
+    y: Number(row.foto_pos_y ?? DEFAULT_FRAME.y),
+    zoom: Number(row.foto_zoom ?? DEFAULT_FRAME.zoom),
+  };
+}
+
 export function EmployeeProfileHeader() {
   const [session] = useSession();
   const [colaboradores, setColaboradores] = useColaboradores();
@@ -27,6 +41,7 @@ export function EmployeeProfileHeader() {
   const [editing, setEditing] = useState(false);
   const [frame, setFrame] = useState<PhotoFrame>(DEFAULT_FRAME);
   const [savedFrame, setSavedFrame] = useState<PhotoFrame>(DEFAULT_FRAME);
+  const [framesByName, setFramesByName] = useState<Map<string, PhotoFrame>>(new Map());
 
   const perfil = useMemo(() => {
     if (!session || session.tipo !== "colaborador") return null;
@@ -38,21 +53,36 @@ export function EmployeeProfileHeader() {
   useEffect(() => {
     if (!perfil) return;
     let cancelled = false;
-    void supabase
-      .from("kt_colaboradores")
-      .select("foto_pos_x,foto_pos_y,foto_zoom")
-      .eq("id", perfil.id)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (cancelled || !data) return;
+
+    void Promise.all([
+      supabase
+        .from("kt_colaboradores")
+        .select("foto_pos_x,foto_pos_y,foto_zoom")
+        .eq("id", perfil.id)
+        .maybeSingle(),
+      supabase.rpc("kt_list_employee_photo_frames"),
+    ]).then(([ownResult, directoryResult]) => {
+      if (cancelled) return;
+
+      if (ownResult.data) {
         const next = {
-          x: Number(data.foto_pos_x ?? DEFAULT_FRAME.x),
-          y: Number(data.foto_pos_y ?? DEFAULT_FRAME.y),
-          zoom: Number(data.foto_zoom ?? DEFAULT_FRAME.zoom),
+          x: Number(ownResult.data.foto_pos_x ?? DEFAULT_FRAME.x),
+          y: Number(ownResult.data.foto_pos_y ?? DEFAULT_FRAME.y),
+          zoom: Number(ownResult.data.foto_zoom ?? DEFAULT_FRAME.zoom),
         };
         setFrame(next);
         setSavedFrame(next);
-      });
+      }
+
+      if (!directoryResult.error && directoryResult.data) {
+        const next = new Map<string, PhotoFrame>();
+        (directoryResult.data as PhotoFrameRow[]).forEach((row) => {
+          next.set(String(row.nome), toFrame(row));
+        });
+        setFramesByName(next);
+      }
+    });
+
     return () => {
       cancelled = true;
     };
@@ -60,22 +90,27 @@ export function EmployeeProfileHeader() {
 
   useEffect(() => {
     if (!perfil) return;
+
     const apply = () => {
       const root = document.querySelector("[data-employee-workspace]");
       if (!root) return;
+
       root.querySelectorAll<HTMLImageElement>("img").forEach((image) => {
-        if (image.alt !== perfil.nome) return;
-        image.style.objectPosition = `${frame.x}% ${frame.y}%`;
-        image.style.transform = `scale(${frame.zoom})`;
-        image.style.transformOrigin = `${frame.x}% ${frame.y}%`;
+        const targetFrame = image.alt === perfil.nome ? frame : framesByName.get(image.alt);
+        if (!targetFrame) return;
+
+        image.style.objectPosition = `${targetFrame.x}% ${targetFrame.y}%`;
+        image.style.transform = `scale(${targetFrame.zoom})`;
+        image.style.transformOrigin = `${targetFrame.x}% ${targetFrame.y}%`;
       });
     };
+
     apply();
     const observer = new MutationObserver(apply);
     const root = document.querySelector("[data-employee-workspace]");
     if (root) observer.observe(root, { childList: true, subtree: true });
     return () => observer.disconnect();
-  }, [frame, perfil]);
+  }, [frame, framesByName, perfil]);
 
   if (!session || session.tipo !== "colaborador") return null;
 
@@ -96,6 +131,11 @@ export function EmployeeProfileHeader() {
       );
       setFrame(DEFAULT_FRAME);
       setSavedFrame(DEFAULT_FRAME);
+      setFramesByName((previous) => {
+        const next = new Map(previous);
+        next.set(perfil.nome, DEFAULT_FRAME);
+        return next;
+      });
       await supabase.rpc("kt_update_my_photo_frame", {
         p_x: DEFAULT_FRAME.x,
         p_y: DEFAULT_FRAME.y,
@@ -122,8 +162,13 @@ export function EmployeeProfileHeader() {
       return;
     }
     setSavedFrame(frame);
+    setFramesByName((previous) => {
+      const next = new Map(previous);
+      next.set(perfil.nome, frame);
+      return next;
+    });
     setEditing(false);
-    toast.success("Enquadramento salvo.");
+    toast.success("Enquadramento salvo em todo o portal.");
   }
 
   const firstName = session.nome.trim().split(/\s+/)[0] ?? session.nome;
@@ -206,10 +251,18 @@ export function EmployeeProfileHeader() {
               <div>
                 <p className="text-sm font-bold text-foreground">Ajustar foto</p>
                 <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                  Mova o foco e o zoom até seu rosto ficar bem enquadrado. O mesmo recorte é usado onde sua foto aparecer no portal.
+                  Mova o foco e o zoom até seu rosto ficar bem enquadrado. O mesmo recorte é usado em todos os lugares do portal onde sua foto aparecer.
                 </p>
               </div>
-              <button type="button" onClick={() => { setFrame(savedFrame); setEditing(false); }} className="grid h-8 w-8 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground" aria-label="Fechar ajuste">
+              <button
+                type="button"
+                onClick={() => {
+                  setFrame(savedFrame);
+                  setEditing(false);
+                }}
+                className="grid h-8 w-8 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+                aria-label="Fechar ajuste"
+              >
                 <X className="h-4 w-4" />
               </button>
             </div>
@@ -217,25 +270,42 @@ export function EmployeeProfileHeader() {
             <div className="mt-4 grid gap-3 sm:grid-cols-3">
               <label className="grid gap-1.5 text-xs font-semibold text-foreground">
                 Horizontal
-                <input type="range" min="0" max="100" value={frame.x} onChange={(event) => setFrame((value) => ({ ...value, x: Number(event.target.value) }))} className="w-full accent-[var(--kt)]" />
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={frame.x}
+                  onChange={(event) => setFrame((value) => ({ ...value, x: Number(event.target.value) }))}
+                  className="w-full accent-[var(--kt)]"
+                />
               </label>
               <label className="grid gap-1.5 text-xs font-semibold text-foreground">
                 Vertical
-                <input type="range" min="0" max="100" value={frame.y} onChange={(event) => setFrame((value) => ({ ...value, y: Number(event.target.value) }))} className="w-full accent-[var(--kt)]" />
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={frame.y}
+                  onChange={(event) => setFrame((value) => ({ ...value, y: Number(event.target.value) }))}
+                  className="w-full accent-[var(--kt)]"
+                />
               </label>
               <label className="grid gap-1.5 text-xs font-semibold text-foreground">
                 Zoom
-                <input type="range" min="1" max="1.8" step="0.02" value={frame.zoom} onChange={(event) => setFrame((value) => ({ ...value, zoom: Number(event.target.value) }))} className="w-full accent-[var(--kt)]" />
+                <input
+                  type="range"
+                  min="1"
+                  max="1.8"
+                  step="0.02"
+                  value={frame.zoom}
+                  onChange={(event) => setFrame((value) => ({ ...value, zoom: Number(event.target.value) }))}
+                  className="w-full accent-[var(--kt)]"
+                />
               </label>
             </div>
 
             <div className="mt-4 flex flex-wrap items-center justify-center gap-2 sm:justify-end">
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => setFrame(DEFAULT_FRAME)}
-              >
+              <Button type="button" variant="ghost" size="sm" onClick={() => setFrame(DEFAULT_FRAME)}>
                 <RotateCcw className="h-3.5 w-3.5" /> Centralizar
               </Button>
               <Button type="button" size="sm" onClick={() => void saveFrame()}>
