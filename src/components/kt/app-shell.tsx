@@ -10,44 +10,32 @@ import { NotificationCenter } from "@/components/kt/notification-center";
 export function Brand({ size = "sm" }: { size?: "sm" | "lg" }) {
   const big = size === "lg";
   return (
-    <span className="flex items-center gap-2.5">
+    <span className="flex min-w-0 items-baseline gap-2">
       <span
-        className={`font-extrabold tracking-tight text-kt ${big ? "text-2xl" : "text-lg"}`}
-        style={{ letterSpacing: "-0.04em" }}
+        className={`truncate font-bold tracking-tight text-foreground ${big ? "text-2xl" : "text-base sm:text-lg"}`}
       >
         Ken Taki
       </span>
-      <span className={`text-muted-foreground font-light ${big ? "text-base" : "text-xs"}`}>·</span>
-      <span className={`text-muted-foreground font-medium ${big ? "text-base" : "text-xs"}`}>
+      <span className={`shrink-0 font-medium uppercase tracking-[0.16em] text-muted-foreground ${big ? "text-xs" : "text-[10px] sm:text-[11px]"}`}>
         {BRAND.product}
       </span>
     </span>
   );
 }
 
-function IconLink({
+function FooterLink({
   href,
-  label,
   children,
-  tone = "muted",
 }: {
   href: string;
-  label: string;
   children: ReactNode;
-  tone?: "muted" | "success";
 }) {
   return (
     <a
       href={href}
       target={href.startsWith("http") ? "_blank" : undefined}
       rel="noreferrer"
-      title={label}
-      aria-label={label}
-      className={`grid h-9 w-9 shrink-0 place-items-center rounded-full border transition-all hover:-translate-y-0.5 hover:shadow-[var(--shadow-soft)] ${
-        tone === "success"
-          ? "border-success/25 bg-success-soft text-success hover:bg-success/15"
-          : "border-border bg-card text-muted-foreground hover:text-foreground"
-      }`}
+      className="inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
     >
       {children}
     </a>
@@ -70,29 +58,20 @@ export function AppShell({
   const podeSair = (session || onLogout) && onExit !== false;
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="sticky top-0 z-40 border-b border-border bg-card/85 backdrop-blur-md">
-        <div className="mx-auto grid w-full max-w-[1400px] grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 sm:px-6 lg:px-8">
-          <Link to="/" className="flex min-w-0 items-center">
+    <div className="flex min-h-screen flex-col bg-background">
+      <header className="sticky top-0 z-40 border-b border-border/90 bg-card/95 shadow-[0_1px_0_rgba(0,0,0,0.02)] backdrop-blur-md">
+        <div className="app-container flex min-h-16 items-center justify-between gap-3 py-2">
+          <Link to="/" className="min-w-0 py-2" aria-label="Ir para o início">
             <Brand />
           </Link>
-          <div className="flex shrink-0 items-center gap-2">
+
+          <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
             {onLogout ? <NotificationCenter /> : null}
-            <IconLink
-              href={`https://wa.me/${AZUMI_CONTACT.whatsapp}`}
-              label="Contato via WhatsApp"
-              tone="success"
-            >
-              <MessageCircle className="h-4 w-4" />
-            </IconLink>
-            <IconLink href={`mailto:${AZUMI_CONTACT.email}`} label="Contato por e-mail">
-              <Mail className="h-4 w-4" />
-            </IconLink>
             {podeSair ? (
               <Button
                 variant="ghost"
                 size="sm"
-                className="rounded-full text-muted-foreground"
+                className="h-9 rounded-md px-2.5 text-muted-foreground hover:bg-muted hover:text-foreground sm:px-3"
                 onClick={handleSair}
               >
                 <LogOut className="h-4 w-4" />
@@ -101,19 +80,36 @@ export function AppShell({
             ) : null}
           </div>
         </div>
+
         {back ? (
-          <div className="mx-auto w-full max-w-[1400px] px-4 pb-2 sm:px-6 lg:px-8">{back}</div>
+          <div className="app-container pb-2">{back}</div>
         ) : null}
       </header>
 
-      <main className="mx-auto w-full max-w-[1400px] flex-1 px-4 py-6 sm:px-6 sm:py-10 lg:px-8">
+      <main className="app-container flex-1 py-5 sm:py-7 lg:py-8">
         {children}
       </main>
 
-      <footer className="mt-10 border-t border-border bg-card/60">
-        <div className="mx-auto grid w-full max-w-[1400px] gap-4 px-4 py-8 text-xs text-muted-foreground sm:px-6 md:grid-cols-[auto_minmax(0,1fr)] md:items-center lg:px-8">
-          <Brand />
-          <p className="md:text-right">{BRAND.footerCredit}</p>
+      <footer className="mt-8 border-t border-border bg-card/70">
+        <div className="app-container flex flex-col gap-4 py-6 sm:flex-row sm:items-end sm:justify-between">
+          <div className="grid gap-2">
+            <Brand />
+            <p className="max-w-xl text-xs leading-relaxed text-muted-foreground">
+              Canal interno de pessoas, comunicação e documentos do Ken Taki.
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-2 sm:items-end">
+            <div className="flex flex-wrap gap-x-4 gap-y-2">
+              <FooterLink href={`https://wa.me/${AZUMI_CONTACT.whatsapp}`}>
+                <MessageCircle className="h-3.5 w-3.5" /> Suporte de RH
+              </FooterLink>
+              <FooterLink href={`mailto:${AZUMI_CONTACT.email}`}>
+                <Mail className="h-3.5 w-3.5" /> E-mail
+              </FooterLink>
+            </div>
+            <p className="text-[11px] text-muted-foreground sm:text-right">{BRAND.footerCredit}</p>
+          </div>
         </div>
       </footer>
     </div>
@@ -124,7 +120,7 @@ export function BackLink({ onClick, children }: { onClick: () => void; children:
   return (
     <button
       onClick={onClick}
-      className="inline-flex items-center gap-0.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground shadow-sm transition-all hover:bg-muted hover:text-foreground hover:shadow-none"
+      className="inline-flex min-h-9 items-center gap-1 rounded-md border border-border bg-card px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
     >
       <ChevronLeft className="h-3.5 w-3.5" />
       {children}
