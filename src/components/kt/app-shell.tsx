@@ -9,7 +9,7 @@ import {
   MessageCircle,
   MessagesSquare,
 } from "lucide-react";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { AZUMI_CONTACT } from "@/lib/kt-data";
 import { useSession } from "@/lib/kt-store";
 import { BRAND } from "@/lib/brand";
@@ -91,20 +91,59 @@ function goToSection(id: string) {
 
 function WorkspaceNav({ items, label }: { items: WorkspaceItem[]; label: string }) {
   const groups = Array.from(new Set(items.map((item) => item.group)));
+  const [activeId, setActiveId] = useState("workspace-top");
+
+  useEffect(() => {
+    const visibleItems = items
+      .map((item) => ({ item, element: document.getElementById(item.id) }))
+      .filter((entry): entry is { item: WorkspaceItem; element: HTMLElement } => Boolean(entry.element));
+    if (visibleItems.length === 0) return;
+
+    const update = () => {
+      const offset = 128;
+      let current = visibleItems[0]!.item.id;
+      for (const entry of visibleItems) {
+        if (entry.element.getBoundingClientRect().top <= offset) current = entry.item.id;
+      }
+      setActiveId(current);
+    };
+
+    update();
+    window.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+    return () => {
+      window.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+    };
+  }, [items]);
+
+  const select = (id: string) => {
+    setActiveId(id);
+    goToSection(id);
+  };
+
   return (
     <>
-      <div className="sticky top-16 z-30 -mx-4 mb-4 border-b border-border bg-background/95 px-4 py-2 backdrop-blur lg:hidden">
+      <div className="sticky top-16 z-30 -mx-4 mb-4 border-b border-border bg-background/96 px-4 py-2.5 backdrop-blur lg:hidden">
         <div className="flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {items.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => goToSection(item.id)}
-              className="shrink-0 rounded-md border border-border bg-card px-3 py-2 text-xs font-semibold text-muted-foreground transition-colors hover:border-kt/30 hover:bg-kt-soft/40 hover:text-foreground"
-            >
-              {item.label}
-            </button>
-          ))}
+          {items.map((item) => {
+            const active = activeId === item.id;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => select(item.id)}
+                aria-current={active ? "location" : undefined}
+                className={`shrink-0 rounded-md border px-3 py-2 text-xs font-semibold transition-colors ${
+                  active
+                    ? "border-kt bg-kt text-primary-foreground"
+                    : "border-border bg-card text-muted-foreground hover:border-kt/30 hover:bg-kt-soft/40 hover:text-foreground"
+                }`}
+              >
+                {item.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -115,6 +154,9 @@ function WorkspaceNav({ items, label }: { items: WorkspaceItem[]; label: string 
               Ken Taki · Intranet
             </p>
             <p className="mt-1 text-sm font-bold text-sidebar-foreground">{label}</p>
+            <p className="mt-1 text-[11px] leading-relaxed text-sidebar-foreground/55">
+              Navegue por contexto sem perder a visão das pendências.
+            </p>
           </div>
           <nav className="grid gap-1 p-2.5">
             {groups.map((group) => (
@@ -126,20 +168,24 @@ function WorkspaceNav({ items, label }: { items: WorkspaceItem[]; label: string 
                 ) : null}
                 {items
                   .filter((item) => item.group === group)
-                  .map((item) => (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => goToSection(item.id)}
-                      className={`rounded-md px-3 py-2.5 text-left text-sm font-medium transition-colors ${
-                        item.id === "workspace-top"
-                          ? "bg-sidebar-accent text-sidebar-foreground"
-                          : "text-sidebar-foreground/72 hover:bg-sidebar-accent hover:text-sidebar-foreground"
-                      }`}
-                    >
-                      {item.label}
-                    </button>
-                  ))}
+                  .map((item) => {
+                    const active = activeId === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => select(item.id)}
+                        aria-current={active ? "location" : undefined}
+                        className={`relative rounded-md px-3 py-2.5 text-left text-sm font-medium transition-colors ${
+                          active
+                            ? "bg-sidebar-accent text-sidebar-foreground before:absolute before:inset-y-2 before:left-0 before:w-0.5 before:rounded-full before:bg-primary-foreground"
+                            : "text-sidebar-foreground/72 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                        }`}
+                      >
+                        {item.label}
+                      </button>
+                    );
+                  })}
               </div>
             ))}
           </nav>
@@ -254,7 +300,13 @@ export function AppShell({
               <WorkspaceOverview mode={workspace.mode} />
               <WorkspaceSupportRouting mode={workspace.mode} />
               <WorkspacePhotoAdjuster mode={workspace.mode} />
-              <div className="legacy-workspace-content">{children}</div>
+              <div
+                className={`legacy-workspace-content min-w-0 ${
+                  workspace.mode === "hr" ? "hr-workspace-content" : "manager-workspace-content"
+                } [&>div.grid]:gap-4 [&>div.grid>div.grid]:min-w-0 [&>div.grid>div.grid]:items-start [&>div.grid>div.grid]:gap-4 [&_.surface]:min-w-0 [&_.surface]:max-w-full`}
+              >
+                {children}
+              </div>
             </div>
           </div>
         ) : employeeWorkspace ? (
