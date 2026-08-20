@@ -10,10 +10,12 @@ import {
   MessagesSquare,
 } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
+import { useAdminPermissions, type AdminSection } from "@/lib/admin-permissions";
 import { AZUMI_CONTACT } from "@/lib/kt-data";
 import { useSession } from "@/lib/kt-store";
 import { BRAND } from "@/lib/brand";
 import { Button } from "@/components/ui/button";
+import { AdminVisibilityController } from "@/components/kt/admin-visibility-controller";
 import { EmployeeContentInstrumentation } from "@/components/kt/employee-content-instrumentation";
 import { EmployeeProfileHeader } from "@/components/kt/employee-profile-header";
 import { NotificationCenter } from "@/components/kt/notification-center";
@@ -30,6 +32,7 @@ import { WorkspaceSuggestions } from "@/components/kt/workspace-suggestions";
 type WorkspaceGroup = "Principal" | "Atenção" | "Rotina" | "Pessoas" | "Conteúdo" | "Administração";
 type WorkspaceItem = { id: string; label: string; group: WorkspaceGroup };
 type EmployeeItem = { id: string; label: string; icon: ReactNode };
+type AdminCan = ReturnType<typeof useAdminPermissions>["can"];
 
 const MANAGER_NAV: WorkspaceItem[] = [
   { id: "workspace-top", label: "Visão geral", group: "Principal" },
@@ -62,6 +65,26 @@ const EMPLOYEE_NAV: EmployeeItem[] = [
   { id: "mural", label: "Mural", icon: <Megaphone className="h-4 w-4" /> },
   { id: "feedback", label: "Falar", icon: <MessagesSquare className="h-4 w-4" /> },
 ];
+
+function adminSectionsForNav(id: string): AdminSection[] {
+  if (id === "workspace-top") return ["dashboard"];
+  if (id === "feedbacks") return ["feedbacks"];
+  if (id === "apoio") return ["apoio"];
+  if (id === "sugestoes") return ["sugestoes"];
+  if (id === "clima") return ["clima"];
+  if (id === "colaboradores") return ["colaboradores"];
+  if (id === "politicas") return ["documentos"];
+  if (id === "publicar") return ["noticias", "mural"];
+  if (id === "pesquisa-clima") return ["pesquisas"];
+  if (id === "engajamento") return ["noticias", "mural", "pesquisas"];
+  if (id === "acessos") return ["acessos"];
+  return [];
+}
+
+function canSeeHrNavItem(item: WorkspaceItem, can: AdminCan) {
+  const sections = adminSectionsForNav(item.id);
+  return sections.length === 0 || sections.some((section) => can(section, "view"));
+}
 
 export function Brand({ size = "sm" }: { size?: "sm" | "lg" }) {
   const big = size === "lg";
@@ -191,17 +214,20 @@ function EmployeeNav() {
 
 export function AppShell({ children, back, onExit, onLogout }: { children: ReactNode; back?: ReactNode; onExit?: boolean; onLogout?: () => void }) {
   const [session, setSession] = useSession();
+  const admin = useAdminPermissions();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const handleSair = onLogout ?? (() => setSession(null));
   const podeSair = (session || onLogout) && onExit !== false;
   const employeeWorkspace = pathname === "/painel" && session?.tipo === "colaborador";
+  const hrItems = admin.loading ? [] : HR_NAV.filter((item) => canSeeHrNavItem(item, admin.can));
   const workspace = onLogout
     ? pathname === "/gestor"
       ? { items: MANAGER_NAV, label: "Gestão da unidade", mode: "manager" as const }
       : pathname === "/azumi"
-        ? { items: HR_NAV, label: "RH · visão consolidada", mode: "hr" as const }
+        ? { items: hrItems, label: "RH · visão consolidada", mode: "hr" as const }
         : null
     : null;
+  const contentVisible = admin.can("noticias", "view") || admin.can("mural", "view") || admin.can("pesquisas", "view");
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -221,18 +247,19 @@ export function AppShell({ children, back, onExit, onLogout }: { children: React
           <div className="mx-auto w-full max-w-[1400px] lg:grid lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-6 xl:grid-cols-[232px_minmax(0,1fr)] xl:gap-8">
             <WorkspaceNav items={workspace.items} label={workspace.label} />
             <div id="workspace-top" data-workspace-mode={workspace.mode} className="min-w-0 scroll-mt-24">
-              <WorkspaceOverview mode={workspace.mode} />
+              {workspace.mode === "hr" ? <AdminVisibilityController /> : null}
+              {workspace.mode === "manager" || admin.can("dashboard", "view") ? <div id="dashboard"><WorkspaceOverview mode={workspace.mode} /></div> : null}
               <WorkspacePersonalization />
-              <WorkspaceCaseCenter mode={workspace.mode} />
-              <WorkspaceClimateReport mode={workspace.mode} />
-              {workspace.mode === "hr" ? <WorkspaceSuggestions /> : null}
-              {workspace.mode === "hr" ? <WorkspacePeopleAdmin /> : null}
-              {workspace.mode === "hr" ? <WorkspaceContentAnalytics /> : null}
-              <WorkspacePhotoAdjuster mode={workspace.mode} />
-              <div className={`legacy-workspace-content min-w-0 ${workspace.mode === "hr" ? "hr-workspace-content" : "manager-workspace-content"} [&>div.grid]:gap-4 [&>div.grid>div.grid]:min-w-0 [&>div.grid>div.grid]:items-start [&>div.grid>div.grid]:gap-4 [&_.surface]:min-w-0 [&_.surface]:max-w-full`}>
+              {workspace.mode === "manager" || admin.can("feedbacks", "view") || admin.can("apoio", "view") ? <WorkspaceCaseCenter mode={workspace.mode} /> : null}
+              {workspace.mode === "manager" || admin.can("clima", "view") ? <WorkspaceClimateReport mode={workspace.mode} /> : null}
+              {workspace.mode === "hr" && admin.can("sugestoes", "view") ? <WorkspaceSuggestions /> : null}
+              {workspace.mode === "hr" && admin.can("colaboradores", "view") ? <WorkspacePeopleAdmin /> : null}
+              {workspace.mode === "hr" && contentVisible ? <WorkspaceContentAnalytics /> : null}
+              {workspace.mode === "manager" || admin.can("colaboradores", "edit") ? <WorkspacePhotoAdjuster mode={workspace.mode} /> : null}
+              <div className={`legacy-workspace-content min-w-0 ${workspace.mode === "hr" ? "hr-workspace-content" : "manager-workspace-content"} ${workspace.mode === "hr" && admin.loading ? "invisible" : ""} [&>div.grid]:gap-4 [&>div.grid>div.grid]:min-w-0 [&>div.grid>div.grid]:items-start [&>div.grid>div.grid]:gap-4 [&_.surface]:min-w-0 [&_.surface]:max-w-full`} aria-busy={workspace.mode === "hr" && admin.loading}>
                 {children}
               </div>
-              {workspace.mode === "hr" ? <WorkspaceAccessCenter /> : null}
+              {workspace.mode === "hr" && admin.can("acessos", "view") ? <WorkspaceAccessCenter /> : null}
             </div>
           </div>
         ) : employeeWorkspace ? (
