@@ -27,6 +27,4 @@ npm run dev
 
 ## Production workflow
 
-Mudanças de produção devem passar por branch de trabalho, preview da Vercel, revisão em pull request e validação antes de merge na `main`.
-
-A branch `feat/production-hardening` concentra a revisão atual de identidade, notificações, segurança operacional e preparação de e-mails transacionais.
+Changes for the production-hardening initiative are developed on `feat/production-hardening`, validated in the Vercel preview and reviewed through a draft pull request before any merge to `main`. Avoid direct production edits and never rewrite published Git history because the repository is synchronized with Lovable.
