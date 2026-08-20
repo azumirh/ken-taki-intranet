@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   CheckCircle2,
   Eye,
@@ -53,7 +53,7 @@ function percent(value: number, total: number) {
   return `${Math.round((value / total) * 100)}%`;
 }
 
-function Metric({ icon, label, value }: { icon: React.ReactNode; label: string; value: string | number }) {
+function Metric({ icon, label, value }: { icon: ReactNode; label: string; value: string | number }) {
   return (
     <div className="rounded-md border border-border bg-background/55 px-3 py-2.5">
       <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
@@ -61,6 +61,18 @@ function Metric({ icon, label, value }: { icon: React.ReactNode; label: string; 
         {label}
       </div>
       <p className="mt-1 text-lg font-bold tabular-nums text-foreground">{value}</p>
+    </div>
+  );
+}
+
+function PersonList({ label, people, tone = "default" }: { label: string; people: Person[]; tone?: "default" | "success" | "warn" }) {
+  const labelClass = tone === "success" ? "text-success" : tone === "warn" ? "text-warn" : "text-foreground";
+  return (
+    <div>
+      <p className={`font-bold ${labelClass}`}>{label} · {people.length}</p>
+      <p className="mt-1 leading-relaxed text-muted-foreground">
+        {people.length ? people.map((person) => person.nome).join(", ") : "Ninguém ainda."}
+      </p>
     </div>
   );
 }
@@ -211,6 +223,8 @@ export function WorkspaceContentAnalytics() {
             );
             const actorsFor = (action: Interaction["action"]) =>
               new Set(itemRows.filter((row) => row.action === action).map((row) => row.actor_auth_id));
+            const peopleFor = (actors: Set<string>) =>
+              trackable.filter((person) => person.auth_user_id && actors.has(person.auth_user_id));
 
             const viewed = actorsFor("view");
             const clicked = actorsFor("click");
@@ -220,9 +234,15 @@ export function WorkspaceContentAnalytics() {
             const respondedYes = actorsFor("responded_yes");
             const respondedNo = actorsFor("responded_no");
 
-            const viewedPeople = trackable.filter((person) => person.auth_user_id && viewed.has(person.auth_user_id));
+            const viewedPeople = peopleFor(viewed);
             const notViewedPeople = trackable.filter((person) => person.auth_user_id && !viewed.has(person.auth_user_id));
             const withoutIdentity = audience.filter((person) => !person.auth_user_id);
+            const clickedPeople = peopleFor(clicked);
+            const likedPeople = peopleFor(liked);
+            const dislikedPeople = peopleFor(disliked);
+            const acknowledgedPeople = peopleFor(acknowledged);
+            const respondedYesPeople = peopleFor(respondedYes);
+            const respondedNoPeople = peopleFor(respondedNo);
 
             return (
               <article key={`${item.type}:${item.id}`} className="rounded-lg border border-border bg-background/35 p-4">
@@ -273,24 +293,39 @@ export function WorkspaceContentAnalytics() {
                 <details className="mt-3 rounded-md border border-border bg-card px-3 py-2.5">
                   <summary className="cursor-pointer text-xs font-bold text-foreground">Ver pessoas e pendências</summary>
                   <div className="mt-3 grid gap-3 text-xs sm:grid-cols-3">
-                    <div>
-                      <p className="font-bold text-success">Visualizaram · {viewedPeople.length}</p>
-                      <p className="mt-1 leading-relaxed text-muted-foreground">
-                        {viewedPeople.length ? viewedPeople.map((person) => person.nome).join(", ") : "Ninguém ainda."}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="font-bold text-warn">Ainda não visualizaram · {notViewedPeople.length}</p>
-                      <p className="mt-1 leading-relaxed text-muted-foreground">
-                        {notViewedPeople.length ? notViewedPeople.map((person) => person.nome).join(", ") : "Todos os acessos rastreáveis já visualizaram."}
-                      </p>
-                    </div>
+                    <PersonList label="Visualizaram" people={viewedPeople} tone="success" />
+                    <PersonList label="Ainda não visualizaram" people={notViewedPeople} tone="warn" />
                     <div>
                       <p className="font-bold text-muted-foreground">Sem login rastreável · {withoutIdentity.length}</p>
                       <p className="mt-1 leading-relaxed text-muted-foreground">
                         {withoutIdentity.length ? withoutIdentity.map((person) => person.nome).join(", ") : "Nenhum."}
                       </p>
                     </div>
+                  </div>
+
+                  <div className="mt-4 border-t border-border pt-3 text-xs">
+                    {item.type === "noticia" ? (
+                      <div className="grid gap-3 sm:grid-cols-3">
+                        <PersonList label="Clicaram" people={clickedPeople} />
+                        <PersonList label="Gostaram" people={likedPeople} tone="success" />
+                        <PersonList label="Marcaram não útil" people={dislikedPeople} tone="warn" />
+                      </div>
+                    ) : item.type === "mural" ? (
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <PersonList label="Marcaram ciente" people={acknowledgedPeople} tone="success" />
+                        <PersonList
+                          label="Ainda sem ciência"
+                          people={trackable.filter((person) => person.auth_user_id && !acknowledged.has(person.auth_user_id))}
+                          tone="warn"
+                        />
+                      </div>
+                    ) : (
+                      <div className="grid gap-3 sm:grid-cols-3">
+                        <PersonList label="Abriram o formulário" people={clickedPeople} />
+                        <PersonList label="Confirmaram resposta" people={respondedYesPeople} tone="success" />
+                        <PersonList label="Disseram ainda não" people={respondedNoPeople} tone="warn" />
+                      </div>
+                    )}
                   </div>
                 </details>
               </article>
