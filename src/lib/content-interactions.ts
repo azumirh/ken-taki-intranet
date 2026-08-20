@@ -15,6 +15,13 @@ const EXCLUSIVE_GROUPS: ContentAction[][] = [
   ["responded_yes", "responded_no"],
 ];
 
+function exclusiveGroup(contentType: ContentType, action: ContentAction | null) {
+  if (action) return EXCLUSIVE_GROUPS.find((candidate) => candidate.includes(action));
+  if (contentType === "noticia") return EXCLUSIVE_GROUPS[0];
+  if (contentType === "pesquisa") return EXCLUSIVE_GROUPS[1];
+  return undefined;
+}
+
 async function currentUserId() {
   const {
     data: { user },
@@ -58,9 +65,7 @@ export async function setExclusiveContentAction(
   const actorAuthId = await currentUserId();
   if (!actorAuthId) return { ok: false as const, reason: "not_authenticated" as const };
 
-  const group = action
-    ? EXCLUSIVE_GROUPS.find((candidate) => candidate.includes(action))
-    : undefined;
+  const group = exclusiveGroup(contentType, action);
   if (!group) return { ok: false as const, reason: "invalid_exclusive_action" as const };
 
   const { error: deleteError } = await supabase
