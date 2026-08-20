@@ -14,6 +14,7 @@ import { AZUMI_CONTACT } from "@/lib/kt-data";
 import { useSession } from "@/lib/kt-store";
 import { BRAND } from "@/lib/brand";
 import { Button } from "@/components/ui/button";
+import { EmployeeProfileHeader } from "@/components/kt/employee-profile-header";
 import { NotificationCenter } from "@/components/kt/notification-center";
 import { WorkspaceOverview } from "@/components/kt/workspace-overview";
 import { WorkspaceSupportRouting } from "@/components/kt/workspace-support-routing";
@@ -135,7 +136,7 @@ function EmployeeNav() {
     <>
       <nav
         aria-label="Atalhos do colaborador"
-        className="mb-4 hidden items-center gap-1 rounded-lg border border-border bg-card p-1 sm:flex"
+        className="mx-auto mb-5 hidden w-fit items-center gap-1 rounded-lg border border-border bg-card p-1 sm:flex"
       >
         {EMPLOYEE_NAV.map((item) => (
           <button
@@ -204,7 +205,7 @@ export function AppShell({
             <Brand />
           </Link>
           <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
-            {onLogout ? <NotificationCenter /> : null}
+            {onLogout || employeeWorkspace ? <NotificationCenter /> : null}
             {podeSair ? (
               <Button
                 variant="ghost"
@@ -239,6 +240,7 @@ export function AppShell({
           </div>
         ) : employeeWorkspace ? (
           <div id="employee-top" data-employee-workspace className="min-w-0 scroll-mt-24">
+            <EmployeeProfileHeader />
             <EmployeeNav />
             {children}
           </div>
