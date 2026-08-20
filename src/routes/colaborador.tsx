@@ -9,6 +9,7 @@ import { FILIAIS } from "@/lib/kt-data";
 import { useSession } from "@/lib/kt-store";
 import { criarSessaoColaboradorFn } from "@/lib/employee-server-fns";
 import { saveEmployeeAccess } from "@/lib/employee-session";
+import { supabase } from "@/lib/supabase";
 
 export const Route = createFileRoute("/colaborador")({
   head: () => ({
@@ -57,6 +58,12 @@ function ColaboradorLogin() {
         setErro("Nome ou CPF não encontrados nesta unidade.");
         return;
       }
+
+      const { error: authError } = await supabase.auth.setSession({
+        access_token: resultado.supabaseSession.accessToken,
+        refresh_token: resultado.supabaseSession.refreshToken,
+      });
+      if (authError) throw authError;
 
       saveEmployeeAccess(resultado.access);
       setSession({
