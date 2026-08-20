@@ -38,7 +38,7 @@ export const POLITICAS: Politica[] = [
       "Tratamos colegas, clientes e fornecedores com respeito, sem exceção. Qualquer forma de discriminação ou assédio é inaceitável.",
       "Informações de clientes, receitas e processos internos do Ken Taki são confidenciais.",
       "Presentes, vantagens ou favores de fornecedores devem ser comunicados à liderança.",
-      "Denúncias podem ser feitas de forma anônima pela caixinha de sugestão ou direto com a equipe Azumi RH.",
+      "Denúncias podem ser feitas de forma anônima pelo canal de escuta da intranet ou diretamente com o RH responsável.",
     ],
   },
   {
@@ -52,7 +52,7 @@ export const POLITICAS: Politica[] = [
     conteudo: [
       "Cumprimente o cliente em até 30 segundos após a chegada, sempre com contato visual.",
       "Uniforme limpo, cabelo preso e crachá visível durante todo o turno.",
-      "Reclamações são registradas e comunicadas ao gestor no mesmo turno.",
+      "Reclamações de clientes são registradas e comunicadas ao gestor no mesmo turno.",
       "Nunca discuta com o cliente: acione a liderança sempre que a situação escalar.",
     ],
   },
@@ -80,20 +80,20 @@ export const POLITICAS: Politica[] = [
     conteudo: [
       "Elogios de clientes são registrados na ficha do colaborador.",
       "Todo mês uma pessoa é destacada no mural da equipe pela unidade.",
-      "Reconhecimentos entram na avaliação semestral conduzida pela Azumi RH.",
+      "Reconhecimentos podem compor os ciclos de acompanhamento e desenvolvimento conduzidos pelo RH.",
     ],
   },
   {
     id: "seguranca",
     titulo: "Segurança, Saúde e Bem-estar",
     resumo: "Prevenção de riscos e cuidado com a equipe.",
-    intro: "Regras de segurança da cozinha e do salão, além dos canais de apoio à saúde mental.",
+    intro: "Regras de segurança da cozinha e do salão, além dos canais de apoio ao colaborador.",
     capa: capaPadrao,
     paginas: 5,
     conteudo: [
       "Uso obrigatório de EPI nas áreas de cocção e higienização.",
       "Acidentes, mesmo leves, devem ser comunicados imediatamente ao gestor.",
-      "Apoio emocional confidencial disponível com a equipe Azumi RH.",
+      "O canal de apoio do RH é confidencial e pode ser acessado diretamente pela intranet.",
       "Pausas previstas em escala são um direito — organize com sua liderança.",
     ],
   },
@@ -107,7 +107,7 @@ export type Documento = {
   corTag: string;
   textoTag: string;
   data: string;
-  categoria?: "todos" | "gestao" | undefined; // "gestao" = gestor only; default "todos"
+  categoria?: "todos" | "gestao" | undefined;
 };
 
 export const DOCUMENTOS_SEED: Documento[] = [
@@ -116,7 +116,7 @@ export const DOCUMENTOS_SEED: Documento[] = [
     titulo: "Código de Ética e Conduta",
     filial: "cristo-rei",
     url: "https://drive.google.com/file/d/1q7v6OskBF22skLPy2KwtL3JDXqDaJLOf/view?usp=sharing",
-    corTag: "#8a2058",
+    corTag: "#70263b",
     textoTag: "Ética",
     data: "2025-09-01",
     categoria: "todos",
@@ -129,9 +129,9 @@ export type Colaborador = {
   cpf3: string;
   cargo: string;
   filial: FilialId;
-  nascimento: string; // yyyy-mm-dd
+  nascimento: string;
   admissao: string;
-  foto?: string | undefined; // base64 / url
+  foto?: string | undefined;
 };
 
 export const COLABORADORES: Colaborador[] = [
@@ -186,7 +186,7 @@ export type MuralTipo = "recado" | "novidade" | "data" | "aniversario";
 
 export const MURAL_TIPO_LABEL: Record<MuralTipo, string> = {
   recado: "Recado da equipe",
-  novidade: "Novidade Azumi RH",
+  novidade: "Novidade do RH",
   data: "Data comemorativa",
   aniversario: "Aniversário",
 };
@@ -200,7 +200,7 @@ export type MuralItem = {
   data: string;
   filial?: FilialId | "todas" | undefined;
   emoji?: string | undefined;
-  eventoData?: string | undefined; // "YYYY-MM-DDTHH:MM"
+  eventoData?: string | undefined;
   eventoLink?: string | undefined;
 };
 
@@ -208,21 +208,21 @@ export const MURAL_SEED: MuralItem[] = [
   {
     id: "m1",
     tipo: "novidade",
-    titulo: "Ken Taki × Azumi RH",
+    titulo: "Seu portal interno Ken Taki",
     mensagem:
-      "Começamos a parceria com a Azumi RH. Novidades de gente e gestão passam a chegar por aqui.",
-    autor: "Equipe Azumi RH",
+      "Este espaço reúne comunicação, documentos, escuta e acompanhamento de pessoas em um só lugar.",
+    autor: "RH Ken Taki",
     data: "2025-09-01",
     filial: "todas",
-    emoji: "🤝",
+    emoji: "•",
   },
   {
     id: "m2",
     tipo: "data",
     titulo: "Setembro Amarelo",
     mensagem:
-      "Mês de cuidado com a saúde mental. Conversas de apoio disponíveis com a Azumi, sem julgamento.",
-    autor: "Azumi RH",
+      "Mês de cuidado com a saúde mental. O canal de apoio do RH está disponível para conversas confidenciais e acolhimento.",
+    autor: "RH",
     data: "2025-09-01",
     filial: "todas",
     emoji: "💛",
@@ -251,15 +251,15 @@ export type Noticia = {
 export const NOTICIAS_SEED: Noticia[] = [
   {
     id: "n1",
-    titulo: "Vamos nos conhecer: quem é a Azumi RH",
+    titulo: "Conheça seus canais de pessoas e RH",
     resumo:
-      "Em 3 minutos, o time da Azumi conta como vai apoiar o dia a dia das unidades Ken Taki.",
+      "Veja como usar a intranet para documentos, apoio, sugestões, dúvidas e comunicação com o RH.",
     videoUrl: "https://www.youtube.com/watch?v=aqz-KE-bpKQ",
     data: "2025-09-02",
   },
 ];
 
-export const EMOJIS = ["🎉", "👏", "💜", "🍣", "☀️", "🔥", "🙏", "😄", "💪", "✨"];
+export const EMOJIS = ["🎉", "👏", "🍣", "☀️", "🙏", "😄", "💪", "✨"];
 
 export const HUMORES = [
   { id: "otimo", label: "Ótimo", emoji: "😄", categoria: "positiva" },
@@ -273,9 +273,28 @@ export const SUGESTAO_CATEGORIAS = [
   "Gestão",
   "Operação",
   "Colaboradores / time",
-  "Equipe Azumi RH",
+  "RH / Pessoas",
 ];
-export const FEEDBACK_TIPOS = ["Elogio", "Crítica", "Dúvida", "Situação urgente"];
+
+export const FEEDBACK_TIPOS = [
+  "Elogio",
+  "Dúvida",
+  "Crítica",
+  "Reclamação",
+  "Denúncia",
+  "Situação urgente",
+];
+
+export const FEEDBACK_SENSIVEIS = new Set([
+  "Crítica",
+  "Reclamação",
+  "Denúncia",
+  "Situação urgente",
+]);
+
+export function feedbackExigeTriagemRh(tipo: string) {
+  return FEEDBACK_SENSIVEIS.has(tipo);
+}
 
 export function idade(nascimento: string, ref = new Date()) {
   const d = new Date(nascimento + "T00:00:00");
