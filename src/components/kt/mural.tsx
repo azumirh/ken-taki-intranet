@@ -79,7 +79,7 @@ export function Mural({
     <Section
       id="mural"
       titulo="Mural da equipe"
-      intro="Recados, novidades da Azumi RH e datas comemorativas da sua unidade."
+      intro="Recados, novidades do RH e datas importantes da sua unidade."
       contagem={`${itens.length} publicações`}
       collapsible={collapsible}
       defaultOpen={defaultOpen}
@@ -215,9 +215,7 @@ export function Mural({
               key={m.id}
               className={`relative flex min-h-[220px] flex-col rounded-2xl border p-6 transition-transform hover:scale-[1.01] ${POST_IT_BG[m.tipo]} ${ROTACOES[idx % 3]}`}
             >
-              {/* decorative pin */}
               <div className="absolute left-1/2 top-0 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-foreground/40 shadow-sm" />
-              {/* author — prominent */}
               <div className="mb-3 flex items-center gap-2">
                 <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-[11px] font-bold text-primary-foreground gradient-union">
                   {iniciais(m.autor)}

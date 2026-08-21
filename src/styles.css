@@ -5,13 +5,13 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-sans: "Poppins", ui-sans-serif, system-ui, sans-serif;
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
+  --font-sans: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --radius-sm: calc(var(--radius) - 3px);
+  --radius-md: calc(var(--radius) - 1px);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --radius-2xl: calc(var(--radius) + 8px);
-  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-xl: calc(var(--radius) + 3px);
+  --radius-2xl: calc(var(--radius) + 6px);
+  --radius-3xl: calc(var(--radius) + 9px);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -51,139 +51,369 @@
 }
 
 :root {
-  --radius: 1rem;
-
-  --background: oklch(0.995 0.004 320);
-  --foreground: oklch(0.24 0.045 315);
-
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.24 0.045 315);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.24 0.045 315);
-
-  /* Ken Taki */
-  --kt: oklch(0.44 0.16 340);
-  --kt-soft: oklch(0.96 0.03 340);
-  /* Azumi */
-  --az: oklch(0.58 0.17 268);
-  --az-soft: oklch(0.96 0.03 268);
-
-  --primary: oklch(0.44 0.16 340);
-  --primary-foreground: oklch(0.99 0.005 340);
-  --secondary: oklch(0.97 0.012 320);
-  --secondary-foreground: oklch(0.32 0.06 320);
-  --muted: oklch(0.968 0.01 320);
-  --muted-foreground: oklch(0.52 0.03 315);
-  --accent: oklch(0.96 0.03 268);
-  --accent-foreground: oklch(0.36 0.12 275);
-
-  --destructive: oklch(0.58 0.2 20);
-  --destructive-foreground: oklch(0.99 0.005 20);
-  --success: oklch(0.56 0.13 160);
-  --success-soft: oklch(0.95 0.04 160);
-  --warn: oklch(0.72 0.14 75);
-  --warn-soft: oklch(0.96 0.05 85);
-
-  --border: oklch(0.92 0.012 315);
-  --input: oklch(0.92 0.012 315);
-  --ring: oklch(0.58 0.17 268);
-
-  --gradient-union: linear-gradient(
-    100deg,
-    oklch(0.44 0.16 340) 0%,
-    oklch(0.42 0.12 310) 45%,
-    oklch(0.58 0.17 268) 100%
-  );
-  --gradient-veil: linear-gradient(
-    160deg,
-    oklch(0.985 0.02 340) 0%,
-    oklch(0.99 0.008 320) 45%,
-    oklch(0.98 0.02 268) 100%
-  );
-  --shadow-soft: 0 1px 2px oklch(0.3 0.06 315 / 0.04), 0 8px 24px -12px oklch(0.3 0.06 315 / 0.18);
-  --shadow-lift: 0 2px 4px oklch(0.3 0.06 315 / 0.05), 0 18px 40px -18px oklch(0.3 0.06 315 / 0.28);
-
-  --sidebar: oklch(0.99 0.008 320);
-  --sidebar-foreground: oklch(0.24 0.045 315);
-  --sidebar-primary: oklch(0.44 0.16 340);
-  --sidebar-primary-foreground: oklch(0.99 0.005 340);
-  --sidebar-accent: oklch(0.96 0.03 268);
-  --sidebar-accent-foreground: oklch(0.36 0.12 275);
-  --sidebar-border: oklch(0.92 0.012 315);
-  --sidebar-ring: oklch(0.58 0.17 268);
+  --radius: 0.625rem;
+  --background: #f6f4f0;
+  --foreground: #262321;
+  --card: #fffdf9;
+  --card-foreground: #262321;
+  --popover: #fffdf9;
+  --popover-foreground: #262321;
+  --kt: #70263b;
+  --kt-soft: #f3e8eb;
+  --az: #725a42;
+  --az-soft: #f2ede6;
+  --primary: #70263b;
+  --primary-foreground: #fffaf6;
+  --secondary: #eee9e2;
+  --secondary-foreground: #342f2b;
+  --muted: #efede9;
+  --muted-foreground: #6d6761;
+  --accent: #eee7df;
+  --accent-foreground: #4b4037;
+  --destructive: #a63a3a;
+  --destructive-foreground: #fffafa;
+  --success: #39715a;
+  --success-soft: #e8f1ec;
+  --warn: #9a6a21;
+  --warn-soft: #f7efe0;
+  --border: #ded9d2;
+  --input: #d8d2ca;
+  --ring: #70263b;
+  --gradient-union: linear-gradient(120deg, #70263b 0%, #7f394d 55%, #725a42 100%);
+  --gradient-veil: #f6f4f0;
+  --shadow-soft: 0 1px 2px rgba(39, 35, 31, 0.04), 0 8px 24px -18px rgba(39, 35, 31, 0.22);
+  --shadow-lift: 0 2px 4px rgba(39, 35, 31, 0.05), 0 20px 44px -24px rgba(39, 35, 31, 0.28);
+  --sidebar: #272321;
+  --sidebar-foreground: #f8f4ee;
+  --sidebar-primary: #f8f4ee;
+  --sidebar-primary-foreground: #272321;
+  --sidebar-accent: #3a3430;
+  --sidebar-accent-foreground: #fffaf6;
+  --sidebar-border: #47403b;
+  --sidebar-ring: #b78b96;
 }
 
 @layer base {
-  * {
-    border-color: var(--color-border);
-  }
+  * { border-color: var(--color-border); }
 
-  html,
-  body {
+  html, body, #root {
+    min-height: 100%;
     max-width: 100%;
-    overflow-x: hidden;
   }
 
+  html, body { overflow-x: hidden; }
+
   body {
-    background: var(--gradient-veil);
-    background-attachment: fixed;
-    color: var(--color-foreground);
+    margin: 0;
+    background: var(--background);
+    color: var(--foreground);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
   }
 
-
-  h1,
-  h2,
-  h3,
-  h4 {
+  h1, h2, h3, h4 {
     font-weight: 700;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.025em;
   }
+
+  button, a, input, textarea, select { -webkit-tap-highlight-color: transparent; }
+
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-variant-numeric: tabular-nums;
+  }
+
+  th {
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+    letter-spacing: 0.015em;
+  }
+
+  td { vertical-align: top; }
 }
 
 @utility surface {
   background-color: var(--card);
   border: 1px solid var(--border);
-  border-radius: var(--radius-2xl);
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-soft);
 }
 
-@utility gradient-union {
-  background-image: var(--gradient-union);
+@utility surface-subtle {
+  background-color: color-mix(in srgb, var(--card) 72%, var(--background));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
 }
 
-@utility text-union {
-  background-image: var(--gradient-union);
-  background-clip: text;
-  color: transparent;
+@utility app-container {
+  width: 100%;
+  max-width: 1440px;
+  margin-inline: auto;
+  padding-inline: 1rem;
+}
+
+@utility content-column {
+  width: 100%;
+  max-width: 1180px;
+  margin-inline: auto;
+}
+
+@utility dashboard-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1rem;
+}
+
+@utility data-table-shell {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--card);
+}
+
+@utility gradient-union { background-image: var(--gradient-union); }
+@utility text-union { color: var(--kt); }
+
+/* The new workspace replaces the old greeting and KPI blocks. Keeping both
+   created the exact duplicated/empty feeling the redesign is removing. */
+[data-workspace-mode] .legacy-workspace-content > .grid > :first-child,
+[data-workspace-mode] .legacy-workspace-content > .grid > :nth-child(2) {
+  display: none;
+}
+
+/* RH also had an older pending-alert banner immediately after the KPIs.
+   Its information now lives in the role-aware queue above. */
+[data-workspace-mode="hr"] .legacy-workspace-content > .grid > :nth-child(3) {
+  display: none;
+}
+
+/* Collaborator workspace: the centered profile/header in AppShell replaces the
+   old left-aligned greeting and the duplicated Azumi support block. The legacy
+   critical banner is also superseded by the check-in support routing. */
+[data-employee-workspace] > .grid.gap-5 > :first-child,
+[data-employee-workspace] > .grid.gap-5 > :nth-child(2),
+[data-employee-workspace] > .grid.gap-5 > :nth-child(3):not(#checkin) {
+  display: none;
+}
+
+[data-employee-workspace] > .grid.gap-5 {
+  width: 100%;
+  max-width: 1180px;
+  margin-inline: auto;
+  gap: 1.15rem;
+}
+
+[data-employee-workspace] > .grid.gap-5 > div[class~="lg:grid-cols-2"] {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 440px), 1fr)) !important;
+  align-items: start;
+  gap: 1.15rem;
+}
+
+[data-employee-workspace] > .grid.gap-5 > div[class~="lg:grid-cols-2"] > * {
+  min-width: 0;
+  align-self: start;
+}
+
+[data-employee-workspace] #checkin {
+  max-width: 780px;
+  margin-inline: auto;
+}
+
+/* Birthday cards remain warm and expressive, but visually centered. */
+[data-employee-workspace] #aniversariantes [class~="max-w-xs"] {
+  max-width: 23rem;
+}
+
+[data-employee-workspace] #aniversariantes [class~="px-4"][class~="pt-4"] {
+  text-align: center;
+}
+
+[data-employee-workspace] #aniversariantes [class~="flex"][class~="flex-wrap"] {
+  justify-content: center;
+}
+
+[data-employee-workspace] #aniversariantes img {
+  object-position: 50% 35%;
+  transition: transform 180ms ease, object-position 180ms ease;
+}
+
+[data-employee-workspace] #aniversariantes button:active > span:first-child {
+  transform: scale(1.28) rotate(-5deg);
+}
+
+[data-employee-workspace] #aniversariantes button > span:first-child {
+  transition: transform 160ms ease;
+}
+
+/* Transitional normalization for legacy screens. These selectors deliberately
+   affect controls/cards, not avatar circles. */
+button.rounded-full,
+a.rounded-full {
+  border-radius: 0.5rem !important;
+}
+
+div.rounded-2xl,
+article.rounded-2xl,
+section.rounded-2xl,
+div.rounded-3xl,
+article.rounded-3xl {
+  border-radius: 0.625rem !important;
+}
+
+.overflow-x-auto.rounded-2xl,
+.overflow-x-auto.rounded-3xl {
+  border-radius: 0.625rem !important;
+}
+
+main .shadow-xl,
+main .shadow-2xl {
+  box-shadow: var(--shadow-lift) !important;
+}
+
+/* Prevent legacy modules from pushing the page outside the viewport. Wide
+   data remains scrollable inside its own frame rather than moving the whole UI. */
+.legacy-workspace-content,
+.legacy-workspace-content > *,
+.legacy-workspace-content .surface {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.legacy-workspace-content .overflow-x-auto {
+  max-width: 100%;
+  overscroll-behavior-inline: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 639px) {
+  main .legacy-workspace-content table { min-width: 680px; }
+  main .surface { box-shadow: none; }
+
+  .legacy-workspace-content select,
+  .legacy-workspace-content input,
+  .legacy-workspace-content textarea {
+    max-width: 100%;
+  }
+
+  [data-employee-workspace] > .grid.gap-5 {
+    gap: 0.9rem;
+  }
+}
+
+@media (min-width: 640px) {
+  .app-container { padding-inline: 1.5rem; }
+}
+
+@media (min-width: 1024px) {
+  .app-container { padding-inline: 2rem; }
+  .dashboard-grid { gap: 1.25rem; }
+}
+
+/* Check-in emotion feedback. Positive choices celebrate; neutral choices use a
+   lighter sparkle; negative choices use alert rings instead of celebratory FX. */
+.kt-mood-burst,
+.kt-mood-alert-burst {
+  position: absolute;
+  inset: -1rem;
+  z-index: 20;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.kt-mood-particle {
+  --kt-drift: 0px;
+  position: absolute;
+  bottom: 34%;
+  opacity: 0;
+  font-size: clamp(1rem, 2.4vw, 1.55rem);
+  line-height: 1;
+  animation: kt-mood-pop 1.15s cubic-bezier(0.16, 0.8, 0.24, 1) forwards;
+  filter: drop-shadow(0 5px 10px rgba(38, 35, 33, 0.12));
+}
+
+.kt-mood-burst-positive .kt-mood-particle:nth-child(3n + 1) { --kt-drift: -42px; }
+.kt-mood-burst-positive .kt-mood-particle:nth-child(3n + 2) { --kt-drift: 38px; }
+.kt-mood-burst-positive .kt-mood-particle:nth-child(4n) { --kt-drift: 14px; }
+
+.kt-mood-burst-neutral .kt-mood-particle {
+  font-size: clamp(0.8rem, 1.8vw, 1.15rem);
+  filter: none;
+  animation-duration: 900ms;
+}
+
+.kt-mood-burst-neutral .kt-mood-particle:nth-child(odd) { --kt-drift: -20px; }
+.kt-mood-burst-neutral .kt-mood-particle:nth-child(even) { --kt-drift: 20px; }
+
+.kt-mood-alert-burst {
+  display: grid;
+  place-items: center;
+}
+
+.kt-mood-alert-burst span {
+  position: absolute;
+  width: min(56%, 310px);
+  aspect-ratio: 1;
+  border: 2px solid color-mix(in srgb, var(--destructive) 72%, transparent);
+  border-radius: 999px;
+  opacity: 0;
+  animation: kt-mood-alert-ring 920ms ease-out forwards;
+}
+
+.kt-mood-alert-burst span:nth-child(2) { animation-delay: 110ms; }
+.kt-mood-alert-burst span:nth-child(3) { animation-delay: 220ms; }
+
+@keyframes kt-mood-pop {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 8px, 0) scale(0.55) rotate(-8deg);
+  }
+  18% {
+    opacity: 1;
+    transform: translate3d(calc(var(--kt-drift) * 0.2), -12px, 0) scale(1.08) rotate(3deg);
+  }
+  72% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--kt-drift), -145px, 0) scale(0.9) rotate(12deg);
+  }
+}
+
+@keyframes kt-mood-alert-ring {
+  0% {
+    opacity: 0.55;
+    transform: scale(0.45);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.25);
+  }
 }
 
 @keyframes kt-icon-float {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-10px);
-  }
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
 }
 
 @keyframes kt-heart-float {
-  0% {
-    transform: translateY(0) scale(0.6);
-    opacity: 0;
-  }
-  15% {
-    opacity: 1;
-    transform: translateY(-16px) scale(1);
-  }
-  75% {
-    opacity: 0.7;
-    transform: translateY(-80px) scale(1.1);
-  }
-  100% {
-    opacity: 0;
-    transform: translateY(-120px) scale(0.8);
+  0% { transform: translateY(0) scale(0.6); opacity: 0; }
+  15% { opacity: 1; transform: translateY(-16px) scale(1); }
+  75% { opacity: 0.7; transform: translateY(-80px) scale(1.1); }
+  100% { opacity: 0; transform: translateY(-120px) scale(0.8); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kt-mood-particle,
+  .kt-mood-alert-burst span {
+    animation-duration: 1ms !important;
   }
 }

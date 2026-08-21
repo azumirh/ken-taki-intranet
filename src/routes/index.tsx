@@ -4,18 +4,18 @@ import { AppShell } from "@/components/kt/app-shell";
 import heroHome from "@/assets/hero-home.jpg";
 import entryColaborador from "@/assets/entry-colaborador.jpg";
 import entryGestor from "@/assets/entry-gestor.jpg";
-import entryAzumi from "@/assets/entry-azumi.jpg";
+import entryRh from "@/assets/entry-azumi.jpg";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Intranet Ken Taki | Portal Azumi RH" },
+      { title: "Intranet Ken Taki" },
       {
         name: "description",
         content:
-          "Entre na intranet do Ken Taki: colaborador, gestor ou equipe Azumi RH. Políticas, mural, clima e escuta em um só lugar.",
+          "Entre na intranet do Ken Taki como colaborador, gestor ou RH. Políticas, mural, clima e canais de escuta em um só lugar.",
       },
-      { property: "og:title", content: "Intranet Ken Taki | Portal Azumi RH" },
+      { property: "og:title", content: "Intranet Ken Taki" },
       {
         property: "og:description",
         content: "Políticas, mural da equipe, clima e canais de escuta do Ken Taki.",
@@ -42,9 +42,9 @@ const ENTRADAS = [
   },
   {
     to: "/azumi" as const,
-    img: entryAzumi,
-    titulo: "Sou Azumi RH",
-    desc: "Publicar mural, notícias em vídeo, pesquisas de clima e visão das duas unidades.",
+    img: entryRh,
+    titulo: "Sou RH",
+    desc: "Triagem, acompanhamento de pessoas, conteúdos e visão consolidada das unidades.",
     acesso: "Login e senha",
   },
 ];
@@ -58,7 +58,7 @@ function Index() {
           alt="Colaboradora do Ken Taki sorrindo"
           width={1600}
           height={900}
-          className="absolute inset-0 h-full w-full object-cover object-center opacity-25 lg:opacity-100 lg:left-auto lg:w-[46%]"
+          className="absolute inset-0 h-full w-full object-cover object-center opacity-25 lg:left-auto lg:w-[46%] lg:opacity-100"
         />
         <div
           aria-hidden
@@ -79,7 +79,7 @@ function Index() {
             <div className="mt-7 flex flex-wrap justify-center gap-3 lg:justify-start">
               <Link
                 to="/colaborador"
-                className="inline-flex items-center gap-2 rounded-full px-6 py-3 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-lift)] transition-transform hover:-translate-y-0.5 gradient-union"
+                className="gradient-union inline-flex items-center gap-2 rounded-full px-6 py-3 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-lift)] transition-transform hover:-translate-y-0.5"
               >
                 Entrar como colaborador <ArrowRight className="h-4 w-4" />
               </Link>
@@ -133,4 +133,3 @@ function Index() {
     </AppShell>
   );
 }
-

@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { createClient } from "@supabase/supabase-js";
+import { BRAND } from "./brand";
 
 const SUPABASE_URL = "https://nxmwhtkygiljkbovwixk.supabase.co";
 
@@ -11,6 +12,12 @@ type CriarGestorInput = {
   cargo?: string | undefined;
   nascimento?: string | undefined;
   admissao?: string | undefined;
+};
+
+type ValidarColaboradorInput = {
+  nome: string;
+  cpf3: string;
+  filial: "cristo-rei" | "champagnat";
 };
 
 function gerarSenhaTemp(): string {
@@ -25,7 +32,6 @@ function validarServiceKey(key: string | undefined): string {
   try {
     const parts = clean.split(".");
     if (parts.length !== 3) throw new Error("formato inválido");
-    // JWTs usam base64url; Buffer.from lida corretamente no Node.js
     const b64 = (parts[1] ?? "").replace(/-/g, "+").replace(/_/g, "/");
     const padding = b64.length % 4 ? "=".repeat(4 - (b64.length % 4)) : "";
     const payload = JSON.parse(Buffer.from(b64 + padding, "base64").toString("utf-8")) as {
@@ -43,14 +49,55 @@ function validarServiceKey(key: string | undefined): string {
   return clean;
 }
 
+function criarAdminClient() {
+  const serviceKey = validarServiceKey(process.env["SUPABASE_SERVICE_ROLE_KEY"]);
+  return createClient(SUPABASE_URL, serviceKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+}
+
+export const validarColaboradorFn = createServerFn({ method: "POST" })
+  .validator((input: ValidarColaboradorInput) => input)
+  .handler(async ({ data }) => {
+    const nome = data.nome.trim();
+    const cpf3 = data.cpf3.trim();
+
+    if (nome.length < 3 || !/^\d{3}$/.test(cpf3)) {
+      return { ok: false as const, motivo: "dados_invalidos" as const };
+    }
+
+    const admin = criarAdminClient();
+    const { data: colaboradores, error } = await admin
+      .from("kt_colaboradores")
+      .select("id,nome,filial,cpf3,ativo")
+      .eq("filial", data.filial)
+      .eq("cpf3", cpf3)
+      .eq("ativo", true)
+      .limit(10);
+
+    if (error) throw new Error(error.message);
+
+    const nomeNorm = nome.toLocaleLowerCase("pt-BR");
+    const match = (colaboradores ?? []).find((c) =>
+      String(c.nome).toLocaleLowerCase("pt-BR").startsWith(nomeNorm),
+    );
+
+    if (!match) return { ok: false as const, motivo: "nao_encontrado" as const };
+
+    return {
+      ok: true as const,
+      colaborador: {
+        id: String(match.id),
+        nome: String(match.nome),
+        filial: String(match.filial) as "cristo-rei" | "champagnat",
+      },
+    };
+  });
+
 export const criarGestorFn = createServerFn({ method: "POST" })
   .validator((input: CriarGestorInput) => input)
   .handler(async ({ data }) => {
-    const serviceKey = validarServiceKey(process.env["SUPABASE_SERVICE_ROLE_KEY"]);
-
-    const admin = createClient(SUPABASE_URL, serviceKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    });
+    const admin = criarAdminClient();
 
     const senhaTemp = gerarSenhaTemp();
 
@@ -68,6 +115,7 @@ export const criarGestorFn = createServerFn({ method: "POST" })
       filial: data.filial,
       nome: data.nome.trim(),
       precisa_trocar_senha: true,
+      ativo: true,
       updated_at: new Date().toISOString(),
     });
 
@@ -76,7 +124,7 @@ export const criarGestorFn = createServerFn({ method: "POST" })
       throw new Error(perfilError.message);
     }
 
-    // Enviar e-mail de boas-vindas via Resend (falha silenciosa se não configurado)
+    let emailEnviado = false;
     const resendKey = process.env["RESEND_API_KEY"];
     if (resendKey) {
       const filialNomeMap: Record<string, string> = {
@@ -84,67 +132,87 @@ export const criarGestorFn = createServerFn({ method: "POST" })
         champagnat: "Champagnat",
       };
       const filialLabel = filialNomeMap[data.filial] ?? data.filial;
-      await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${resendKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          from: "Azumi RH <no-reply@azumirh.com.br>",
-          to: [data.email.trim().toLowerCase()],
-          subject: "Seu acesso à intranet Ken Taki",
-          html: `
-<div style="font-family:'Segoe UI',Arial,sans-serif;max-width:560px;margin:0 auto;background:#fff;border-radius:16px;overflow:hidden;border:1px solid #e8e0ee">
-  <div style="background:linear-gradient(100deg,#6b1e3c,#5a2d82);padding:32px 32px 24px">
-    <p style="margin:0;color:#fff;font-size:12px;letter-spacing:.08em;text-transform:uppercase;opacity:.8">Intranet Ken Taki × Azumi RH</p>
+      try {
+        const response = await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${resendKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            from: BRAND.emailFrom,
+            to: [data.email.trim().toLowerCase()],
+            subject: "Seu acesso à intranet Ken Taki",
+            html: `
+<div style="font-family:'Segoe UI',Arial,sans-serif;max-width:560px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #e7e1dc">
+  <div style="background:#6b1e3c;padding:32px 32px 24px">
+    <p style="margin:0;color:#fff;font-size:12px;letter-spacing:.08em;text-transform:uppercase;opacity:.85">Ken Taki · Intranet</p>
     <h1 style="margin:8px 0 0;color:#fff;font-size:24px;font-weight:800">Bem-vindo(a), ${data.nome.trim()}!</h1>
   </div>
   <div style="padding:32px">
-    <p style="color:#444;margin:0 0 16px">Sua conta de gestor foi criada para a unidade <strong>${filialLabel}</strong>.</p>
-    <div style="background:#f5f0fa;border-radius:12px;padding:20px;margin-bottom:20px">
+    <p style="color:#444;margin:0 0 16px">Seu acesso de gestor foi criado para a unidade <strong>${filialLabel}</strong>.</p>
+    <div style="background:#f7f3ef;border-radius:10px;padding:20px;margin-bottom:20px">
       <p style="margin:0 0 8px;font-size:13px;color:#666">E-mail de acesso</p>
-      <p style="margin:0;font-size:16px;font-weight:700;color:#3a1060;font-family:monospace">${data.email.trim().toLowerCase()}</p>
+      <p style="margin:0;font-size:16px;font-weight:700;color:#4b172a;font-family:monospace">${data.email.trim().toLowerCase()}</p>
       <p style="margin:16px 0 8px;font-size:13px;color:#666">Senha temporária</p>
-      <p style="margin:0;font-size:22px;font-weight:800;color:#3a1060;letter-spacing:.08em;font-family:monospace">${senhaTemp}</p>
+      <p style="margin:0;font-size:22px;font-weight:800;color:#4b172a;letter-spacing:.08em;font-family:monospace">${senhaTemp}</p>
     </div>
-    <p style="color:#666;font-size:13px;margin:0 0 8px">No primeiro acesso você será solicitado(a) a criar uma senha própria.</p>
-    <p style="color:#999;font-size:12px;margin:0">Em caso de dúvidas, entre em contato com a equipe Azumi RH.</p>
+    <p style="color:#666;font-size:13px;margin:0">No primeiro acesso, você deverá criar uma senha própria.</p>
   </div>
 </div>`,
-        }),
-      }).catch(() => {
-        // Ignora erros de envio — o acesso já foi criado com sucesso
-      });
+          }),
+        });
+
+        if (!response.ok) {
+          const detail = await response.text().catch(() => "");
+          console.error("[ken-taki] falha no envio de e-mail de acesso", {
+            status: response.status,
+            detail,
+            email: data.email.trim().toLowerCase(),
+          });
+        } else {
+          emailEnviado = true;
+        }
+      } catch (error) {
+        console.error("[ken-taki] erro de rede ao enviar e-mail de acesso", error);
+      }
+    } else {
+      console.warn("[ken-taki] RESEND_API_KEY não configurada; acesso criado sem e-mail.");
     }
 
-    return { senhaTemp };
+    return { senhaTemp, emailEnviado };
   });
 
 export const listarGestoresFn = createServerFn({ method: "GET" }).handler(async () => {
-  const serviceKey = validarServiceKey(process.env["SUPABASE_SERVICE_ROLE_KEY"]);
-  const admin = createClient(SUPABASE_URL, serviceKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
+  const admin = criarAdminClient();
   const { data, error } = await admin
     .from("kt_perfis")
-    .select("id, nome, email:id, tipo, filial, created_at")
+    .select("id, nome, tipo, filial, ativo, created_at")
     .eq("tipo", "gestor")
     .order("created_at", { ascending: true });
   if (error) throw new Error(error.message);
-  // Buscar emails dos usuários Auth (batch)
+
   const ids: string[] = (data ?? []).map((r: { id: string }) => r.id);
   const emailMap: Record<string, string> = {};
   for (const id of ids) {
     const { data: user } = await admin.auth.admin.getUserById(id);
     if (user?.user?.email) emailMap[id] = user.user.email;
   }
+
   return (data ?? []).map(
-    (r: { id: string; nome: string; tipo: string; filial: string | null; created_at: string }) => ({
+    (r: {
+      id: string;
+      nome: string;
+      tipo: string;
+      filial: string | null;
+      ativo: boolean;
+      created_at: string;
+    }) => ({
       id: r.id,
       nome: r.nome,
       email: emailMap[r.id] ?? "",
       filial: r.filial,
+      ativo: r.ativo,
       created_at: r.created_at,
     }),
   );
@@ -153,11 +221,25 @@ export const listarGestoresFn = createServerFn({ method: "GET" }).handler(async 
 export const desativarGestorFn = createServerFn({ method: "POST" })
   .validator((input: { userId: string }) => input)
   .handler(async ({ data }) => {
-    const serviceKey = validarServiceKey(process.env["SUPABASE_SERVICE_ROLE_KEY"]);
-    const admin = createClient(SUPABASE_URL, serviceKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
+    const admin = criarAdminClient();
+
+    const { error: perfilError } = await admin
+      .from("kt_perfis")
+      .update({ ativo: false, updated_at: new Date().toISOString() })
+      .eq("id", data.userId);
+    if (perfilError) throw new Error(perfilError.message);
+
+    const { error: authError } = await admin.auth.admin.updateUserById(data.userId, {
+      ban_duration: "876000h",
     });
-    const { error } = await admin.auth.admin.deleteUser(data.userId);
-    if (error) throw new Error(error.message);
+
+    if (authError) {
+      await admin
+        .from("kt_perfis")
+        .update({ ativo: true, updated_at: new Date().toISOString() })
+        .eq("id", data.userId);
+      throw new Error(authError.message);
+    }
+
     return { ok: true };
   });
