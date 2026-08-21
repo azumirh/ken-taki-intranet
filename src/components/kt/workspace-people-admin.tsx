@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { WorkspacePhotoAdjuster } from "@/components/kt/workspace-photo-adjuster";
 import { useAdminPermissions } from "@/lib/admin-permissions";
 import { FILIAIS, filialNome } from "@/lib/kt-data";
 import { supabase } from "@/lib/supabase";
@@ -132,7 +133,10 @@ export function WorkspacePeopleAdmin() {
             Consulte e corrija cadastros. Mudanças de nome, cargo, unidade, admissão ou status geram trilha de auditoria e aviso à gestão afetada.
           </p>
         </div>
-        <div className="text-xs text-muted-foreground"><strong className="text-foreground">{filtered.length}</strong> pessoa(s) no filtro</div>
+        <div className="flex shrink-0 flex-col items-end gap-2">
+          <div className="text-xs text-muted-foreground"><strong className="text-foreground">{filtered.length}</strong> pessoa(s) no filtro</div>
+          {can("colaboradores", "edit") ? <WorkspacePhotoAdjuster mode="hr" /> : null}
+        </div>
       </div>
 
       <div className="grid gap-4 p-5 lg:p-6">
