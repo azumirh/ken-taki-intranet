@@ -95,7 +95,7 @@ export function WorkspacePhotoAdjuster({ mode }: { mode: Mode }) {
 
   return (
     <>
-      <div className="mb-4 flex justify-end">
+      <div className="flex justify-end">
         <Button
           variant="ghost"
           size="sm"
