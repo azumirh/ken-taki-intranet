@@ -28,7 +28,15 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Lint
-        run: bun run lint
+        run: bunx eslint . --format json --output-file eslint-report.json
+
+      - name: Upload lint report
+        if: always() && hashFiles('eslint-report.json') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: eslint-report
+          path: eslint-report.json
+          retention-days: 3
 
       - name: Build
         run: bun run build
