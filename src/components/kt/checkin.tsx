@@ -13,11 +13,11 @@ type SupportDestination = "rh" | "gestor";
 type MoodKind = "positive" | "neutral" | "negative";
 
 const HUMOR_HINT: Record<string, string> = {
-  otimo: "Seu dia está fluindo muito bem.",
-  bem: "O turno está indo bem.",
-  neutro: "Um dia regular, sem grandes altos ou baixos.",
-  dificil: "Tem algo deixando o dia mais pesado.",
-  "muito-dificil": "Você sinalizou que precisa de atenção e cuidado.",
+  otimo: "Que bom! Times animados fazem a diferença. Continue assim!",
+  bem: "Energia boa contagia. Obrigado por compartilhar como você está hoje.",
+  neutro: "Tudo bem não estar 100%. Um dia regular também faz parte.",
+  dificil: "Hoje está difícil — isso é válido. Você não precisa guardar isso sozinho(a).",
+  "muito-dificil": "Estamos aqui por você. Dias muito difíceis também fazem parte, e você não está só.",
 };
 
 const POSITIVE_PARTICLES = ["❤️", "✨", "🎉", "💛", "✦", "❤️", "✨", "🎊", "💫", "❤️", "✦", "🎉"];
@@ -56,6 +56,27 @@ function MoodBurst({ id, kind }: { id: number; kind: MoodKind }) {
           {particle}
         </span>
       ))}
+    </div>
+  );
+}
+
+function PsychosocialSupportInfo() {
+  return (
+    <div className="rounded-lg border border-destructive/25 bg-destructive/5 px-3.5 py-3 text-sm">
+      <p className="font-semibold text-destructive">Você não está sozinho.</p>
+      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+        Se precisar conversar agora: <strong className="text-foreground">CVV — ligue 188</strong>{" "}
+        (gratuito, 24h, todos os dias) ou acesse{" "}
+        <a
+          href="https://www.cvv.org.br/"
+          target="_blank"
+          rel="noreferrer"
+          className="font-semibold text-kt underline underline-offset-2"
+        >
+          cvv.org.br
+        </a>{" "}
+        para apoio emocional.
+      </p>
     </div>
   );
 }
@@ -293,11 +314,12 @@ export function CheckIn({ session }: { session: Extract<Session, { tipo: "colabo
                   </p>
                   <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
                     {isNegative
-                      ? "Depois de registrar, você poderá escolher se quer apoio do RH ou uma conversa direta com seu gestor."
+                      ? "Depois de registrar, você poderá escolher apoio confidencial do RH ou uma conversa direta com seu gestor."
                       : isNeutral
                         ? "Se quiser, após registrar você também pode pedir uma conversa confidencial com o RH."
                         : "Obrigado por registrar. Essa informação compõe a leitura de clima da equipe."}
                   </p>
+                  {isNegative ? <div className="mt-3"><PsychosocialSupportInfo /></div> : null}
                 </div>
               ) : null}
             </div>
@@ -400,6 +422,8 @@ export function CheckIn({ session }: { session: Extract<Session, { tipo: "colabo
                 )}
               </div>
             ) : null}
+
+            {isNegative ? <PsychosocialSupportInfo /> : null}
 
             {support ? (
               <div className="rounded-lg border border-success/25 bg-success-soft px-4 py-4">
