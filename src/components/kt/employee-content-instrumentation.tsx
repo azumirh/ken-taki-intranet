@@ -1,6 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { CheckCircle2, ExternalLink, ThumbsDown, ThumbsUp } from "lucide-react";
+import {
+  CheckCircle2,
+  ExternalLink,
+  Heart,
+  HelpCircle,
+  ThumbsDown,
+  ThumbsUp,
+} from "lucide-react";
 import {
   fetchOwnContentInteractions,
   recordContentAction,
@@ -61,8 +68,7 @@ export function EmployeeContentInstrumentation() {
   const muralFiltrado = useMemo(() => {
     if (!session || session.tipo !== "colaborador") return [];
     return mural.filter(
-      (item) =>
-        !item.filial || item.filial === "todas" || item.filial === session.filial,
+      (item) => !item.filial || item.filial === "todas" || item.filial === session.filial,
     );
   }, [mural, session]);
 
@@ -274,13 +280,23 @@ export function EmployeeContentInstrumentation() {
   const hasAction = (type: ContentType, id: string, action: ContentAction) =>
     (actions[mapKey(type, id)] ?? []).includes(action);
 
-  const toggleReaction = async (id: string, action: "like" | "dislike") => {
+  const toggleNewsReaction = async (id: string, action: "like" | "dislike") => {
     const selected = hasAction("noticia", id, action);
     const next = selected ? null : action;
     const result = await setExclusiveContentAction("noticia", id, next);
     if (!result.ok) return;
     setActions((current) =>
       setLocalExclusive(current, "noticia", id, ["like", "dislike"], next),
+    );
+  };
+
+  const toggleMuralReaction = async (id: string, action: "like" | "heart" | "question") => {
+    const selected = hasAction("mural", id, action);
+    const next = selected ? null : action;
+    const result = await setExclusiveContentAction("mural", id, next);
+    if (!result.ok) return;
+    setActions((current) =>
+      setLocalExclusive(current, "mural", id, ["like", "heart", "question"], next),
     );
   };
 
@@ -302,7 +318,7 @@ export function EmployeeContentInstrumentation() {
               </span>
               <button
                 type="button"
-                onClick={() => void toggleReaction(target.id, "like")}
+                onClick={() => void toggleNewsReaction(target.id, "like")}
                 className={`inline-flex min-h-8 items-center gap-1.5 rounded-md border px-2.5 text-xs font-semibold transition-colors ${
                   hasAction("noticia", target.id, "like")
                     ? "border-success/30 bg-success-soft text-success"
@@ -314,7 +330,7 @@ export function EmployeeContentInstrumentation() {
               </button>
               <button
                 type="button"
-                onClick={() => void toggleReaction(target.id, "dislike")}
+                onClick={() => void toggleNewsReaction(target.id, "dislike")}
                 className={`inline-flex min-h-8 items-center gap-1.5 rounded-md border px-2.5 text-xs font-semibold transition-colors ${
                   hasAction("noticia", target.id, "dislike")
                     ? "border-destructive/25 bg-destructive/5 text-destructive"
@@ -338,19 +354,66 @@ export function EmployeeContentInstrumentation() {
             </div>
           ) : (
             <div className="mt-3 border-t border-current/10 pt-3">
-              <button
-                type="button"
-                onClick={() => void acknowledge(target.id)}
-                disabled={hasAction("mural", target.id, "ack")}
-                className={`inline-flex min-h-8 items-center gap-1.5 rounded-md border px-3 text-xs font-bold transition-colors ${
-                  hasAction("mural", target.id, "ack")
-                    ? "border-success/25 bg-success-soft text-success"
-                    : "border-current/15 bg-white/55 text-foreground hover:bg-white/80"
-                }`}
-              >
-                <CheckCircle2 className="h-3.5 w-3.5" />
-                {hasAction("mural", target.id, "ack") ? "Ciente ✓" : "Marcar como ciente"}
-              </button>
+              <p className="mb-2 text-[11px] font-semibold text-muted-foreground">
+                Como você recebeu este recado?
+              </p>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => void toggleMuralReaction(target.id, "like")}
+                  aria-pressed={hasAction("mural", target.id, "like")}
+                  className={`inline-flex min-h-8 items-center gap-1.5 rounded-md border px-2.5 text-xs font-bold transition-colors ${
+                    hasAction("mural", target.id, "like")
+                      ? "border-success/30 bg-success-soft text-success"
+                      : "border-current/15 bg-white/55 text-foreground hover:bg-white/80"
+                  }`}
+                >
+                  <ThumbsUp className="h-3.5 w-3.5" /> Entendi
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void toggleMuralReaction(target.id, "heart")}
+                  aria-pressed={hasAction("mural", target.id, "heart")}
+                  className={`inline-flex min-h-8 items-center gap-1.5 rounded-md border px-2.5 text-xs font-bold transition-colors ${
+                    hasAction("mural", target.id, "heart")
+                      ? "border-rose-300 bg-rose-50 text-rose-700"
+                      : "border-current/15 bg-white/55 text-foreground hover:bg-white/80"
+                  }`}
+                >
+                  <Heart className="h-3.5 w-3.5" /> Gostei
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void toggleMuralReaction(target.id, "question")}
+                  aria-pressed={hasAction("mural", target.id, "question")}
+                  className={`inline-flex min-h-8 items-center gap-1.5 rounded-md border px-2.5 text-xs font-bold transition-colors ${
+                    hasAction("mural", target.id, "question")
+                      ? "border-warn/35 bg-warn-soft text-warn"
+                      : "border-current/15 bg-white/55 text-foreground hover:bg-white/80"
+                  }`}
+                  title="Seu gestor será avisado para buscar a informação e conversar com você."
+                >
+                  <HelpCircle className="h-3.5 w-3.5" /> Fiquei com dúvida
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void acknowledge(target.id)}
+                  disabled={hasAction("mural", target.id, "ack")}
+                  className={`inline-flex min-h-8 items-center gap-1.5 rounded-md border px-2.5 text-xs font-bold transition-colors ${
+                    hasAction("mural", target.id, "ack")
+                      ? "border-success/25 bg-success-soft text-success"
+                      : "border-current/15 bg-white/55 text-foreground hover:bg-white/80"
+                  }`}
+                >
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  {hasAction("mural", target.id, "ack") ? "Ciente ✓" : "Ciente"}
+                </button>
+              </div>
+              {hasAction("mural", target.id, "question") ? (
+                <p className="mt-2 text-[11px] font-medium text-warn">
+                  Seu gestor foi sinalizado para buscar a informação e retornar para você.
+                </p>
+              ) : null}
             </div>
           ),
           target.element,
