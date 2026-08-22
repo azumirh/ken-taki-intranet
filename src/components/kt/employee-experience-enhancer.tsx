@@ -10,7 +10,22 @@ type Hosts = {
   feedback: HTMLElement | null;
 };
 
-const BIRTHDAY_PARTICLES = ["🎈", "🎂", "🎉", "🥳", "✨", "❤️", "🎊", "🎈", "🎂", "✨", "🎉", "🥳", "❤️", "🎈"];
+const BIRTHDAY_PARTICLES = [
+  "🎈",
+  "🎂",
+  "🎉",
+  "🥳",
+  "✨",
+  "❤️",
+  "🎊",
+  "🎈",
+  "🎂",
+  "✨",
+  "🎉",
+  "🥳",
+  "❤️",
+  "🎈",
+];
 
 function replaceClientFacingRhCopy(root: HTMLElement) {
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
@@ -30,6 +45,23 @@ function replaceClientFacingRhCopy(root: HTMLElement) {
       .replaceAll("Azumi", "RH");
     if (next !== value) node.nodeValue = next;
   });
+}
+
+function syncEmployeeAccent(root: HTMLElement) {
+  const colorSource = root.querySelector<HTMLElement>(
+    '.employee-profile-card button[aria-label="Trocar foto"]',
+  );
+  const color = colorSource?.style.backgroundColor;
+  if (!color) return;
+  root.style.setProperty("--employee-accent", color);
+  root.style.setProperty(
+    "--employee-accent-soft",
+    `color-mix(in srgb, ${color} 12%, var(--card))`,
+  );
+  root.style.setProperty(
+    "--employee-accent-border",
+    `color-mix(in srgb, ${color} 28%, var(--border))`,
+  );
 }
 
 export function EmployeeExperienceEnhancer() {
@@ -110,6 +142,7 @@ export function EmployeeExperienceEnhancer() {
 
     const tidy = () => {
       replaceClientFacingRhCopy(root);
+      syncEmployeeAccent(root);
       tidyBirthday();
     };
 
@@ -129,12 +162,21 @@ export function EmployeeExperienceEnhancer() {
     tidy();
     root.addEventListener("click", onBirthdayClick, true);
     const observer = new MutationObserver(tidy);
-    observer.observe(root, { childList: true, subtree: true, characterData: true });
+    observer.observe(root, {
+      attributes: true,
+      childList: true,
+      subtree: true,
+      characterData: true,
+      attributeFilter: ["style"],
+    });
 
     return () => {
       observer.disconnect();
       root.removeEventListener("click", onBirthdayClick, true);
       if (celebrationTimer) window.clearTimeout(celebrationTimer);
+      root.style.removeProperty("--employee-accent");
+      root.style.removeProperty("--employee-accent-soft");
+      root.style.removeProperty("--employee-accent-border");
       suggestionHost?.remove();
       feedbackHost?.remove();
       hiddenElements.forEach(({ element, display }) => {
@@ -154,7 +196,11 @@ export function EmployeeExperienceEnhancer() {
       {hosts.feedback ? createPortal(<EmployeeFeedbackCenter />, hosts.feedback) : null}
       {birthdayBurst && typeof document !== "undefined"
         ? createPortal(
-            <div key={birthdayBurst.id} className="pointer-events-none fixed inset-0 z-[120] overflow-hidden" aria-hidden="true">
+            <div
+              key={birthdayBurst.id}
+              className="pointer-events-none fixed inset-0 z-[120] overflow-hidden"
+              aria-hidden="true"
+            >
               {BIRTHDAY_PARTICLES.map((particle, index) => (
                 <span
                   key={`${birthdayBurst.id}-${index}`}
