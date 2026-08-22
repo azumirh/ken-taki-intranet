@@ -23,6 +23,7 @@ import { WorkspaceAccessCenter } from "@/components/kt/workspace-access-center";
 import { WorkspaceCaseCenter } from "@/components/kt/workspace-case-center";
 import { WorkspaceClimateReport } from "@/components/kt/workspace-climate-report";
 import { WorkspaceContentAnalytics } from "@/components/kt/workspace-content-analytics";
+import { WorkspaceManagerCaseCenter } from "@/components/kt/workspace-manager-case-center";
 import { WorkspaceOverview } from "@/components/kt/workspace-overview";
 import { WorkspacePeopleAdmin } from "@/components/kt/workspace-people-admin";
 import { WorkspacePersonalization } from "@/components/kt/workspace-personalization";
@@ -35,9 +36,9 @@ type EmployeeItem = { id: string; label: string; icon: ReactNode };
 type AdminCan = ReturnType<typeof useAdminPermissions>["can"];
 
 const MANAGER_NAV: WorkspaceItem[] = [
-  { id: "workspace-top", label: "Visão geral", group: "Principal" },
+  { id: "workspace-top", label: "Meu perfil", group: "Principal" },
   { id: "feedbacks", label: "Feedbacks", group: "Atenção" },
-  { id: "apoio", label: "Pedidos de conversa", group: "Atenção" },
+  { id: "apoio", label: "Apoio / conversas", group: "Atenção" },
   { id: "clima", label: "Clima da equipe", group: "Rotina" },
   { id: "politicas", label: "Documentos", group: "Rotina" },
   { id: "equipe", label: "Equipe", group: "Pessoas" },
@@ -112,7 +113,7 @@ function goToSection(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-function WorkspaceNav({ items, label }: { items: WorkspaceItem[]; label: string }) {
+function WorkspaceNav({ items }: { items: WorkspaceItem[] }) {
   const groups = Array.from(new Set(items.map((item) => item.group)));
   const [activeId, setActiveId] = useState("workspace-top");
 
@@ -152,7 +153,7 @@ function WorkspaceNav({ items, label }: { items: WorkspaceItem[]; label: string 
           {items.map((item) => {
             const active = activeId === item.id;
             return (
-              <button key={item.id} type="button" onClick={() => select(item.id)} aria-current={active ? "location" : undefined} className={`shrink-0 rounded-md border px-3 py-2 text-xs font-semibold transition-colors ${active ? "border-kt bg-kt text-primary-foreground" : "border-border bg-card text-muted-foreground hover:border-kt/30 hover:bg-kt-soft/40 hover:text-foreground"}`}>
+              <button key={item.id} type="button" onClick={() => select(item.id)} aria-current={active ? "location" : undefined} className={`shrink-0 rounded-md border px-3 py-2 text-xs font-semibold transition-colors ${active ? "border-[var(--profile-accent,var(--kt))] bg-[var(--profile-accent,var(--kt))] text-white" : "border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
                 {item.label}
               </button>
             );
@@ -163,9 +164,8 @@ function WorkspaceNav({ items, label }: { items: WorkspaceItem[]; label: string 
       <aside className="hidden lg:block">
         <div className="sticky top-24 overflow-hidden rounded-lg border border-sidebar-border bg-sidebar text-sidebar-foreground shadow-sm">
           <div className="border-b border-sidebar-border px-4 py-4">
-            <p className="text-[10px] font-bold uppercase tracking-[0.17em] text-sidebar-foreground/55">Ken Taki · Intranet</p>
-            <p className="mt-1 text-sm font-bold text-sidebar-foreground">{label}</p>
-            <p className="mt-1 text-[11px] leading-relaxed text-sidebar-foreground/55">Navegue por contexto sem perder a visão das pendências.</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-sidebar-foreground/55">Menu rápido</p>
+            <p className="mt-1 text-[11px] leading-relaxed text-sidebar-foreground/70">Navegue por conteúdo e pendências sem perder seu contexto.</p>
           </div>
           <nav className="grid gap-1 p-2.5">
             {groups.map((group) => (
@@ -174,7 +174,7 @@ function WorkspaceNav({ items, label }: { items: WorkspaceItem[]; label: string 
                 {items.filter((item) => item.group === group).map((item) => {
                   const active = activeId === item.id;
                   return (
-                    <button key={item.id} type="button" onClick={() => select(item.id)} aria-current={active ? "location" : undefined} className={`relative rounded-md px-3 py-2.5 text-left text-sm font-medium transition-colors ${active ? "bg-sidebar-accent text-sidebar-foreground before:absolute before:inset-y-2 before:left-0 before:w-0.5 before:rounded-full before:bg-primary-foreground" : "text-sidebar-foreground/72 hover:bg-sidebar-accent hover:text-sidebar-foreground"}`}>
+                    <button key={item.id} type="button" onClick={() => select(item.id)} aria-current={active ? "location" : undefined} className={`relative rounded-md px-3 py-2.5 text-left text-sm font-medium transition-colors ${active ? "bg-sidebar-accent text-sidebar-foreground before:absolute before:inset-y-2 before:left-0 before:w-0.5 before:rounded-full before:bg-white" : "text-sidebar-foreground/72 hover:bg-sidebar-accent hover:text-sidebar-foreground"}`}>
                       {item.label}
                     </button>
                   );
@@ -222,9 +222,9 @@ export function AppShell({ children, back, onExit, onLogout }: { children: React
   const hrItems = admin.loading ? [] : HR_NAV.filter((item) => canSeeHrNavItem(item, admin.can));
   const workspace = onLogout
     ? pathname === "/gestor"
-      ? { items: MANAGER_NAV, label: "Gestão da unidade", mode: "manager" as const }
+      ? { items: MANAGER_NAV, mode: "manager" as const }
       : pathname === "/azumi"
-        ? { items: hrItems, label: "RH · visão consolidada", mode: "hr" as const }
+        ? { items: hrItems, mode: "hr" as const }
         : null
     : null;
   const contentVisible = admin.can("noticias", "view") || admin.can("mural", "view") || admin.can("pesquisas", "view");
@@ -245,12 +245,12 @@ export function AppShell({ children, back, onExit, onLogout }: { children: React
       <main className={`app-container flex-1 py-5 sm:py-7 lg:py-8 ${employeeWorkspace ? "pb-24 sm:pb-7 lg:pb-8" : ""}`}>
         {workspace ? (
           <div className="mx-auto w-full max-w-[1400px] lg:grid lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-6 xl:grid-cols-[232px_minmax(0,1fr)] xl:gap-8">
-            <WorkspaceNav items={workspace.items} label={workspace.label} />
+            <WorkspaceNav items={workspace.items} />
             <div id="workspace-top" data-workspace-mode={workspace.mode} className="min-w-0 scroll-mt-24">
               {workspace.mode === "hr" ? <AdminVisibilityController /> : null}
               {workspace.mode === "manager" || admin.can("dashboard", "view") ? <div id="dashboard"><WorkspaceOverview mode={workspace.mode} /></div> : null}
               <WorkspacePersonalization />
-              {workspace.mode === "manager" || admin.can("feedbacks", "view") || admin.can("apoio", "view") ? <WorkspaceCaseCenter mode={workspace.mode} /> : null}
+              {workspace.mode === "manager" ? <WorkspaceManagerCaseCenter /> : admin.can("feedbacks", "view") || admin.can("apoio", "view") ? <WorkspaceCaseCenter mode="hr" /> : null}
               {workspace.mode === "manager" || admin.can("clima", "view") ? <WorkspaceClimateReport mode={workspace.mode} /> : null}
               {workspace.mode === "hr" && admin.can("sugestoes", "view") ? <WorkspaceSuggestions /> : null}
               {workspace.mode === "hr" && admin.can("colaboradores", "view") ? <WorkspacePeopleAdmin /> : null}

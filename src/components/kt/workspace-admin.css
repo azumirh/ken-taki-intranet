@@ -78,6 +78,14 @@
   display: none !important;
 }
 
+/* The manager now has one canonical personal profile, radar and quick actions
+   above the legacy route. Hide the old greeting, KPI strip and Azumi CTAs. */
+[data-workspace-mode="manager"] .manager-workspace-content > .grid > :nth-child(1),
+[data-workspace-mode="manager"] .manager-workspace-content > .grid > :nth-child(2),
+[data-workspace-mode="manager"] .manager-workspace-content > .grid > :nth-child(3) {
+  display: none !important;
+}
+
 /* RH access management has moved to the new full-width Access Center rendered
    after the legacy modules. */
 [data-workspace-mode="hr"] .hr-workspace-content > .grid > :last-child {
