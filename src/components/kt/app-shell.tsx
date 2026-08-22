@@ -255,7 +255,7 @@ export function AppShell({ children, back, onExit, onLogout }: { children: React
               {workspace.mode === "hr" && admin.can("sugestoes", "view") ? <WorkspaceSuggestions /> : null}
               {workspace.mode === "hr" && admin.can("colaboradores", "view") ? <WorkspacePeopleAdmin /> : null}
               {workspace.mode === "hr" && contentVisible ? <WorkspaceContentAnalytics /> : null}
-              {workspace.mode === "manager" || admin.can("colaboradores", "edit") ? <WorkspacePhotoAdjuster mode={workspace.mode} /> : null}
+              {workspace.mode === "manager" ? <div className="mb-4"><WorkspacePhotoAdjuster mode="manager" /></div> : null}
               <div className={`legacy-workspace-content min-w-0 ${workspace.mode === "hr" ? "hr-workspace-content" : "manager-workspace-content"} ${workspace.mode === "hr" && admin.loading ? "invisible" : ""} [&>div.grid]:gap-4 [&>div.grid>div.grid]:min-w-0 [&>div.grid>div.grid]:items-start [&>div.grid>div.grid]:gap-4 [&_.surface]:min-w-0 [&_.surface]:max-w-full`} aria-busy={workspace.mode === "hr" && admin.loading}>
                 {children}
               </div>

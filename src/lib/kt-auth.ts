@@ -27,7 +27,14 @@ export function useKtAuth() {
       return;
     }
 
-    setState({ status: "autenticado", perfil: data as KtPerfil, email });
+    // Compatibility bridge: the legacy /azumi route still gates on tipo="azumi".
+    // New RH accounts are stored as tipo="rh" in the database so permissions can
+    // evolve independently. Expose them as the legacy RH role only to the old route
+    // shell until that route is fully retired; permission hooks still read the real
+    // database profile and keep general/partial authorization intact.
+    const raw = data as KtPerfil;
+    const perfil: KtPerfil = raw.tipo === "rh" ? { ...raw, tipo: "azumi" } : raw;
+    setState({ status: "autenticado", perfil, email });
   }, []);
 
   useEffect(() => {
