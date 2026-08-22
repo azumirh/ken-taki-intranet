@@ -10,6 +10,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Avatar } from "@/components/kt/section";
+import { EmployeeExperienceEnhancer } from "@/components/kt/employee-experience-enhancer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { filialNome } from "@/lib/kt-data";
@@ -397,7 +398,12 @@ export function EmployeeProfileHeader() {
             </div>
 
             <div className="mt-4 flex justify-end">
-              <Button type="button" size="sm" disabled={savingProfile} onClick={() => void saveProfilePreferences()}>
+              <Button
+                type="button"
+                size="sm"
+                disabled={savingProfile}
+                onClick={() => void saveProfilePreferences()}
+              >
                 {savingProfile ? "Salvando..." : "Salvar perfil"}
               </Button>
             </div>
@@ -434,7 +440,9 @@ export function EmployeeProfileHeader() {
                   min="0"
                   max="100"
                   value={frame.x}
-                  onChange={(event) => setFrame((value) => ({ ...value, x: Number(event.target.value) }))}
+                  onChange={(event) =>
+                    setFrame((value) => ({ ...value, x: Number(event.target.value) }))
+                  }
                   className="w-full accent-[var(--kt)]"
                 />
               </label>
@@ -445,7 +453,9 @@ export function EmployeeProfileHeader() {
                   min="0"
                   max="100"
                   value={frame.y}
-                  onChange={(event) => setFrame((value) => ({ ...value, y: Number(event.target.value) }))}
+                  onChange={(event) =>
+                    setFrame((value) => ({ ...value, y: Number(event.target.value) }))
+                  }
                   className="w-full accent-[var(--kt)]"
                 />
               </label>
@@ -457,7 +467,9 @@ export function EmployeeProfileHeader() {
                   max="1.8"
                   step="0.02"
                   value={frame.zoom}
-                  onChange={(event) => setFrame((value) => ({ ...value, zoom: Number(event.target.value) }))}
+                  onChange={(event) =>
+                    setFrame((value) => ({ ...value, zoom: Number(event.target.value) }))
+                  }
                   className="w-full accent-[var(--kt)]"
                 />
               </label>
@@ -474,6 +486,7 @@ export function EmployeeProfileHeader() {
           </div>
         ) : null}
       </div>
+      <EmployeeExperienceEnhancer />
     </section>
   );
 }
