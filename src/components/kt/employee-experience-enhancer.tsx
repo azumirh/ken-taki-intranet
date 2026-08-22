@@ -53,6 +53,7 @@ function syncEmployeeAccent(root: HTMLElement) {
   );
   const color = colorSource?.style.backgroundColor;
   if (!color) return;
+
   root.style.setProperty("--employee-accent", color);
   root.style.setProperty(
     "--employee-accent-soft",
@@ -62,6 +63,23 @@ function syncEmployeeAccent(root: HTMLElement) {
     "--employee-accent-border",
     `color-mix(in srgb, ${color} 28%, var(--border))`,
   );
+
+  const profileSurface = root.querySelector<HTMLElement>(".employee-profile-card > .surface");
+  if (profileSurface) {
+    profileSurface.style.borderTop = `4px solid ${color}`;
+    profileSurface.style.boxShadow = `0 18px 48px -34px color-mix(in srgb, ${color} 62%, transparent)`;
+  }
+
+  const profileTitle = root.querySelector<HTMLElement>(".employee-profile-card h1");
+  if (profileTitle) profileTitle.style.color = color;
+
+  root
+    .querySelectorAll<HTMLElement>(
+      '[aria-label="Atalhos do colaborador"], [aria-label="Navegação do colaborador"]',
+    )
+    .forEach((nav) => {
+      nav.style.borderColor = `color-mix(in srgb, ${color} 26%, var(--border))`;
+    });
 }
 
 export function EmployeeExperienceEnhancer() {
