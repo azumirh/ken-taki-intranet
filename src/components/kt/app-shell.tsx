@@ -3,6 +3,7 @@ import {
   ChevronLeft,
   ClipboardCheck,
   FileText,
+  HeartHandshake,
   LogOut,
   Mail,
   Megaphone,
@@ -17,6 +18,7 @@ import { BRAND } from "@/lib/brand";
 import { Button } from "@/components/ui/button";
 import { AdminVisibilityController } from "@/components/kt/admin-visibility-controller";
 import { EmployeeContentInstrumentation } from "@/components/kt/employee-content-instrumentation";
+import { EmployeeJourneyCenter } from "@/components/kt/employee-journey-center";
 import { EmployeeProfileHeader } from "@/components/kt/employee-profile-header";
 import { NotificationCenter } from "@/components/kt/notification-center";
 import { WorkspaceAccessCenter } from "@/components/kt/workspace-access-center";
@@ -24,6 +26,7 @@ import { WorkspaceCaseCenter } from "@/components/kt/workspace-case-center";
 import { WorkspaceClimateReport } from "@/components/kt/workspace-climate-report";
 import { WorkspaceContentAnalytics } from "@/components/kt/workspace-content-analytics";
 import { WorkspaceManagerCaseCenter } from "@/components/kt/workspace-manager-case-center";
+import { WorkspaceOperationalCenter } from "@/components/kt/workspace-operational-center";
 import { WorkspaceOverview } from "@/components/kt/workspace-overview";
 import { WorkspacePeopleAdmin } from "@/components/kt/workspace-people-admin";
 import { WorkspacePersonalization } from "@/components/kt/workspace-personalization";
@@ -39,29 +42,42 @@ const MANAGER_NAV: WorkspaceItem[] = [
   { id: "workspace-top", label: "Meu perfil", group: "Principal" },
   { id: "feedbacks", label: "Feedbacks", group: "Atenção" },
   { id: "apoio", label: "Apoio / conversas", group: "Atenção" },
-  { id: "clima", label: "Clima da equipe", group: "Rotina" },
-  { id: "politicas", label: "Documentos", group: "Rotina" },
+  { id: "casos", label: "Central de casos", group: "Atenção" },
+  { id: "offboarding", label: "Desligamentos", group: "Rotina" },
+  { id: "vagas", label: "Vagas", group: "Rotina" },
+  { id: "onboarding", label: "Onboarding", group: "Rotina" },
+  { id: "reconhecimento", label: "Reconhecimento", group: "Pessoas" },
+  { id: "clima", label: "Clima da equipe", group: "Pessoas" },
   { id: "equipe", label: "Equipe", group: "Pessoas" },
   { id: "sugestoes", label: "Sugestões", group: "Pessoas" },
-  { id: "pesquisa-clima", label: "Pesquisa", group: "Conteúdo" },
+  { id: "pesquisas-internas", label: "Pesquisas internas", group: "Conteúdo" },
+  { id: "politicas", label: "Documentos", group: "Conteúdo" },
+  { id: "pesquisa-clima", label: "Pesquisa externa", group: "Conteúdo" },
 ];
 
 const HR_NAV: WorkspaceItem[] = [
   { id: "workspace-top", label: "Visão geral", group: "Principal" },
   { id: "feedbacks", label: "Feedbacks e triagem", group: "Atenção" },
   { id: "apoio", label: "Pedidos de apoio", group: "Atenção" },
-  { id: "sugestoes", label: "Sugestões", group: "Atenção" },
+  { id: "casos", label: "Central de casos", group: "Atenção" },
+  { id: "offboarding", label: "Desligamentos", group: "Rotina" },
+  { id: "vagas", label: "Vagas", group: "Rotina" },
+  { id: "onboarding", label: "Onboarding", group: "Rotina" },
+  { id: "reconhecimento", label: "Reconhecimento", group: "Pessoas" },
+  { id: "sugestoes", label: "Sugestões", group: "Pessoas" },
   { id: "clima", label: "Clima", group: "Pessoas" },
   { id: "colaboradores", label: "Colaboradores", group: "Pessoas" },
+  { id: "pesquisas-internas", label: "Pesquisas internas", group: "Conteúdo" },
   { id: "politicas", label: "Documentos", group: "Conteúdo" },
   { id: "publicar", label: "Comunicação", group: "Conteúdo" },
-  { id: "pesquisa-clima", label: "Pesquisas", group: "Conteúdo" },
+  { id: "pesquisa-clima", label: "Pesquisas externas", group: "Conteúdo" },
   { id: "engajamento", label: "Engajamento", group: "Conteúdo" },
   { id: "acessos", label: "Acessos e permissões", group: "Administração" },
 ];
 
 const EMPLOYEE_NAV: EmployeeItem[] = [
   { id: "checkin", label: "Hoje", icon: <ClipboardCheck className="h-4 w-4" /> },
+  { id: "minha-jornada", label: "Jornada", icon: <HeartHandshake className="h-4 w-4" /> },
   { id: "politicas", label: "Docs", icon: <FileText className="h-4 w-4" /> },
   { id: "mural", label: "Mural", icon: <Megaphone className="h-4 w-4" /> },
   { id: "feedback", label: "Falar", icon: <MessagesSquare className="h-4 w-4" /> },
@@ -71,12 +87,17 @@ function adminSectionsForNav(id: string): AdminSection[] {
   if (id === "workspace-top") return ["dashboard"];
   if (id === "feedbacks") return ["feedbacks"];
   if (id === "apoio") return ["apoio"];
+  if (id === "casos") return ["casos"];
+  if (id === "offboarding") return ["offboarding"];
+  if (id === "vagas") return ["vagas"];
+  if (id === "reconhecimento") return ["reconhecimento"];
+  if (id === "onboarding") return ["onboarding"];
   if (id === "sugestoes") return ["sugestoes"];
   if (id === "clima") return ["clima"];
   if (id === "colaboradores") return ["colaboradores"];
   if (id === "politicas") return ["documentos"];
   if (id === "publicar") return ["noticias", "mural"];
-  if (id === "pesquisa-clima") return ["pesquisas"];
+  if (id === "pesquisas-internas" || id === "pesquisa-clima") return ["pesquisas"];
   if (id === "engajamento") return ["noticias", "mural", "pesquisas"];
   if (id === "acessos") return ["acessos"];
   return [];
@@ -200,7 +221,7 @@ function EmployeeNav() {
       </nav>
 
       <nav aria-label="Navegação do colaborador" className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-card/97 px-2 pb-[max(0.45rem,env(safe-area-inset-bottom))] pt-1.5 shadow-[0_-8px_24px_-22px_rgba(38,35,33,0.5)] backdrop-blur sm:hidden">
-        <div className="mx-auto grid max-w-md grid-cols-4 gap-1">
+        <div className="mx-auto grid max-w-md grid-cols-5 gap-1">
           {EMPLOYEE_NAV.map((item) => (
             <button key={item.id} type="button" onClick={() => goToSection(item.id)} className="flex min-h-[48px] flex-col items-center justify-center gap-1 rounded-md px-1 text-[10px] font-semibold text-muted-foreground transition-colors active:bg-kt-soft active:text-kt">
               {item.icon}{item.label}
@@ -251,6 +272,7 @@ export function AppShell({ children, back, onExit, onLogout }: { children: React
               {workspace.mode === "manager" || admin.can("dashboard", "view") ? <div id="dashboard"><WorkspaceOverview mode={workspace.mode} /></div> : null}
               <WorkspacePersonalization />
               {workspace.mode === "manager" ? <WorkspaceManagerCaseCenter /> : admin.can("feedbacks", "view") || admin.can("apoio", "view") ? <WorkspaceCaseCenter mode="hr" /> : null}
+              <WorkspaceOperationalCenter mode={workspace.mode} />
               {workspace.mode === "manager" || admin.can("clima", "view") ? <WorkspaceClimateReport mode={workspace.mode} /> : null}
               {workspace.mode === "hr" && admin.can("sugestoes", "view") ? <WorkspaceSuggestions /> : null}
               {workspace.mode === "hr" && admin.can("colaboradores", "view") ? <WorkspacePeopleAdmin /> : null}
@@ -263,7 +285,7 @@ export function AppShell({ children, back, onExit, onLogout }: { children: React
             </div>
           </div>
         ) : employeeWorkspace ? (
-          <div id="employee-top" data-employee-workspace className="min-w-0 scroll-mt-24"><EmployeeProfileHeader /><EmployeeNav />{children}<EmployeeContentInstrumentation /></div>
+          <div id="employee-top" data-employee-workspace className="min-w-0 scroll-mt-24"><EmployeeProfileHeader /><EmployeeNav />{children}<EmployeeJourneyCenter /><EmployeeContentInstrumentation /></div>
         ) : children}
       </main>
 
