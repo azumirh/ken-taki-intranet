@@ -47,6 +47,12 @@ function replaceClientFacingRhCopy(root: HTMLElement) {
   });
 }
 
+function setStyleIfChanged(element: HTMLElement, property: string, value: string) {
+  if (element.style.getPropertyValue(property) !== value) {
+    element.style.setProperty(property, value);
+  }
+}
+
 function syncEmployeeAccent(root: HTMLElement) {
   const colorSource = root.querySelector<HTMLElement>(
     '.employee-profile-card button[aria-label="Trocar foto"]',
@@ -54,31 +60,41 @@ function syncEmployeeAccent(root: HTMLElement) {
   const color = colorSource?.style.backgroundColor;
   if (!color) return;
 
-  root.style.setProperty("--employee-accent", color);
-  root.style.setProperty(
+  setStyleIfChanged(root, "--employee-accent", color);
+  setStyleIfChanged(
+    root,
     "--employee-accent-soft",
     `color-mix(in srgb, ${color} 12%, var(--card))`,
   );
-  root.style.setProperty(
+  setStyleIfChanged(
+    root,
     "--employee-accent-border",
     `color-mix(in srgb, ${color} 28%, var(--border))`,
   );
 
   const profileSurface = root.querySelector<HTMLElement>(".employee-profile-card > .surface");
   if (profileSurface) {
-    profileSurface.style.borderTop = `4px solid ${color}`;
-    profileSurface.style.boxShadow = `0 18px 48px -34px color-mix(in srgb, ${color} 62%, transparent)`;
+    setStyleIfChanged(profileSurface, "border-top", `4px solid ${color}`);
+    setStyleIfChanged(
+      profileSurface,
+      "box-shadow",
+      `0 18px 48px -34px color-mix(in srgb, ${color} 62%, transparent)`,
+    );
   }
 
   const profileTitle = root.querySelector<HTMLElement>(".employee-profile-card h1");
-  if (profileTitle) profileTitle.style.color = color;
+  if (profileTitle) setStyleIfChanged(profileTitle, "color", color);
 
   root
     .querySelectorAll<HTMLElement>(
       '[aria-label="Atalhos do colaborador"], [aria-label="Navegação do colaborador"]',
     )
     .forEach((nav) => {
-      nav.style.borderColor = `color-mix(in srgb, ${color} 26%, var(--border))`;
+      setStyleIfChanged(
+        nav,
+        "border-color",
+        `color-mix(in srgb, ${color} 26%, var(--border))`,
+      );
     });
 }
 
