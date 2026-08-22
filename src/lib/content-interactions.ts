@@ -6,19 +6,29 @@ export type ContentAction =
   | "click"
   | "like"
   | "dislike"
+  | "heart"
+  | "question"
   | "ack"
   | "responded_yes"
   | "responded_no";
 
-const EXCLUSIVE_GROUPS: ContentAction[][] = [
-  ["like", "dislike"],
-  ["responded_yes", "responded_no"],
-];
+const NEWS_REACTIONS: ContentAction[] = ["like", "dislike"];
+const MURAL_REACTIONS: ContentAction[] = ["like", "heart", "question"];
+const SURVEY_REACTIONS: ContentAction[] = ["responded_yes", "responded_no"];
 
 function exclusiveGroup(contentType: ContentType, action: ContentAction | null) {
-  if (action) return EXCLUSIVE_GROUPS.find((candidate) => candidate.includes(action));
-  if (contentType === "noticia") return EXCLUSIVE_GROUPS[0];
-  if (contentType === "pesquisa") return EXCLUSIVE_GROUPS[1];
+  if (contentType === "noticia") {
+    if (!action || NEWS_REACTIONS.includes(action)) return NEWS_REACTIONS;
+    return undefined;
+  }
+  if (contentType === "mural") {
+    if (!action || MURAL_REACTIONS.includes(action)) return MURAL_REACTIONS;
+    return undefined;
+  }
+  if (contentType === "pesquisa") {
+    if (!action || SURVEY_REACTIONS.includes(action)) return SURVEY_REACTIONS;
+    return undefined;
+  }
   return undefined;
 }
 
