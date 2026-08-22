@@ -4,6 +4,7 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useRouterState,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
@@ -76,11 +77,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Intranet Ken Taki | Portal Azumi RH" },
+      { title: "Intranet Ken Taki" },
       {
         name: "description",
         content:
-          "Intranet do Ken Taki com apoio da Azumi RH: check-in de humor, políticas, mural da equipe, aniversariantes e canais de escuta.",
+          "Intranet do Ken Taki para colaboradores, gestão e RH: check-in de humor, políticas, mural da equipe, aniversariantes e canais de escuta.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -118,6 +119,19 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+
+  useEffect(() => {
+    const titles: Record<string, string> = {
+      "/": "Intranet Ken Taki",
+      "/colaborador": "Acesso do colaborador · Intranet Ken Taki",
+      "/painel": "Meu painel · Intranet Ken Taki",
+      "/gestor": "Gestão · Intranet Ken Taki",
+      "/azumi": "RH · Intranet Ken Taki",
+      "/auth": "Acesso · Intranet Ken Taki",
+    };
+    document.title = titles[pathname] ?? "Intranet Ken Taki";
+  }, [pathname]);
 
   return (
     <QueryClientProvider client={queryClient}>

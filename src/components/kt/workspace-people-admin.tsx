@@ -1,6 +1,7 @@
 import { History, Pencil, Search, UserCheck, UserX } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { WorkspacePeopleImport } from "@/components/kt/workspace-people-import";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -132,7 +133,15 @@ export function WorkspacePeopleAdmin() {
             Consulte e corrija cadastros. Mudanças de nome, cargo, unidade, admissão ou status geram trilha de auditoria e aviso à gestão afetada.
           </p>
         </div>
-        <div className="text-xs text-muted-foreground"><strong className="text-foreground">{filtered.length}</strong> pessoa(s) no filtro</div>
+        <div className="flex flex-wrap items-center justify-end gap-3">
+          <div className="text-xs text-muted-foreground"><strong className="text-foreground">{filtered.length}</strong> pessoa(s) no filtro</div>
+          {can("colaboradores", "edit") ? (
+            <WorkspacePeopleImport
+              existing={people.map(({ nome, cpf3, filial: personFilial }) => ({ nome, cpf3, filial: personFilial }))}
+              onImported={load}
+            />
+          ) : null}
+        </div>
       </div>
 
       <div className="grid gap-4 p-5 lg:p-6">

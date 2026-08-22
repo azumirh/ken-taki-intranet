@@ -12,6 +12,7 @@ import {
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { filialNome, iniciais } from "@/lib/kt-data";
 import { supabase } from "@/lib/supabase";
+import { useUserProfile, userProfileFrameStyle } from "@/lib/user-profile";
 
 type Mode = "manager" | "hr";
 
@@ -58,6 +59,7 @@ function Metric({ label, value, detail, icon, attention = false, tone = "neutral
 }
 
 export function WorkspaceOverview({ mode }: { mode: Mode }) {
+  const { profile: personalProfile } = useUserProfile();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [feedbackCount, setFeedbackCount] = useState(0);
   const [triageCount, setTriageCount] = useState(0);
@@ -163,16 +165,34 @@ export function WorkspaceOverview({ mode }: { mode: Mode }) {
         ? "Administrador parcial"
         : "Administrador geral"
       : "Gestão da unidade";
+  const displayName = personalProfile.displayName || profile.nome;
+  const preferredName = personalProfile.nickname || displayName;
+  const accent = personalProfile.accentColor || "#4b3142";
 
   return (
     <section className="mb-5 grid gap-4" aria-label="Resumo de pendências">
-      <div className="relative overflow-hidden rounded-2xl border border-[#4a3642] bg-[linear-gradient(120deg,#2f202a_0%,#4b3142_55%,#66505d_100%)] px-5 py-5 text-[#f8f1e9] shadow-[0_18px_50px_-34px_rgba(44,28,39,0.8)] sm:px-6 sm:py-6">
+      <div
+        className="relative overflow-hidden rounded-2xl border px-5 py-5 text-[#f8f1e9] shadow-[0_18px_50px_-34px_rgba(44,28,39,0.8)] sm:px-6 sm:py-6"
+        style={{
+          borderColor: `${accent}cc`,
+          background: `linear-gradient(120deg,#292523 0%,${accent} 58%,#5a524d 100%)`,
+        }}
+      >
         <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full border border-white/10" />
         <div className="pointer-events-none absolute -right-4 -top-8 h-36 w-36 rounded-full border border-white/[0.07]" />
         <div className="relative grid gap-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
           <div className="flex min-w-0 items-center gap-4">
-            <span className="grid h-14 w-14 shrink-0 place-items-center rounded-xl bg-[#f3ece5] text-base font-bold text-[#3a2833] shadow-lg shadow-black/15">
-              {iniciais(profile.nome)}
+            <span className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-xl bg-[#f3ece5] text-base font-bold text-[#3a2833] shadow-lg shadow-black/15">
+              {personalProfile.avatarUrl ? (
+                <img
+                  src={personalProfile.avatarUrl}
+                  alt={displayName}
+                  className="h-full w-full object-cover"
+                  style={userProfileFrameStyle(personalProfile)}
+                />
+              ) : (
+                iniciais(displayName)
+              )}
             </span>
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
@@ -185,13 +205,21 @@ export function WorkspaceOverview({ mode }: { mode: Mode }) {
                 </span>
               </div>
               <h1 className="mt-2 truncate text-2xl font-bold tracking-tight text-white sm:text-[2rem]">
-                {profile.nome}
+                {preferredName}
               </h1>
+              {personalProfile.nickname && displayName ? (
+                <p className="mt-0.5 text-xs font-semibold text-white/65">{displayName}</p>
+              ) : null}
               <p className="mt-1 text-xs leading-relaxed text-white/65 sm:text-sm">
-                {mode === "hr"
-                  ? "Visão consolidada de pessoas, casos, comunicação e governança Ken Taki."
-                  : `Prioridades operacionais e acompanhamento de ${filialNome(profile.filial ?? undefined)}.`}
+                {personalProfile.showBio && personalProfile.bio
+                  ? personalProfile.bio
+                  : mode === "hr"
+                    ? "Visão consolidada de pessoas, casos, comunicação e governança Ken Taki."
+                    : `Prioridades operacionais e acompanhamento de ${filialNome(profile.filial ?? undefined)}.`}
               </p>
+              {personalProfile.showGender && personalProfile.gender ? (
+                <p className="mt-2 text-[11px] font-medium text-white/55">{personalProfile.gender}</p>
+              ) : null}
             </div>
           </div>
 
@@ -220,7 +248,7 @@ export function WorkspaceOverview({ mode }: { mode: Mode }) {
       <div>
         <div className="mb-2 flex items-end justify-between gap-3">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.17em] text-[#6f5967]">
+            <p className="text-[10px] font-bold uppercase tracking-[0.17em]" style={{ color: accent }}>
               {mode === "hr" ? "Radar de pessoas" : "Radar da unidade"}
             </p>
             <p className="mt-0.5 text-xs text-muted-foreground">
