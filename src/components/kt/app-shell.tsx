@@ -18,7 +18,6 @@ import { BRAND } from "@/lib/brand";
 import { Button } from "@/components/ui/button";
 import { AdminVisibilityController } from "@/components/kt/admin-visibility-controller";
 import { EmployeeContentInstrumentation } from "@/components/kt/employee-content-instrumentation";
-import { EmployeeJourneyCenter } from "@/components/kt/employee-journey-center";
 import { EmployeeProfileHeader } from "@/components/kt/employee-profile-header";
 import { NotificationCenter } from "@/components/kt/notification-center";
 import { WorkspaceAccessCenter } from "@/components/kt/workspace-access-center";
@@ -47,10 +46,10 @@ const MANAGER_NAV: WorkspaceItem[] = [
   { id: "vagas", label: "Vagas", group: "Rotina" },
   { id: "onboarding", label: "Onboarding", group: "Rotina" },
   { id: "reconhecimento", label: "Reconhecimento", group: "Pessoas" },
-  { id: "clima", label: "Clima da equipe", group: "Pessoas" },
+  { id: "clima", label: "Clima dos check-ins", group: "Pessoas" },
   { id: "equipe", label: "Equipe", group: "Pessoas" },
   { id: "sugestoes", label: "Sugestões", group: "Pessoas" },
-  { id: "pesquisas-internas", label: "Pesquisas internas", group: "Conteúdo" },
+  { id: "pesquisas-internas", label: "Pesquisa de clima", group: "Conteúdo" },
   { id: "politicas", label: "Documentos", group: "Conteúdo" },
   { id: "pesquisa-clima", label: "Pesquisa externa", group: "Conteúdo" },
 ];
@@ -65,9 +64,9 @@ const HR_NAV: WorkspaceItem[] = [
   { id: "onboarding", label: "Onboarding", group: "Rotina" },
   { id: "reconhecimento", label: "Reconhecimento", group: "Pessoas" },
   { id: "sugestoes", label: "Sugestões", group: "Pessoas" },
-  { id: "clima", label: "Clima", group: "Pessoas" },
+  { id: "clima", label: "Clima dos check-ins", group: "Pessoas" },
   { id: "colaboradores", label: "Colaboradores", group: "Pessoas" },
-  { id: "pesquisas-internas", label: "Pesquisas internas", group: "Conteúdo" },
+  { id: "pesquisas-internas", label: "Pesquisa de clima", group: "Conteúdo" },
   { id: "politicas", label: "Documentos", group: "Conteúdo" },
   { id: "publicar", label: "Comunicação", group: "Conteúdo" },
   { id: "pesquisa-clima", label: "Pesquisas externas", group: "Conteúdo" },
@@ -77,7 +76,7 @@ const HR_NAV: WorkspaceItem[] = [
 
 const EMPLOYEE_NAV: EmployeeItem[] = [
   { id: "checkin", label: "Hoje", icon: <ClipboardCheck className="h-4 w-4" /> },
-  { id: "minha-jornada", label: "Jornada", icon: <HeartHandshake className="h-4 w-4" /> },
+  { id: "pesquisa-clima", label: "Clima", icon: <HeartHandshake className="h-4 w-4" /> },
   { id: "politicas", label: "Docs", icon: <FileText className="h-4 w-4" /> },
   { id: "mural", label: "Mural", icon: <Megaphone className="h-4 w-4" /> },
   { id: "feedback", label: "Falar", icon: <MessagesSquare className="h-4 w-4" /> },
@@ -268,6 +267,7 @@ export function AppShell({ children, back, onExit, onLogout }: { children: React
           <div className="mx-auto w-full max-w-[1400px] lg:grid lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-6 xl:grid-cols-[232px_minmax(0,1fr)] xl:gap-8">
             <WorkspaceNav items={workspace.items} />
             <div id="workspace-top" data-workspace-mode={workspace.mode} className="min-w-0 scroll-mt-24">
+              {workspace.mode === "manager" ? <style>{`[data-workspace-mode="manager"] #pesquisas-internas > .grid{grid-template-columns:minmax(0,1fr)!important}`}</style> : null}
               {workspace.mode === "hr" ? <AdminVisibilityController /> : null}
               {workspace.mode === "manager" || admin.can("dashboard", "view") ? <div id="dashboard"><WorkspaceOverview mode={workspace.mode} /></div> : null}
               <WorkspacePersonalization />
@@ -285,7 +285,7 @@ export function AppShell({ children, back, onExit, onLogout }: { children: React
             </div>
           </div>
         ) : employeeWorkspace ? (
-          <div id="employee-top" data-employee-workspace className="min-w-0 scroll-mt-24"><EmployeeProfileHeader /><EmployeeNav />{children}<EmployeeJourneyCenter /><EmployeeContentInstrumentation /></div>
+          <div id="employee-top" data-employee-workspace className="min-w-0 scroll-mt-24"><EmployeeProfileHeader /><EmployeeNav />{children}<EmployeeContentInstrumentation /></div>
         ) : children}
       </main>
 
