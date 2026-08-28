@@ -159,10 +159,10 @@ export function EmployeeFeedbackCenter() {
 
   const submit = async () => {
     if (!session || session.tipo !== "colaborador") return;
-    if (!message.trim()) return toast.error("Conte o que você quer registrar.");
-    if (sensitive && !factDate) return toast.error("Informe a data em que a situação aconteceu.");
-    if (recipientType === "colaborador" && !recipientId) return toast.error("Selecione para quem é o feedback.");
-    if (recipientType === "outro" && !otherName.trim()) return toast.error("Informe o nome da pessoa ou área.");
+    if (!message.trim()) { toast.error("Conte o que você quer registrar."); return; }
+    if (sensitive && !factDate) { toast.error("Informe a data em que a situação aconteceu."); return; }
+    if (recipientType === "colaborador" && !recipientId) { toast.error("Selecione para quem é o feedback."); return; }
+    if (recipientType === "outro" && !otherName.trim()) { toast.error("Informe o nome da pessoa ou área."); return; }
 
     const target = directory.find((item) => item.id === recipientId);
     setSending(true);

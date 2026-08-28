@@ -391,7 +391,7 @@ export function EmployeeDashboardV3() {
       .from("kt_pesquisas")
       .update({ respondeu: nextNames, respondeu_ts: nextTimes })
       .eq("id", survey.id);
-    if (error) return toast.error("Não foi possível registrar a confirmação agora.");
+    if (error) { toast.error("Não foi possível registrar a confirmação agora."); return; }
     setSurveys((current) => current.map((item) => item.id === survey.id ? { ...item, respondeu: nextNames, respondeu_ts: nextTimes } : item));
     toast.success("Pesquisa marcada como respondida.");
   }
@@ -399,7 +399,7 @@ export function EmployeeDashboardV3() {
   async function sendFeedback() {
     if (!session || session.tipo !== "colaborador" || feedbackMessage.trim().length < 3) return;
     const sensitive = FEEDBACK_SENSITIVE.has(feedbackType);
-    if (sensitive && !feedbackFactDate) return toast.error("Informe a data da situação para este tipo de relato.");
+    if (sensitive && !feedbackFactDate) { toast.error("Informe a data da situação para este tipo de relato."); return; }
     setFeedbackSending(true);
     try {
       const { error } = await supabase.rpc("kt_submit_employee_feedback", {

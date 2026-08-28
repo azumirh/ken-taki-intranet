@@ -47,8 +47,7 @@ export function WorkspacePhotoAdjuster({ mode }: { mode: Mode }) {
   useEffect(() => {
     if (!open) return;
     setLoading(true);
-    void supabase
-      .rpc("kt_list_manageable_photo_frames")
+    void Promise.resolve(supabase.rpc("kt_list_manageable_photo_frames"))
       .then(({ data, error }) => {
         if (error) throw error;
         const next = (data ?? []) as PhotoRow[];
@@ -59,7 +58,7 @@ export function WorkspacePhotoAdjuster({ mode }: { mode: Mode }) {
           setFrame(rowFrame(first));
         }
       })
-      .catch((error) => toast.error((error as Error).message || "Não foi possível carregar as fotos."))
+      .catch((error: unknown) => toast.error((error as Error).message || "Não foi possível carregar as fotos."))
       .finally(() => setLoading(false));
   }, [open]);
 

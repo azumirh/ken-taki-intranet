@@ -230,7 +230,7 @@ export function WorkspaceOperationalCenter({ mode }: { mode: Mode }) {
   async function addCaseNote() {
     if (!selectedCase || !caseNote.trim()) return;
     const { error } = await supabase.rpc("kt_add_case_note", { p_case_id: selectedCase.id, p_evento: "registro_operacional", p_mensagem: caseNote.trim(), p_visibilidade: mode === "hr" ? "ambos" : "gestor" });
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     setCaseNote("");
     toast.success("Registro incluído no histórico.");
     await load();
@@ -240,7 +240,7 @@ export function WorkspaceOperationalCenter({ mode }: { mode: Mode }) {
     if (!selectedCase || !casePerson) return;
     const person = personById.get(casePerson);
     const { error } = await supabase.from("kt_caso_envolvidos").insert({ caso_id: selectedCase.id, colaborador_id: casePerson, nome_snapshot: person?.nome ?? "Colaborador", papel: caseRole });
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     setCasePerson("");
     toast.success("Pessoa vinculada ao caso.");
     await load();
@@ -251,7 +251,7 @@ export function WorkspaceOperationalCenter({ mode }: { mode: Mode }) {
     const person = personById.get(offPerson);
     if (!person) return;
     const { error } = await supabase.from("kt_offboardings").insert({ colaborador_id: offPerson, filial: person.filial, tipo: offType, motivo: offReason.trim(), comunicado_em: offCommunicated, ultimo_dia_em: offLastDay || null, recontratavel: offRehire, status: "aguardando_rh", iniciado_por: profile.id });
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     setOffPerson(""); setOffReason(""); setOffLastDay("");
     toast.success("Desligamento enviado ao RH sem apagar o histórico do colaborador.");
     await load();
@@ -260,27 +260,27 @@ export function WorkspaceOperationalCenter({ mode }: { mode: Mode }) {
   async function updateOffboarding(row: Offboarding, status: string) {
     if (!profile) return;
     const updates: Record<string, unknown> = { status };
-    if (mode === "hr") { updates.revisado_por = profile.id; updates.revisado_em = new Date().toISOString(); }
+    if (mode === "hr") { updates["revisado_por"] = profile.id; updates["revisado_em"] = new Date().toISOString(); }
     const { error } = await supabase.from("kt_offboardings").update(updates).eq("id", row.id);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     toast.success(status === "aprovado" ? "Desligamento aprovado; cadastro preservado como inativo." : "Desligamento atualizado.");
     await load();
   }
 
   async function toggleChecklist(table: "kt_offboarding_checklist" | "kt_onboarding_checklist", item: Checklist) {
     const { error } = await supabase.from(table).update({ concluido: !item.concluido, concluido_por: profile?.id ?? null, concluido_em: !item.concluido ? new Date().toISOString() : null }).eq("id", item.id);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     await load();
   }
 
   async function createVacancy() {
     if (!profile || !vacancyRole.trim() || !vacancyReason.trim()) return;
     const branch = mode === "manager" ? profile.filial : vacancyBranch;
-    if (!branch) return toast.error("Defina a filial da vaga.");
+    if (!branch) { toast.error("Defina a filial da vaga."); return; }
     const id = `vaga-${crypto.randomUUID().slice(0, 12)}`;
     const now = new Date().toISOString();
     const { error } = await supabase.from("kt_vagas").insert({ id, cargo: vacancyRole.trim(), filial: branch, motivo: vacancyReason.trim(), ts: now, status: "solicitado", solicitante_id: profile.id, status_at: now });
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     setVacancyRole(""); setVacancyReason("");
     toast.success("Solicitação de vaga registrada dentro da intranet.");
     await load();
@@ -288,10 +288,10 @@ export function WorkspaceOperationalCenter({ mode }: { mode: Mode }) {
 
   async function updateVacancy(row: Vacancy, status: string) {
     const updates: Record<string, unknown> = { status, status_at: new Date().toISOString() };
-    if (status === "preenchida") updates.preenchida_em = new Date().toISOString();
-    if (status === "cancelada") updates.cancelada_motivo = row.cancelada_motivo || "Cancelada pela gestão/RH";
+    if (status === "preenchida") updates["preenchida_em"] = new Date().toISOString();
+    if (status === "cancelada") updates["cancelada_motivo"] = row.cancelada_motivo || "Cancelada pela gestão/RH";
     const { error } = await supabase.from("kt_vagas").update(updates).eq("id", row.id);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     toast.success("Status da vaga atualizado.");
     await load();
   }
@@ -301,7 +301,7 @@ export function WorkspaceOperationalCenter({ mode }: { mode: Mode }) {
     const person = personById.get(recPerson);
     if (!person) return;
     const { error } = await supabase.from("kt_reconhecimentos").insert({ colaborador_id: recPerson, filial: person.filial, motivo: recReason.trim(), elogio_cliente: recClient, registrado_por_profile_id: profile.id, status: "ativo" });
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     setRecPerson(""); setRecReason(""); setRecClient(false);
     toast.success("Reconhecimento registrado no histórico do colaborador.");
     await load();
@@ -310,7 +310,7 @@ export function WorkspaceOperationalCenter({ mode }: { mode: Mode }) {
   async function highlightRecognition(row: Recognition) {
     const month = new Date(); month.setDate(1);
     const { error } = await supabase.from("kt_reconhecimentos").update({ status: "destaque", destaque_mes: month.toISOString().slice(0, 10) }).eq("id", row.id);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     toast.success("Reconhecimento marcado como destaque do mês.");
     await load();
   }
@@ -321,7 +321,7 @@ export function WorkspaceOperationalCenter({ mode }: { mode: Mode }) {
     if (!person) return;
     const end = new Date(`${onStart}T12:00:00`); end.setDate(end.getDate() + 90);
     const { error } = await supabase.from("kt_onboardings").insert({ colaborador_id: onPerson, filial: person.filial, inicio_em: onStart, status: "pre_admissao", experiencia_fim_em: end.toISOString().slice(0, 10), responsavel_profile_id: profile.id, iniciado_por: profile.id, observacao: onObservation.trim() || null });
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     setOnPerson(""); setOnObservation("");
     toast.success("Onboarding iniciado com alertas de 40 e 75 dias.");
     await load();
@@ -329,7 +329,7 @@ export function WorkspaceOperationalCenter({ mode }: { mode: Mode }) {
 
   async function updateOnboarding(row: Onboarding, status: string) {
     const { error } = await supabase.from("kt_onboardings").update({ status }).eq("id", row.id);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     toast.success("Etapa do onboarding atualizada.");
     await load();
   }
@@ -340,11 +340,11 @@ export function WorkspaceOperationalCenter({ mode }: { mode: Mode }) {
     const now = new Date().toISOString();
     const filialAlvo = surveyBranch === "todas" ? null : surveyBranch;
     const { error } = await supabase.from("kt_pesquisas").insert({ id, titulo: surveyTitle.trim(), descricao: surveyDescription.trim() || null, prazo: surveyDeadline, link: "", categoria: "clima", ativa: true, ts: now, modo: "interna", anonima: true, filial_alvo: filialAlvo });
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     const lines = surveyQuestions.split("\n").map((line) => line.trim()).filter(Boolean);
     const questions = lines.map((line, index) => ({ pesquisa_id: id, pergunta: line.replace(/^S\/N:\s*/i, ""), tipo: /^S\/N:/i.test(line) ? "sim_nao" : "escala_1_5", ordem: index + 1, obrigatoria: true }));
     const questionResult = await supabase.from("kt_pesquisa_perguntas").insert(questions);
-    if (questionResult.error) { await supabase.from("kt_pesquisas").delete().eq("id", id); return toast.error(questionResult.error.message); }
+    if (questionResult.error) { await supabase.from("kt_pesquisas").delete().eq("id", id); toast.error(questionResult.error.message); return; }
     setSurveyTitle(""); setSurveyDescription("");
     toast.success("Pesquisa interna publicada com respostas anônimas e histórico preservado.");
     await load();
@@ -352,7 +352,7 @@ export function WorkspaceOperationalCenter({ mode }: { mode: Mode }) {
 
   async function closeSurvey(row: Survey) {
     const { error } = await supabase.from("kt_pesquisas").update({ ativa: false, encerrada_em: new Date().toISOString() }).eq("id", row.id);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     toast.success("Pesquisa encerrada; histórico mantido.");
     await load();
   }
