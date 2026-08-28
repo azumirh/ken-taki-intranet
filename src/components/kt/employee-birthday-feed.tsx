@@ -1,13 +1,23 @@
 import { CakeSlice, ChevronDown, ChevronUp, MessageCircle } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Avatar } from "@/components/kt/section";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { diaMes, filialNome } from "@/lib/kt-data";
-import { uid, useBdayMsgs, useColaboradores, useSession } from "@/lib/kt-store";
+import { uid, useBdayMsgs, useSession } from "@/lib/kt-store";
+import { supabase } from "@/lib/supabase";
 
 const REACTIONS = ["🎉", "🎂", "❤️", "🥳"] as const;
+
+type BirthdayPerson = {
+  id: string;
+  nome: string;
+  cargo: string;
+  filial: string;
+  nascimento: string;
+  foto: string | null;
+};
 
 function isDemoName(name: string) {
   return name.toUpperCase().includes("DEMO");
@@ -15,28 +25,44 @@ function isDemoName(name: string) {
 
 export function EmployeeBirthdayFeed() {
   const [session] = useSession();
-  const [colaboradores] = useColaboradores();
   const [messages, setMessages] = useBdayMsgs();
+  const [birthdays, setBirthdays] = useState<BirthdayPerson[]>([]);
   const [host, setHost] = useState<HTMLElement | null>(null);
   const [showAll, setShowAll] = useState(false);
   const [messageTarget, setMessageTarget] = useState<string | null>(null);
   const [messageText, setMessageText] = useState("");
 
-  const birthdays = useMemo(() => {
-    if (!session || session.tipo !== "colaborador") return [];
-    const month = new Date().getMonth();
-    return colaboradores
-      .filter((person) => {
-        if (!person.ativo || person.filial !== session.filial || !person.nascimento) return false;
-        const birthDate = new Date(`${person.nascimento}T12:00:00`);
-        return !Number.isNaN(birthDate.getTime()) && birthDate.getMonth() === month;
-      })
-      .sort((a, b) => {
-        const demoDifference = Number(isDemoName(b.nome)) - Number(isDemoName(a.nome));
-        if (demoDifference !== 0) return demoDifference;
-        return a.nascimento.slice(5).localeCompare(b.nascimento.slice(5));
+  useEffect(() => {
+    if (!session || session.tipo !== "colaborador") {
+      setBirthdays([]);
+      return;
+    }
+
+    let cancelled = false;
+    void supabase
+      .rpc("kt_employee_month_birthdays")
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error) {
+          console.warn("[employee-birthdays] load", error.message);
+          setBirthdays([]);
+          return;
+        }
+
+        const rows = ((data ?? []) as BirthdayPerson[])
+          .filter((person) => person.filial === session.filial && Boolean(person.nascimento))
+          .sort((a, b) => {
+            const demoDifference = Number(isDemoName(b.nome)) - Number(isDemoName(a.nome));
+            if (demoDifference !== 0) return demoDifference;
+            return a.nascimento.slice(5).localeCompare(b.nascimento.slice(5));
+          });
+        setBirthdays(rows);
       });
-  }, [colaboradores, session]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [session]);
 
   useEffect(() => {
     if (birthdays.length === 0) {
@@ -68,7 +94,7 @@ export function EmployeeBirthdayFeed() {
 
   const visible = showAll ? birthdays : birthdays.slice(0, 2);
 
-  const content = (
+  return createPortal(
     <section id="aniversariantes" className="mt-6 overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
       <header className="flex flex-col gap-3 border-b border-border px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
         <div className="flex min-w-0 items-start gap-3.5">
@@ -129,7 +155,7 @@ export function EmployeeBirthdayFeed() {
                   </div>
 
                   <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-                    Hoje o espaço é para celebrar. Deixe uma reação ou uma mensagem para tornar o mês dessa pessoa ainda mais especial.
+                    Deixe uma reação ou uma mensagem de parabéns para celebrar essa pessoa com o time.
                   </p>
 
                   <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -155,7 +181,8 @@ export function EmployeeBirthdayFeed() {
                             mine ? "border-kt/30 bg-kt-soft text-kt" : "border-border bg-card text-muted-foreground hover:bg-muted"
                           }`}
                         >
-                          <span className="text-base">{emoji}</span>{count > 0 ? <span>{count}</span> : null}
+                          <span className="text-base">{emoji}</span>
+                          {count > 0 ? <span>{count}</span> : null}
                         </button>
                       );
                     })}
@@ -175,7 +202,8 @@ export function EmployeeBirthdayFeed() {
                     <div className="mt-3 grid gap-1.5">
                       {congratulations.slice(0, 2).map((item) => (
                         <div key={item.id} className="rounded-lg bg-muted/45 px-3 py-2 text-xs leading-relaxed">
-                          <strong>{item.de}:</strong> <span className="text-muted-foreground">{item.emoji} {item.mensagem}</span>
+                          <strong>{item.de}:</strong>{" "}
+                          <span className="text-muted-foreground">{item.emoji} {item.mensagem}</span>
                         </div>
                       ))}
                     </div>
@@ -229,8 +257,7 @@ export function EmployeeBirthdayFeed() {
           </button>
         ) : null}
       </div>
-    </section>
+    </section>,
+    host,
   );
-
-  return createPortal(content, host);
 }
