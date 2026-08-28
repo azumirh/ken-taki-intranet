@@ -122,7 +122,7 @@ export function EmployeeBirthdayFeed() {
         </div>
       </header>
 
-      <div className="overflow-x-auto px-5 py-5 sm:px-6 sm:py-6 [scrollbar-width:thin]">
+      <div className="overflow-x-auto overscroll-x-contain px-5 py-5 sm:px-6 sm:py-6 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <div className="flex snap-x snap-mandatory gap-3">
           {birthdays.map((person) => {
             const reactions = messages.filter((item) => item.paraId === person.id && item.mensagem === "__reacao__");
