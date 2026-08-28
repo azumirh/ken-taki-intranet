@@ -1,0 +1,36 @@
+name: Apply mobile component fixes
+
+on:
+  push:
+    branches:
+      - fix/employee-mobile-components
+    paths:
+      - scripts/apply-mobile-component-fixes.mjs
+      - .github/workflows/apply-mobile-component-fixes.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/employee-mobile-components
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Apply component-level mobile fixes
+        run: node scripts/apply-mobile-component-fixes.mjs
+      - name: Commit source changes
+        run: |
+          if git diff --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/components/kt
+          git commit -m "fix: ajustar painel do colaborador para mobile"
+          git push origin HEAD:fix/employee-mobile-components
