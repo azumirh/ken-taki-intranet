@@ -1,0 +1,83 @@
+/* Employee-only presentation fixes.
+   Keep the employee mural visually aligned with the manager mural while
+   preserving its horizontal interaction pattern. */
+
+[data-employee-workspace] #mural .overflow-x-auto,
+[data-employee-workspace] #aniversariantes .overflow-x-auto {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none;
+  overscroll-behavior-inline: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+[data-employee-workspace] #mural .overflow-x-auto::-webkit-scrollbar,
+[data-employee-workspace] #aniversariantes .overflow-x-auto::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+[data-employee-workspace] #mural article {
+  position: relative;
+  min-height: 220px;
+  padding: 1.5rem !important;
+  border-radius: 1rem !important;
+  box-shadow: 0 1px 2px rgba(39, 35, 31, 0.03);
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+[data-employee-workspace] #mural article::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 0.75rem;
+  height: 0.75rem;
+  transform: translate(-50%, -50%);
+  border: 2px solid #fff;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--foreground) 42%, transparent);
+  box-shadow: 0 1px 2px rgba(39, 35, 31, 0.16);
+}
+
+[data-employee-workspace] #mural article:nth-child(4n + 1) {
+  background: color-mix(in srgb, var(--kt-soft) 72%, var(--card)) !important;
+  border-color: color-mix(in srgb, var(--kt) 18%, var(--border)) !important;
+}
+
+[data-employee-workspace] #mural article:nth-child(4n + 2) {
+  background: color-mix(in srgb, var(--az-soft) 78%, var(--card)) !important;
+  border-color: color-mix(in srgb, var(--az) 18%, var(--border)) !important;
+}
+
+[data-employee-workspace] #mural article:nth-child(4n + 3) {
+  background: color-mix(in srgb, var(--warn-soft) 72%, var(--card)) !important;
+  border-color: color-mix(in srgb, var(--warn) 18%, var(--border)) !important;
+}
+
+[data-employee-workspace] #mural article:nth-child(4n) {
+  background: color-mix(in srgb, var(--success-soft) 74%, var(--card)) !important;
+  border-color: color-mix(in srgb, var(--success) 18%, var(--border)) !important;
+}
+
+[data-employee-workspace] #mural article:hover {
+  box-shadow: 0 12px 28px -22px rgba(39, 35, 31, 0.38);
+}
+
+@media (min-width: 640px) {
+  [data-employee-workspace] #mural article:nth-child(3n + 1) {
+    transform: rotate(-0.55deg);
+  }
+
+  [data-employee-workspace] #mural article:nth-child(3n + 2) {
+    transform: rotate(0deg);
+  }
+
+  [data-employee-workspace] #mural article:nth-child(3n) {
+    transform: rotate(0.55deg);
+  }
+
+  [data-employee-workspace] #mural article:hover {
+    transform: scale(1.01) rotate(0deg);
+  }
+}
