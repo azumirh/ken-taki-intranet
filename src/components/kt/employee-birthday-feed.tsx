@@ -1,4 +1,4 @@
-import { CakeSlice, MessageCircle } from "lucide-react";
+import { CakeSlice, ChevronRight, MessageCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Avatar } from "@/components/kt/section";
@@ -35,6 +35,7 @@ export function EmployeeBirthdayFeed() {
   const [host, setHost] = useState<HTMLElement | null>(null);
   const [messageTarget, setMessageTarget] = useState<string | null>(null);
   const [messageText, setMessageText] = useState("");
+  const [openMessagesFor, setOpenMessagesFor] = useState<string | null>(null);
 
   useEffect(() => {
     if (!session || session.tipo !== "colaborador") {
@@ -107,9 +108,16 @@ export function EmployeeBirthdayFeed() {
             </p>
           </div>
         </div>
-        <span className="w-fit rounded-full bg-muted px-2.5 py-1 text-[11px] font-bold text-muted-foreground">
-          {birthdays.length} este mês
-        </span>
+        <div className="flex items-center gap-3">
+          {birthdays.length > 2 ? (
+            <span className="hidden items-center gap-1 text-[11px] font-semibold text-muted-foreground md:inline-flex">
+              Role para ver os demais <ChevronRight className="h-3.5 w-3.5" />
+            </span>
+          ) : null}
+          <span className="w-fit rounded-full bg-muted px-2.5 py-1 text-[11px] font-bold text-muted-foreground">
+            {birthdays.length} este mês
+          </span>
+        </div>
       </header>
 
       <div className="overflow-x-auto px-5 py-5 sm:px-6 sm:py-6 [scrollbar-width:thin]">
@@ -120,47 +128,44 @@ export function EmployeeBirthdayFeed() {
               .filter((item) => item.paraId === person.id && item.mensagem !== "__reacao__")
               .sort((a, b) => b.ts - a.ts);
             const writing = messageTarget === person.id;
+            const showingMessages = openMessagesFor === person.id;
 
             return (
               <article
                 key={person.id}
-                className="min-w-[88%] snap-start rounded-xl border border-border bg-background p-4 sm:min-w-[calc(50%-0.375rem)] sm:p-5"
+                className="min-w-[90%] snap-start rounded-xl border border-border bg-background p-4 sm:min-w-[calc(50%-0.375rem)] sm:max-w-[calc(50%-0.375rem)] sm:p-5"
               >
-                <div className="flex items-start gap-4 sm:gap-5">
+                <div className="flex items-start gap-4">
                   <div className="shrink-0">
                     {person.foto ? (
                       <img
                         src={person.foto}
                         alt={person.nome}
                         loading="lazy"
-                        className="h-24 w-24 rounded-xl object-cover ring-1 ring-border sm:h-28 sm:w-28"
+                        className="h-28 w-28 rounded-2xl object-cover ring-1 ring-border sm:h-32 sm:w-32"
                       />
                     ) : (
-                      <div className="grid h-24 w-24 place-items-center rounded-xl bg-card ring-1 ring-border sm:h-28 sm:w-28">
-                        <Avatar nome={person.nome} size={72} />
+                      <div className="grid h-28 w-28 place-items-center rounded-2xl bg-card ring-1 ring-border sm:h-32 sm:w-32">
+                        <Avatar nome={person.nome} size={78} />
                       </div>
                     )}
                   </div>
 
                   <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-start justify-between gap-2">
-                      <div>
-                        <p className="text-base font-extrabold text-foreground">🎂 {person.nome.replace(/\s*·\s*DEMO$/i, "")}</p>
-                        <p className="mt-1 text-lg font-black text-kt">{diaMes(person.nascimento)}</p>
-                        <p className="mt-1 text-sm text-muted-foreground">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="truncate text-base font-extrabold text-foreground">🎂 {person.nome.replace(/\s*·\s*DEMO$/i, "")}</p>
+                        <p className="mt-1 text-xl font-black tracking-tight text-kt">{diaMes(person.nascimento)}</p>
+                        <p className="mt-1 text-sm leading-snug text-muted-foreground">
                           {person.cargo || "Colaborador(a)"} · {filialNome(person.filial)}
                         </p>
                       </div>
                       {isDemoName(person.nome) ? (
-                        <span className="rounded-full bg-kt-soft px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-kt">Demo</span>
+                        <span className="shrink-0 rounded-full bg-kt-soft px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-kt">Demo</span>
                       ) : null}
                     </div>
 
-                    <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-                      Deixe uma reação ou uma mensagem de parabéns para celebrar essa pessoa com o time.
-                    </p>
-
-                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <div className="mt-4 flex flex-wrap items-center gap-2">
                       {REACTIONS.map((emoji) => {
                         const mine = reactions.find((item) => item.de === session.nome && item.emoji === emoji);
                         const count = reactions.filter((item) => item.emoji === emoji).length;
@@ -188,62 +193,80 @@ export function EmployeeBirthdayFeed() {
                           </button>
                         );
                       })}
+                    </div>
+
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
                       <button
                         type="button"
                         onClick={() => {
                           setMessageTarget(writing ? null : person.id);
                           setMessageText("");
+                          setOpenMessagesFor(null);
                         }}
                         className="inline-flex min-h-8 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-xs font-bold text-foreground hover:bg-muted"
                       >
                         <MessageCircle className="h-3.5 w-3.5" /> Deixar mensagem
                       </button>
+
+                      {congratulations.length > 0 ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setOpenMessagesFor(showingMessages ? null : person.id);
+                            setMessageTarget(null);
+                            setMessageText("");
+                          }}
+                          className="inline-flex min-h-8 items-center rounded-full px-2.5 text-xs font-bold text-kt hover:bg-kt-soft"
+                        >
+                          {congratulations.length} {congratulations.length === 1 ? "mensagem" : "mensagens"} de parabéns
+                        </button>
+                      ) : null}
                     </div>
-
-                    {congratulations.length > 0 ? (
-                      <div className="mt-3 grid gap-1.5">
-                        {congratulations.slice(0, 2).map((item) => (
-                          <div key={item.id} className="rounded-lg bg-muted/45 px-3 py-2 text-xs leading-relaxed">
-                            <strong>{item.de}:</strong>{" "}
-                            <span className="text-muted-foreground">{item.emoji} {item.mensagem}</span>
-                          </div>
-                        ))}
-                      </div>
-                    ) : null}
-
-                    {writing ? (
-                      <div className="mt-3 grid gap-2 rounded-lg border border-border bg-card p-3">
-                        <Textarea
-                          rows={2}
-                          maxLength={220}
-                          value={messageText}
-                          onChange={(event) => setMessageText(event.target.value)}
-                          placeholder={`Escreva uma mensagem para ${person.nome.split(" ")[0]}...`}
-                        />
-                        <div className="flex flex-wrap gap-2">
-                          <Button
-                            size="sm"
-                            disabled={!messageText.trim()}
-                            onClick={() => {
-                              if (!messageText.trim()) return;
-                              setMessages((current) => [
-                                ...current,
-                                { id: uid(), paraId: person.id, de: session.nome, emoji: "🎉", mensagem: messageText.trim(), ts: Date.now() },
-                              ]);
-                              setMessageText("");
-                              setMessageTarget(null);
-                            }}
-                          >
-                            Enviar parabéns
-                          </Button>
-                          <Button size="sm" variant="ghost" onClick={() => { setMessageTarget(null); setMessageText(""); }}>
-                            Cancelar
-                          </Button>
-                        </div>
-                      </div>
-                    ) : null}
                   </div>
                 </div>
+
+                {showingMessages ? (
+                  <div className="mt-4 grid gap-1.5 border-t border-border pt-3">
+                    {congratulations.slice(0, 4).map((item) => (
+                      <div key={item.id} className="rounded-lg bg-muted/45 px-3 py-2 text-xs leading-relaxed">
+                        <strong>{item.de}:</strong>{" "}
+                        <span className="text-muted-foreground">{item.emoji} {item.mensagem}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+
+                {writing ? (
+                  <div className="mt-4 grid gap-2 border-t border-border pt-3">
+                    <Textarea
+                      rows={2}
+                      maxLength={220}
+                      value={messageText}
+                      onChange={(event) => setMessageText(event.target.value)}
+                      placeholder={`Escreva uma mensagem para ${person.nome.split(" ")[0]}...`}
+                    />
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        size="sm"
+                        disabled={!messageText.trim()}
+                        onClick={() => {
+                          if (!messageText.trim()) return;
+                          setMessages((current) => [
+                            ...current,
+                            { id: uid(), paraId: person.id, de: session.nome, emoji: "🎉", mensagem: messageText.trim(), ts: Date.now() },
+                          ]);
+                          setMessageText("");
+                          setMessageTarget(null);
+                        }}
+                      >
+                        Enviar parabéns
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => { setMessageTarget(null); setMessageText(""); }}>
+                        Cancelar
+                      </Button>
+                    </div>
+                  </div>
+                ) : null}
               </article>
             );
           })}
