@@ -1,6 +1,7 @@
 import { CakeSlice, ChevronRight, MessageCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { toast } from "sonner";
 import { Avatar } from "@/components/kt/section";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -36,6 +37,7 @@ export function EmployeeBirthdayFeed() {
   const [messageTarget, setMessageTarget] = useState<string | null>(null);
   const [messageText, setMessageText] = useState("");
   const [openMessagesFor, setOpenMessagesFor] = useState<string | null>(null);
+  const [reactionSavingFor, setReactionSavingFor] = useState<string | null>(null);
 
   useEffect(() => {
     if (!session || session.tipo !== "colaborador") {
@@ -124,11 +126,13 @@ export function EmployeeBirthdayFeed() {
         <div className="flex snap-x snap-mandatory gap-3">
           {birthdays.map((person) => {
             const reactions = messages.filter((item) => item.paraId === person.id && item.mensagem === "__reacao__");
+            const myReaction = reactions.find((item) => item.de === session.nome);
             const congratulations = messages
               .filter((item) => item.paraId === person.id && item.mensagem !== "__reacao__")
               .sort((a, b) => b.ts - a.ts);
             const writing = messageTarget === person.id;
             const showingMessages = openMessagesFor === person.id;
+            const savingReaction = reactionSavingFor === person.id;
 
             return (
               <article
@@ -167,24 +171,52 @@ export function EmployeeBirthdayFeed() {
 
                     <div className="mt-4 flex flex-wrap items-center gap-2">
                       {REACTIONS.map((emoji) => {
-                        const mine = reactions.find((item) => item.de === session.nome && item.emoji === emoji);
+                        const mine = myReaction?.emoji === emoji;
                         const count = reactions.filter((item) => item.emoji === emoji).length;
                         return (
                           <button
                             key={emoji}
                             type="button"
-                            aria-pressed={Boolean(mine)}
-                            onClick={() => {
-                              if (mine) {
-                                setMessages((current) => current.filter((item) => item.id !== mine.id));
-                              } else {
-                                setMessages((current) => [
-                                  ...current,
-                                  { id: uid(), paraId: person.id, de: session.nome, emoji, mensagem: "__reacao__", ts: Date.now() },
-                                ]);
+                            disabled={savingReaction}
+                            aria-pressed={mine}
+                            onClick={async () => {
+                              const nextEmoji = mine ? null : emoji;
+                              setReactionSavingFor(person.id);
+                              const { error } = await supabase.rpc("kt_set_birthday_reaction", {
+                                p_para_id: person.id,
+                                p_emoji: nextEmoji,
+                              });
+                              setReactionSavingFor(null);
+
+                              if (error) {
+                                toast.error("Não foi possível salvar sua reação.");
+                                return;
                               }
+
+                              setMessages((current) => {
+                                const withoutMine = current.filter(
+                                  (item) =>
+                                    !(
+                                      item.paraId === person.id &&
+                                      item.de === session.nome &&
+                                      item.mensagem === "__reacao__"
+                                    ),
+                                );
+                                if (!nextEmoji) return withoutMine;
+                                return [
+                                  ...withoutMine,
+                                  {
+                                    id: uid(),
+                                    paraId: person.id,
+                                    de: session.nome,
+                                    emoji: nextEmoji,
+                                    mensagem: "__reacao__",
+                                    ts: Date.now(),
+                                  },
+                                ];
+                              });
                             }}
-                            className={`inline-flex min-h-8 items-center gap-1.5 rounded-full border px-2.5 text-xs font-semibold transition-colors ${
+                            className={`inline-flex min-h-8 items-center gap-1.5 rounded-full border px-2.5 text-xs font-semibold transition-colors disabled:cursor-wait disabled:opacity-60 ${
                               mine ? "border-kt/30 bg-kt-soft text-kt" : "border-border bg-card text-muted-foreground hover:bg-muted"
                             }`}
                           >

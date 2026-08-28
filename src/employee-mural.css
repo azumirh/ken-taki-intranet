@@ -17,6 +17,15 @@
   height: 0;
 }
 
+/* The post-it pin and slight card rotation extend beyond the card box. Give the
+   horizontal viewport breathing room so the frame never looks chopped. */
+[data-employee-workspace] #mural .overflow-x-auto {
+  padding-top: 0.75rem !important;
+  padding-left: 0.75rem !important;
+  padding-right: 0.75rem !important;
+  scroll-padding-inline: 0.75rem;
+}
+
 [data-employee-workspace] #mural article {
   position: relative;
   min-height: 220px;
