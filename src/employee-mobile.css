@@ -1,286 +1,64 @@
-/* Mobile hardening for the employee portal.
-   Structural rules intentionally use !important so mobile layout does not depend
-   on Tailwind bundle ordering or legacy component classes. */
+/* Mobile do colaborador.
+   Regra principal: não reescrever a estrutura dos componentes. O dashboard já
+   possui breakpoints responsivos no próprio JSX/Tailwind. Esta folha mantém
+   apenas comportamentos que precisam ser específicos no celular. */
 
-@media (max-width: 900px) {
-  html,
-  body {
-    width: 100%;
-    max-width: 100%;
-    overflow-x: hidden !important;
+@media (max-width: 639px) {
+  body:has([data-employee-workspace]) {
+    overflow-x: hidden;
+  }
+
+  body:has([data-employee-workspace]) main.app-container {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
   }
 
   [data-employee-workspace] {
-    width: 100% !important;
-    max-width: 100% !important;
-    min-width: 0 !important;
-    overflow-x: hidden !important;
-    padding-bottom: 5.5rem !important;
+    min-width: 0;
+    max-width: 100%;
+    padding-bottom: 5.5rem;
   }
 
   [data-employee-workspace] > *,
-  [data-employee-workspace] > div,
-  [data-employee-workspace] section,
-  [data-employee-workspace] article,
-  [data-employee-workspace] header,
-  [data-employee-workspace] form,
-  [data-employee-workspace] .surface {
-    width: auto;
-    min-width: 0 !important;
-    max-width: 100% !important;
-    box-sizing: border-box !important;
+  [data-employee-workspace] section {
+    min-width: 0;
+    max-width: 100%;
   }
 
-  [data-employee-workspace] > div:not(.employee-profile-card) {
-    width: 100% !important;
-  }
-
-  [data-employee-workspace] h1,
-  [data-employee-workspace] h2,
-  [data-employee-workspace] h3,
-  [data-employee-workspace] h4,
-  [data-employee-workspace] p,
-  [data-employee-workspace] span,
-  [data-employee-workspace] a,
-  [data-employee-workspace] button {
-    overflow-wrap: anywhere;
-  }
-
+  /* Evita o zoom automático do Safari ao focar campos. */
   [data-employee-workspace] input,
   [data-employee-workspace] select,
   [data-employee-workspace] textarea {
-    width: 100% !important;
-    max-width: 100% !important;
-    min-width: 0 !important;
-    font-size: 16px !important;
+    font-size: 16px;
   }
 
-  [data-employee-workspace] img,
-  [data-employee-workspace] video,
-  [data-employee-workspace] iframe {
-    max-width: 100% !important;
-  }
-
-  [data-employee-workspace] .employee-profile-card {
-    width: 100% !important;
-    max-width: 100% !important;
-    margin-bottom: 1rem !important;
-  }
-
-  [data-employee-workspace] .employee-profile-card > .surface {
-    width: 100% !important;
-    padding: 1rem !important;
-  }
-
-  [data-employee-workspace] .employee-profile-card h1 {
-    font-size: clamp(1.35rem, 7vw, 1.65rem) !important;
-    line-height: 1.12 !important;
-  }
-
-  [data-employee-workspace] section {
-    width: 100% !important;
-    overflow: hidden !important;
-    border-radius: 0.75rem !important;
-  }
-
-  [data-employee-workspace] section > header {
-    display: flex !important;
-    width: 100% !important;
-    flex-direction: column !important;
-    align-items: stretch !important;
-    gap: 0.8rem !important;
-    padding: 1rem !important;
-  }
-
-  [data-employee-workspace] section > header > div {
-    width: 100% !important;
-    min-width: 0 !important;
-    max-width: 100% !important;
-  }
-
-  [data-employee-workspace] section > header > .shrink-0 {
-    width: 100% !important;
-  }
-
-  [data-employee-workspace] section > header h2 {
-    font-size: 1.05rem !important;
-    line-height: 1.22 !important;
-  }
-
-  [data-employee-workspace] section > header p {
-    font-size: 0.78rem !important;
-    line-height: 1.45 !important;
-  }
-
-  [data-employee-workspace] section > div:not(.overflow-x-auto) {
-    width: 100% !important;
-    min-width: 0 !important;
-    max-width: 100% !important;
-    padding-left: 1rem !important;
-    padding-right: 1rem !important;
-  }
-
-  [data-employee-workspace] #pesquisa-clima article {
-    width: 100% !important;
-    min-width: 0 !important;
-  }
-
-  [data-employee-workspace] #pesquisa-clima article > div:last-child {
-    width: 100% !important;
-    flex: 1 1 100% !important;
-  }
-
-  [data-employee-workspace] #pesquisa-clima article > div:last-child > *,
-  [data-employee-workspace] #pesquisa-clima article > div:last-child button,
-  [data-employee-workspace] #pesquisa-clima article > div:last-child a {
-    width: 100% !important;
-    justify-content: center !important;
-  }
-
-  [data-employee-workspace] #feedback > header > .shrink-0 > div {
-    display: grid !important;
-    width: 100% !important;
-    grid-template-columns: minmax(0, 1fr) !important;
-    gap: 0.5rem !important;
-  }
-
-  [data-employee-workspace] #feedback > header > .shrink-0 button {
-    width: 100% !important;
-    justify-content: center !important;
-  }
-
-  [data-employee-workspace] #feedback h3 + span,
-  [data-employee-workspace] #feedback h3 ~ span {
-    flex-shrink: 0;
-  }
-
-  [data-employee-workspace] #noticias .grid,
-  [data-employee-workspace] #politicas .grid,
-  [data-employee-workspace] #reconhecimentos .grid,
-  [data-employee-workspace] #feedback .grid,
-  [data-employee-workspace] #pesquisa-clima .grid,
-  [data-employee-workspace] #integracao .grid {
-    grid-template-columns: minmax(0, 1fr) !important;
-  }
-
-  [data-employee-workspace] #noticias article,
-  [data-employee-workspace] #politicas article {
-    width: 100% !important;
-    min-width: 0 !important;
-    max-width: 100% !important;
-  }
-
-  [data-employee-workspace] #noticias iframe,
-  [data-employee-workspace] #noticias video {
-    width: 100% !important;
-    aspect-ratio: 16 / 9 !important;
-    height: auto !important;
-  }
-
-  [data-employee-workspace] #politicas button,
-  [data-employee-workspace] #feedback button {
-    max-width: 100% !important;
-  }
-
-  /* Horizontal content stays inside its own viewport. */
+  /* Mural e aniversariantes são os únicos módulos com navegação horizontal. */
   [data-employee-workspace] #mural .overflow-x-auto,
   [data-employee-workspace] #aniversariantes .overflow-x-auto {
-    width: 100% !important;
-    max-width: 100% !important;
-    overflow-x: auto !important;
-    overflow-y: hidden !important;
-    padding-left: 1rem !important;
-    padding-right: 1rem !important;
-    scroll-padding-inline: 1rem !important;
-    scrollbar-width: none !important;
-    -ms-overflow-style: none !important;
-    overscroll-behavior-inline: contain !important;
-    -webkit-overflow-scrolling: touch !important;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    overscroll-behavior-inline: contain;
+    -webkit-overflow-scrolling: touch;
   }
 
   [data-employee-workspace] #mural .overflow-x-auto::-webkit-scrollbar,
   [data-employee-workspace] #aniversariantes .overflow-x-auto::-webkit-scrollbar {
-    display: none !important;
-    width: 0 !important;
-    height: 0 !important;
+    display: none;
+    width: 0;
+    height: 0;
   }
 
-  [data-employee-workspace] #mural .overflow-x-auto > .flex,
-  [data-employee-workspace] #aniversariantes .overflow-x-auto > .flex {
-    width: max-content !important;
-    max-width: none !important;
+  /* Vídeos permanecem dentro do card sem alterar o layout do card. */
+  [data-employee-workspace] #noticias iframe,
+  [data-employee-workspace] #noticias video,
+  [data-employee-workspace] #noticias img {
+    display: block;
+    max-width: 100%;
   }
 
-  [data-employee-workspace] #mural article {
-    width: min(82vw, 340px) !important;
-    min-width: min(82vw, 340px) !important;
-    max-width: min(82vw, 340px) !important;
-    min-height: 0 !important;
-    padding: 1rem !important;
-    transform: none !important;
-  }
-
-  [data-employee-workspace] #mural article:hover {
-    transform: none !important;
-  }
-
-  [data-employee-workspace] #aniversariantes article {
-    width: min(86vw, 360px) !important;
-    min-width: min(86vw, 360px) !important;
-    max-width: min(86vw, 360px) !important;
-    padding: 1rem !important;
-  }
-
-  [data-employee-workspace] #aniversariantes article > div:first-child {
-    display: grid !important;
-    width: 100% !important;
-    grid-template-columns: 84px minmax(0, 1fr) !important;
-    align-items: start !important;
-    gap: 0.75rem !important;
-  }
-
-  [data-employee-workspace] #aniversariantes article img,
-  [data-employee-workspace] #aniversariantes article > div:first-child > div:first-child > div {
-    width: 84px !important;
-    height: 84px !important;
-    border-radius: 0.85rem !important;
-  }
-
-  [data-employee-workspace] #aniversariantes article p {
-    white-space: normal !important;
-  }
-
-  [data-employee-workspace] #aniversariantes article button {
-    min-height: 2.25rem !important;
-  }
-
-  [data-employee-workspace] table {
-    font-size: 0.75rem !important;
-  }
-
-  [data-employee-workspace] .overflow-x-auto {
-    max-width: 100% !important;
-    overscroll-behavior-inline: contain !important;
-    -webkit-overflow-scrolling: touch !important;
-  }
-
-  /* Keep the five mood options readable without pushing the viewport. */
-  [data-employee-workspace] #employee-checkin-clean .grid-cols-5 {
-    gap: 0.25rem !important;
-  }
-
-  [data-employee-workspace] #employee-checkin-clean .grid-cols-5 button {
-    min-width: 0 !important;
-    padding-left: 0.2rem !important;
-    padding-right: 0.2rem !important;
-  }
-
-  [data-employee-workspace] #employee-checkin-clean .grid-cols-5 button span:last-child {
-    font-size: 0.58rem !important;
-    line-height: 1.1 !important;
-  }
-
-  /* Employee dialogs fit the actual mobile visual viewport. */
+  /* Diálogos precisam respeitar o viewport visual do telefone. */
   [data-radix-dialog-content],
   [role="dialog"] {
     width: calc(100vw - 1rem) !important;
@@ -289,7 +67,7 @@
     overflow-y: auto !important;
   }
 
-  /* Notification center is a true full-screen mobile surface. */
+  /* Centro de notificações: superfície opaca em tela cheia. */
   [data-notification-overlay] {
     position: fixed !important;
     inset: 0 !important;
@@ -328,18 +106,5 @@
     max-width: 100% !important;
     background: #fffdf9 !important;
     opacity: 1 !important;
-  }
-}
-
-@media (max-width: 420px) {
-  [data-employee-workspace] #mural article,
-  [data-employee-workspace] #aniversariantes article {
-    width: calc(100vw - 3rem) !important;
-    min-width: calc(100vw - 3rem) !important;
-    max-width: calc(100vw - 3rem) !important;
-  }
-
-  [data-employee-workspace] #feedback > header > .shrink-0 > div {
-    grid-template-columns: minmax(0, 1fr) !important;
   }
 }
