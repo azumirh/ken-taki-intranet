@@ -3,10 +3,12 @@ import {
   Bell,
   CheckCheck,
   ChevronRight,
+  ClipboardCheck,
   FileCheck2,
   LifeBuoy,
   MessageSquareText,
   ShieldAlert,
+  Star,
   UserRoundCheck,
   X,
 } from "lucide-react";
@@ -14,7 +16,6 @@ import { useMemo, useState, type ReactNode } from "react";
 import { useNotifications } from "@/lib/notifications";
 
 type Filter = "all" | "unread" | "attention";
-
 type NotificationMeta = {
   label: string;
   tone: "neutral" | "attention" | "critical" | "success";
@@ -30,6 +31,10 @@ const ATTENTION_TYPES = new Set([
   "manager_escalated_support_to_hr",
   "hr_involved",
   "employee_record_updated",
+  "survey_pending",
+  "document_pending",
+  "document_signature_pending",
+  "case_followup",
 ]);
 
 function formatWhen(value: string) {
@@ -43,10 +48,19 @@ function formatWhen(value: string) {
 }
 
 function metaFor(type: string, title: string): NotificationMeta {
+  if (type === "survey_pending" || type.includes("survey")) {
+    return { label: "Pesquisa de clima", tone: "attention", icon: <ClipboardCheck className="h-4 w-4" /> };
+  }
+  if (type === "document_pending" || type === "document_signature_pending") {
+    return { label: "Documento", tone: "attention", icon: <FileCheck2 className="h-4 w-4" /> };
+  }
   if (type === "document_signed") {
     return { label: "Documento", tone: "success", icon: <FileCheck2 className="h-4 w-4" /> };
   }
-  if (type === "feedback_triage_required") {
+  if (type === "recognition") {
+    return { label: "Reconhecimento", tone: "success", icon: <Star className="h-4 w-4" /> };
+  }
+  if (type === "feedback_triage_required" || type === "confidential_case") {
     return { label: "Triagem", tone: "critical", icon: <ShieldAlert className="h-4 w-4" /> };
   }
   if (type === "manager_escalated_to_hr" || type === "manager_escalated_support_to_hr") {
@@ -62,7 +76,7 @@ function metaFor(type: string, title: string): NotificationMeta {
     return { label: "Gestão", tone: "attention", icon: <UserRoundCheck className="h-4 w-4" /> };
   }
   return {
-    label: "Feedback",
+    label: "Atividade",
     tone: ATTENTION_TYPES.has(type) ? "attention" : "neutral",
     icon: <MessageSquareText className="h-4 w-4" />,
   };
@@ -78,10 +92,12 @@ function toneClasses(tone: NotificationMeta["tone"], read: boolean) {
 
 function actionLabel(actionUrl?: string | null) {
   if (!actionUrl) return "Abrir";
+  if (actionUrl.includes("pesquisa") || actionUrl.includes("clima")) return "Ver pesquisa";
   if (actionUrl.includes("feedback")) return "Ver feedback";
   if (actionUrl.includes("apoio")) return "Abrir atendimento";
   if (actionUrl.includes("equipe")) return "Ver equipe";
   if (actionUrl.includes("document") || actionUrl.includes("politicas")) return "Ver documentos";
+  if (actionUrl.includes("reconhec")) return "Ver reconhecimento";
   return "Abrir item";
 }
 
@@ -120,93 +136,37 @@ export function NotificationCenter() {
 
       {open ? (
         <div className="fixed inset-0 z-[90] isolate">
-          <button
-            type="button"
-            aria-label="Fechar notificações"
-            className="absolute inset-0 bg-[#211a1f]/35"
-            onClick={() => setOpen(false)}
-          />
-
-          <aside className="absolute inset-y-0 right-0 z-10 flex w-full max-w-[500px] flex-col border-l border-[#ddd5d9] bg-[#fffdf9] opacity-100 shadow-[-18px_0_55px_-28px_rgba(28,19,25,0.55)] sm:w-[min(94vw,500px)]">
-            <header className="border-b border-[#e1dbd6] bg-[#fffdf9] px-4 py-4 sm:px-5">
+          <button type="button" aria-label="Fechar notificações" className="absolute inset-0 bg-[#211a1f]/35" onClick={() => setOpen(false)} />
+          <aside className="absolute inset-y-0 right-0 z-10 flex w-full max-w-[500px] flex-col border-l border-[#ddd5d9] bg-[#fffdf9] shadow-[-18px_0_55px_-28px_rgba(28,19,25,0.55)] sm:w-[min(94vw,500px)]">
+            <header className="border-b border-[#e1dbd6] px-4 py-4 sm:px-5">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="text-base font-bold text-foreground">Central de atividades</p>
-                  <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                    Acompanhe o que aconteceu e o que ainda precisa de ação.
-                  </p>
+                  <p className="text-base font-bold text-foreground">Notificações</p>
+                  <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">Pendências, devolutivas e atividades que precisam da sua atenção.</p>
                 </div>
-                <button
-                  type="button"
-                  className="grid h-9 w-9 place-items-center rounded-md border border-border bg-[#fffdf9] text-muted-foreground hover:bg-muted hover:text-foreground"
-                  onClick={() => setOpen(false)}
-                  aria-label="Fechar"
-                >
-                  <X className="h-4 w-4" />
-                </button>
+                <button type="button" className="grid h-9 w-9 place-items-center rounded-md border border-border text-muted-foreground hover:bg-muted" onClick={() => setOpen(false)} aria-label="Fechar"><X className="h-4 w-4" /></button>
               </div>
-
               <div className="mt-4 grid grid-cols-3 gap-2">
-                <div className="rounded-md border border-border bg-[#f5f1ed] px-3 py-2">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">Não lidas</p>
-                  <p className="mt-0.5 text-lg font-bold tabular-nums text-foreground">{unreadCount}</p>
-                </div>
-                <div className="rounded-md border border-warn/25 bg-[#faf2e2] px-3 py-2">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-warn">Atenção</p>
-                  <p className="mt-0.5 text-lg font-bold tabular-nums text-warn">{attentionCount}</p>
-                </div>
-                <div className="rounded-md border border-border bg-[#f5f1ed] px-3 py-2">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">Total</p>
-                  <p className="mt-0.5 text-lg font-bold tabular-nums text-foreground">{items.length}</p>
-                </div>
+                <div className="rounded-md border border-border bg-[#f5f1ed] px-3 py-2"><p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">Não lidas</p><p className="mt-0.5 text-lg font-bold tabular-nums">{unreadCount}</p></div>
+                <div className="rounded-md border border-warn/25 bg-[#faf2e2] px-3 py-2"><p className="text-[10px] font-bold uppercase tracking-[0.12em] text-warn">Atenção</p><p className="mt-0.5 text-lg font-bold tabular-nums text-warn">{attentionCount}</p></div>
+                <div className="rounded-md border border-border bg-[#f5f1ed] px-3 py-2"><p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">Total</p><p className="mt-0.5 text-lg font-bold tabular-nums">{items.length}</p></div>
               </div>
             </header>
 
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#e1dbd6] bg-[#fffdf9] px-4 py-2.5 sm:px-5">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#e1dbd6] px-4 py-2.5 sm:px-5">
               <div className="flex gap-1 rounded-md bg-[#f1ede9] p-1">
-                {([
-                  ["all", "Todas"],
-                  ["unread", "Não lidas"],
-                  ["attention", "Atenção"],
-                ] as const).map(([value, label]) => (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => setFilter(value)}
-                    className={`rounded px-2.5 py-1.5 text-[11px] font-semibold transition-colors ${
-                      filter === value ? "bg-[#fffdf9] text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    {label}
-                  </button>
+                {([ ["all", "Todas"], ["unread", "Não lidas"], ["attention", "Atenção"] ] as const).map(([value, label]) => (
+                  <button key={value} type="button" onClick={() => setFilter(value)} className={`rounded px-2.5 py-1.5 text-[11px] font-semibold ${filter === value ? "bg-[#fffdf9] text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>{label}</button>
                 ))}
               </div>
-
-              {unreadCount > 0 ? (
-                <button
-                  type="button"
-                  onClick={() => void markAllRead()}
-                  className="inline-flex min-h-8 items-center gap-1.5 rounded-md px-2 text-[11px] font-semibold text-kt hover:bg-kt-soft"
-                >
-                  <CheckCheck className="h-3.5 w-3.5" />
-                  Marcar tudo como lido
-                </button>
-              ) : null}
+              {unreadCount > 0 ? <button type="button" onClick={() => void markAllRead()} className="inline-flex min-h-8 items-center gap-1.5 rounded-md px-2 text-[11px] font-semibold text-kt hover:bg-kt-soft"><CheckCheck className="h-3.5 w-3.5" /> Marcar tudo como lido</button> : null}
             </div>
 
-            <div className="min-h-0 flex-1 overflow-y-auto bg-[#fffdf9]">
+            <div className="min-h-0 flex-1 overflow-y-auto">
               {loading ? (
-                <p className="px-5 py-10 text-center text-sm text-muted-foreground">Carregando atividades...</p>
+                <p className="px-5 py-10 text-center text-sm text-muted-foreground">Carregando notificações...</p>
               ) : visibleItems.length === 0 ? (
-                <div className="px-6 py-14 text-center">
-                  <div className="mx-auto grid h-11 w-11 place-items-center rounded-full bg-muted text-muted-foreground">
-                    <Bell className="h-5 w-5" />
-                  </div>
-                  <p className="mt-4 text-sm font-semibold text-foreground">Nada por aqui</p>
-                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                    Não há atividades que correspondam a este filtro.
-                  </p>
-                </div>
+                <div className="px-6 py-14 text-center"><div className="mx-auto grid h-11 w-11 place-items-center rounded-full bg-muted text-muted-foreground"><Bell className="h-5 w-5" /></div><p className="mt-4 text-sm font-semibold">Nada por aqui</p><p className="mt-1 text-xs text-muted-foreground">Não há notificações que correspondam a este filtro.</p></div>
               ) : (
                 <div className="divide-y divide-[#e5dfda]">
                   {visibleItems.map((item) => {
@@ -220,29 +180,15 @@ export function NotificationCenter() {
                           if (item.actionUrl) window.location.href = item.actionUrl;
                           setOpen(false);
                         }}
-                        className={`block w-full px-4 py-4 text-left transition-colors hover:bg-[#f5f1ed] sm:px-5 ${
-                          item.readAt ? "bg-[#fffdf9]" : "bg-[#f1e9ee]"
-                        }`}
+                        className={`block w-full px-4 py-4 text-left transition-colors hover:bg-[#f5f1ed] sm:px-5 ${item.readAt ? "bg-[#fffdf9]" : "bg-[#f1e9ee]"}`}
                       >
                         <div className="flex items-start gap-3.5">
-                          <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-md border ${toneClasses(meta.tone, Boolean(item.readAt))}`}>
-                            {meta.icon}
-                          </span>
+                          <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-md border ${toneClasses(meta.tone, Boolean(item.readAt))}`}>{meta.icon}</span>
                           <span className="min-w-0 flex-1">
-                            <span className="flex flex-wrap items-center gap-2">
-                              <span className="rounded-md bg-muted px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
-                                {meta.label}
-                              </span>
-                              {!item.readAt ? <span className="h-1.5 w-1.5 rounded-full bg-kt" /> : null}
-                              <span className="ml-auto text-[10px] font-medium text-muted-foreground">{formatWhen(item.createdAt)}</span>
-                            </span>
+                            <span className="flex flex-wrap items-center gap-2"><span className="rounded-md bg-muted px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-muted-foreground">{meta.label}</span>{!item.readAt ? <span className="h-1.5 w-1.5 rounded-full bg-kt" /> : null}<span className="ml-auto text-[10px] font-medium text-muted-foreground">{formatWhen(item.createdAt)}</span></span>
                             <span className="mt-1.5 block text-sm font-semibold leading-snug text-foreground">{item.title}</span>
-                            {item.body ? (
-                              <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">{item.body}</span>
-                            ) : null}
-                            <span className="mt-2.5 inline-flex items-center gap-1 text-[11px] font-bold text-kt">
-                              {actionLabel(item.actionUrl)} <ChevronRight className="h-3.5 w-3.5" />
-                            </span>
+                            {item.body ? <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">{item.body}</span> : null}
+                            <span className="mt-2.5 inline-flex items-center gap-1 text-[11px] font-bold text-kt">{actionLabel(item.actionUrl)} <ChevronRight className="h-3.5 w-3.5" /></span>
                           </span>
                         </div>
                       </button>
