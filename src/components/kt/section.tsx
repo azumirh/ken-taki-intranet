@@ -58,13 +58,13 @@ export function Section({
   const displayIntro = clientCopy(intro);
   const displayChildren = clientNode(children);
   const header = (
-    <div className="flex w-full min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
       <div className="min-w-0 flex-1">
-        <h2 className="break-words text-base font-bold leading-tight text-foreground [overflow-wrap:anywhere] sm:text-lg">{displayTitle}</h2>
-        <p className="mt-1 max-w-3xl break-words text-sm leading-relaxed text-muted-foreground [overflow-wrap:anywhere]">{displayIntro}</p>
+        <h2 className="text-base font-bold leading-tight text-foreground sm:text-lg">{displayTitle}</h2>
+        <p className="mt-1 max-w-3xl text-sm leading-relaxed text-muted-foreground">{displayIntro}</p>
       </div>
       {(contagem || acao) ? (
-        <div className="flex w-full min-w-0 flex-wrap items-center gap-2 sm:w-auto sm:shrink-0">
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
           {contagem ? (
             <span className="rounded-md border border-border bg-muted px-2.5 py-1 text-[11px] font-semibold text-muted-foreground">
               {contagem}
@@ -78,9 +78,9 @@ export function Section({
 
   if (!collapsible) {
     return (
-      <section id={id} className="surface w-full min-w-0 scroll-mt-24 overflow-hidden">
-        <header className="min-w-0 border-b border-border bg-card px-4 py-4 sm:px-5 lg:px-6">{header}</header>
-        <div className="min-w-0 px-4 py-4 sm:px-5 sm:py-5 lg:px-6">{displayChildren}</div>
+      <section id={id} className="surface scroll-mt-24 overflow-hidden">
+        <header className="border-b border-border bg-card px-4 py-4 sm:px-5 lg:px-6">{header}</header>
+        <div className="px-4 py-4 sm:px-5 sm:py-5 lg:px-6">{displayChildren}</div>
       </section>
     );
   }
@@ -93,9 +93,9 @@ export function Section({
         {...(defaultOpen ? { defaultValue: "s" } : {})}
       >
         <AccordionPrimitive.Item value="s">
-          <AccordionPrimitive.Header className="min-w-0 border-b border-border bg-card px-4 py-4 sm:px-5 lg:px-6">
-            <div className="flex min-w-0 items-start gap-3">
-              <AccordionPrimitive.Trigger className="flex w-full min-w-0 flex-1 cursor-pointer items-start gap-3 text-left [&[data-state=open]>svg]:rotate-180">
+          <AccordionPrimitive.Header className="border-b border-border bg-card px-4 py-4 sm:px-5 lg:px-6">
+            <div className="flex items-start gap-3">
+              <AccordionPrimitive.Trigger className="flex min-w-0 flex-1 cursor-pointer items-start gap-3 text-left [&[data-state=open]>svg]:rotate-180">
                 <div className="min-w-0 flex-1">
                   <h2 className="text-base font-bold leading-tight text-foreground sm:text-lg">{displayTitle}</h2>
                   <p className="mt-1 max-w-3xl text-sm leading-relaxed text-muted-foreground">{displayIntro}</p>
