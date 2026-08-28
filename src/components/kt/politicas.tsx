@@ -102,7 +102,7 @@ export function Documentos({
         collapsible={collapsible}
         defaultOpen={defaultOpen}
       >
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {docs.map((doc) => {
             const jaLeu = leu(doc.id);
             const jaAssinou = assinou(doc.id);
@@ -112,7 +112,7 @@ export function Documentos({
             return (
               <article
                 key={doc.id}
-                className="flex flex-col overflow-hidden rounded-2xl border border-border bg-card"
+                className="flex w-full min-w-0 max-w-full flex-col overflow-hidden rounded-2xl border border-border bg-card"
               >
                 <div className="relative">
                   <img
@@ -135,13 +135,13 @@ export function Documentos({
                     </span>
                   )}
                 </div>
-                <div className="flex flex-1 flex-col p-4">
-                  <h3 className="text-sm font-bold">{doc.titulo}</h3>
+                <div className="flex min-w-0 flex-1 flex-col p-4">
+                  <h3 className="break-words text-sm font-bold [overflow-wrap:anywhere]">{doc.titulo}</h3>
                   <p className="mt-1 flex-1 text-xs text-muted-foreground">
                     Publicado em {new Date(doc.data + "T00:00:00").toLocaleDateString("pt-BR")}
                   </p>
                   {assinatura?.protocolo && (
-                    <p className="mt-1 text-[10px] font-mono text-muted-foreground/60">
+                    <p className="mt-1 break-all text-[10px] font-mono text-muted-foreground/60">
                       Protocolo: {assinatura.protocolo}
                     </p>
                   )}
@@ -149,7 +149,7 @@ export function Documentos({
                     <Button
                       variant="outline"
                       size="sm"
-                      className="w-full rounded-full"
+                      className="h-auto min-h-9 w-full whitespace-normal rounded-full py-2 text-center leading-tight"
                       onClick={() => abrirDoc(doc)}
                     >
                       <ExternalLink className="h-3.5 w-3.5" />
@@ -158,7 +158,7 @@ export function Documentos({
                     {!jaAssinou && (
                       <Button
                         size="sm"
-                        className="w-full rounded-full disabled:bg-muted disabled:text-muted-foreground disabled:opacity-100"
+                        className="h-auto min-h-9 w-full whitespace-normal rounded-full py-2 text-center leading-tight disabled:bg-muted disabled:text-muted-foreground disabled:opacity-100"
                         disabled={!jaLeu}
 
                         onClick={() => {
@@ -221,9 +221,9 @@ export function Documentos({
               Ao confirmar, declaramos que você leu e recebeu este documento. Um número de protocolo
               único será gerado para registro.
             </p>
-            <div className="flex gap-2">
+            <div className="grid gap-2 sm:flex">
               <Button
-                className="flex-1 rounded-full"
+                className="w-full rounded-full sm:flex-1"
                 disabled={assinando || !cpfDigitado.trim()}
                 onClick={confirmarAssinatura}
               >
@@ -231,7 +231,7 @@ export function Documentos({
               </Button>
               <Button
                 variant="outline"
-                className="rounded-full"
+                className="w-full rounded-full sm:w-auto"
                 onClick={() => {
                   setDocPendente(null);
                   setCpfDigitado("");

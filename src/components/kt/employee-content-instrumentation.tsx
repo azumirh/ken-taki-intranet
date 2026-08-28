@@ -312,8 +312,8 @@ export function EmployeeContentInstrumentation() {
       {targets.map((target) =>
         createPortal(
           target.type === "noticia" ? (
-            <div className="flex flex-wrap items-center gap-2 border-t border-border/70 px-4 py-3">
-              <span className="mr-auto text-[11px] font-semibold text-muted-foreground">
+            <div className="flex w-full min-w-0 flex-wrap items-center gap-2 border-t border-border/70 px-4 py-3">
+              <span className="w-full text-[11px] font-semibold text-muted-foreground sm:mr-auto sm:w-auto">
                 Este conteúdo foi útil?
               </span>
               <button
@@ -346,7 +346,7 @@ export function EmployeeContentInstrumentation() {
                   target="_blank"
                   rel="noreferrer"
                   onClick={() => void recordContentAction("noticia", target.id, "click")}
-                  className="inline-flex min-h-8 items-center gap-1.5 rounded-md px-2 text-xs font-bold text-kt hover:bg-kt-soft"
+                  className="inline-flex min-h-8 w-full items-center justify-center gap-1.5 rounded-md px-2 text-xs font-bold text-kt hover:bg-kt-soft sm:w-auto"
                 >
                   Abrir vídeo <ExternalLink className="h-3.5 w-3.5" />
                 </a>
