@@ -203,7 +203,7 @@ function ActionRow({
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="font-bold text-foreground">{title}</h3>
-            {status ? <StatusPill tone={tone}>{status}</StatusPill> : null}
+            {status ? (tone ? <StatusPill tone={tone}>{status}</StatusPill> : <StatusPill>{status}</StatusPill>) : null}
           </div>
           <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{description}</p>
         </div>

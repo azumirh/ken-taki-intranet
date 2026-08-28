@@ -255,7 +255,7 @@ export function WorkspaceClimateReport({ mode }: { mode: Mode }) {
     );
     ctx.fillText(
       mode === "manager"
-        ? filialNome(profile.filial ?? undefined)
+        ? filialNome(profile?.filial ?? undefined)
         : filial === "todas"
           ? "Todas as unidades"
           : filialNome(filial),

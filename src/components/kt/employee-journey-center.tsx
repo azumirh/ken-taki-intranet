@@ -90,7 +90,7 @@ export function EmployeeJourneyCenter() {
       registrado_por_colaborador_id: employee.id,
       status: "ativo",
     });
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     setRecognizePerson("");
     setRecognizeReason("");
     toast.success("Reconhecimento enviado.");
@@ -99,7 +99,7 @@ export function EmployeeJourneyCenter() {
   async function submitSurvey(survey: Survey) {
     const surveyQuestions = questions.filter((question) => question.pesquisa_id === survey.id);
     const missing = surveyQuestions.some((question) => question.obrigatoria && !answers[question.id]);
-    if (missing) return toast.error("Responda todas as perguntas obrigatórias.");
+    if (missing) { toast.error("Responda todas as perguntas obrigatórias."); return; }
     setSendingSurvey(survey.id);
     try {
       const payload = surveyQuestions.map((question) => ({ pergunta_id: question.id, resposta: question.tipo === "escala_1_5" ? Number(answers[question.id]) : answers[question.id] }));

@@ -195,8 +195,8 @@ export function WorkspaceCaseCenter({ mode }: { mode: Mode }) {
   async function saveFeedbackMeta(field: "responsavel" | "referente", value: string) {
     if (!selectedFeedback) return;
     const params: Record<string, unknown> = { p_feedback_id: selectedFeedback.id };
-    if (field === "responsavel") params.p_responsavel_id = value || null;
-    if (field === "referente") params.p_referente_colaborador_id = value || null;
+    if (field === "responsavel") params["p_responsavel_id"] = value || null;
+    if (field === "referente") params["p_referente_colaborador_id"] = value || null;
     const { error } = await supabase.rpc("kt_update_feedback_case", params); if (error) toast.error(error.message); else await load();
   }
 

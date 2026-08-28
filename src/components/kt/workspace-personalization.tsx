@@ -44,7 +44,7 @@ const EMPTY_PROFILE: ProfileDraft = {
 
 function applyPreferences(preferences: UiPreferences) {
   document.documentElement.style.setProperty("--profile-accent", preferences.accentColor);
-  document.documentElement.dataset.profileBackground = preferences.backgroundStyle;
+  document.documentElement.dataset["profileBackground"] = preferences.backgroundStyle;
 }
 
 export function WorkspacePersonalization() {

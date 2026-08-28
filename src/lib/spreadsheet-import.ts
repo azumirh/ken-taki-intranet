@@ -265,7 +265,7 @@ async function parseXlsx(buffer: ArrayBuffer): Promise<SpreadsheetRow[]> {
 
   const headerIndex = matrix.findIndex((row) => row.filter((cell) => String(cell ?? "").trim()).length >= 2);
   if (headerIndex < 0) return [];
-  const headers = matrix[headerIndex].map((cell) => String(cell ?? "").trim());
+  const headers = (matrix[headerIndex] ?? []).map((cell) => String(cell ?? "").trim());
 
   return matrix
     .slice(headerIndex + 1)
