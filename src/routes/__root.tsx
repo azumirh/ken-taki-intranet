@@ -16,7 +16,20 @@ import employeeMobileCss from "../employee-mobile.css?url";
 import employeeMobileDeviceCss from "../employee-mobile-device.css?url";
 import employeeMobileInnerFixesCss from "../employee-mobile-inner-fixes.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { EmployeeMobileRuntimeGuard } from "@/components/kt/employee-mobile-runtime-guard";
 import { Toaster } from "@/components/ui/sonner";
+
+const EMPLOYEE_MOBILE_BOOTSTRAP = `
+(() => {
+  try {
+    if (!location.pathname.startsWith('/painel')) return;
+    const width = window.visualViewport?.width ?? window.innerWidth;
+    const touch = navigator.maxTouchPoints > 0 || 'ontouchstart' in window;
+    if (touch || width <= 1100) {
+      document.documentElement.classList.add('kt-employee-mobile-runtime');
+    }
+  } catch {}
+})();`;
 
 function NotFoundComponent() {
   return (
@@ -118,6 +131,7 @@ function RootShell({ children }: { children: ReactNode }) {
         <HeadContent />
       </head>
       <body>
+        <script dangerouslySetInnerHTML={{ __html: EMPLOYEE_MOBILE_BOOTSTRAP }} />
         {children}
         <Scripts />
       </body>
@@ -144,6 +158,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
+      <EmployeeMobileRuntimeGuard />
       <Toaster position="top-center" />
     </QueryClientProvider>
   );
