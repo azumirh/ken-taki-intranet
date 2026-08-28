@@ -14,6 +14,7 @@ import appCss from "../styles.css?url";
 import employeeMuralCss from "../employee-mural.css?url";
 import employeeMobileCss from "../employee-mobile.css?url";
 import employeeMobileDeviceCss from "../employee-mobile-device.css?url";
+import employeeMobileInnerFixesCss from "../employee-mobile-inner-fixes.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -100,6 +101,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "stylesheet", href: employeeMuralCss },
       { rel: "stylesheet", href: employeeMobileCss },
       { rel: "stylesheet", href: employeeMobileDeviceCss },
+      { rel: "stylesheet", href: employeeMobileInnerFixesCss },
       { rel: "icon", href: "/favicon.svg", type: "image/svg+xml" },
     ],
   }),
