@@ -607,7 +607,7 @@ export function EmployeeDashboardV3() {
         {visibleMural.length === 0 ? (
           <div className="rounded-xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">Nenhuma publicação no mural.</div>
         ) : (
-          <div className="-mx-1 flex snap-x snap-mandatory gap-4 overflow-x-auto px-1 pb-3 [scrollbar-width:thin]">
+          <div className="-mx-1 flex snap-x snap-mandatory gap-4 overflow-x-auto overscroll-x-contain px-1 pb-3 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {visibleMural.map((item) => (
               <article key={item.id} className="w-[82vw] max-w-[360px] shrink-0 snap-start rounded-xl border border-border bg-background p-5 sm:w-[330px]">
                 <div className="flex items-start gap-3">

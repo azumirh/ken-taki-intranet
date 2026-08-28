@@ -158,8 +158,9 @@ export function Documentos({
                     {!jaAssinou && (
                       <Button
                         size="sm"
-                        className="w-full rounded-full"
+                        className="w-full rounded-full disabled:bg-muted disabled:text-muted-foreground disabled:opacity-100"
                         disabled={!jaLeu}
+
                         onClick={() => {
                           setCpfDigitado("");
                           setCpfErro("");
