@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { AppShell } from "@/components/kt/app-shell";
+import { EmployeeBirthdayFeed } from "@/components/kt/employee-birthday-feed";
 import { EmployeeDashboardV3 } from "@/components/kt/employee-dashboard-v3";
 import { useSession } from "@/lib/kt-store";
 
@@ -10,7 +11,7 @@ export const Route = createFileRoute("/painel")({
       { title: "Meu perfil · Intranet Ken Taki" },
       {
         name: "description",
-        content: "Check-in, pesquisa de clima, comunicação, documentos, reconhecimentos e registros do colaborador.",
+        content: "Check-in, pesquisa de clima, comunicação, aniversariantes, documentos, reconhecimentos e registros do colaborador.",
       },
     ],
   }),
@@ -30,6 +31,7 @@ function Painel() {
   return (
     <AppShell>
       <EmployeeDashboardV3 />
+      <EmployeeBirthdayFeed />
     </AppShell>
   );
 }
