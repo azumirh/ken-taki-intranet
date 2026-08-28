@@ -1,16 +1,16 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { AppShell } from "@/components/kt/app-shell";
-import { EmployeeDashboardV2 } from "@/components/kt/employee-dashboard-v2";
+import { EmployeeDashboardV3 } from "@/components/kt/employee-dashboard-v3";
 import { useSession } from "@/lib/kt-store";
 
 export const Route = createFileRoute("/painel")({
   head: () => ({
     meta: [
-      { title: "Meu painel · Portal Azumi RH" },
+      { title: "Meu perfil · Intranet Ken Taki" },
       {
         name: "description",
-        content: "Pendências, comunicação, documentos, jornada e histórico do colaborador em um painel organizado.",
+        content: "Check-in, pesquisa de clima, comunicação, documentos, reconhecimentos e registros do colaborador.",
       },
     ],
   }),
@@ -29,7 +29,7 @@ function Painel() {
 
   return (
     <AppShell>
-      <EmployeeDashboardV2 />
+      <EmployeeDashboardV3 />
     </AppShell>
   );
 }
