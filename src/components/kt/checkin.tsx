@@ -389,7 +389,7 @@ export function CheckIn({ session }: { session: Extract<Session, { tipo: "colabo
 
               <div className="relative pt-2">
                 <div className="absolute left-[9%] right-[9%] top-[27px] h-1 rounded-full bg-gradient-to-r from-destructive via-warn to-success opacity-45" />
-                <div className="relative grid grid-cols-5 gap-1.5 sm:gap-2">
+                <div className="relative grid min-w-0 grid-cols-5 gap-1 sm:gap-2">
                   {[...HUMORES].reverse().map((item) => {
                     const active = humor === item.id;
                     const activeClass =
@@ -410,14 +410,14 @@ export function CheckIn({ session }: { session: Extract<Session, { tipo: "colabo
                         type="button"
                         aria-pressed={active}
                         onClick={() => chooseMood(item.id, item.categoria)}
-                        className={`relative flex min-h-[78px] flex-col items-center justify-start gap-1 rounded-lg border px-1.5 py-2.5 text-center transition-all sm:min-h-[88px] sm:px-2 ${
+                        className={`relative flex min-h-[74px] min-w-0 flex-col items-center justify-start gap-1 overflow-hidden rounded-lg border px-0.5 py-2 text-center transition-all sm:min-h-[88px] sm:overflow-visible sm:px-2 sm:py-2.5 ${
                           active ? activeClass : "border-border bg-card text-muted-foreground hover:border-foreground/20 hover:bg-muted/30"
                         }`}
                       >
-                        <span className={`grid h-9 w-9 place-items-center rounded-full bg-card text-2xl shadow-sm ring-1 ${active ? iconRing : "ring-border"}`}>
+                        <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-full bg-card text-xl shadow-sm ring-1 sm:h-9 sm:w-9 sm:text-2xl ${active ? iconRing : "ring-border"}`}>
                           {item.emoji}
                         </span>
-                        <span className="text-[10px] font-semibold leading-tight sm:text-xs">{item.label}</span>
+                        <span className="w-full min-w-0 break-words text-[9px] font-semibold leading-[1.05] [overflow-wrap:anywhere] sm:text-xs sm:leading-tight">{item.label}</span>
                       </button>
                     );
                   })}

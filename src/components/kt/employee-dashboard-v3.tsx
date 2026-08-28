@@ -142,8 +142,8 @@ function SectionBlock({
   children: ReactNode;
 }) {
   return (
-    <section id={id} className="scroll-mt-24 overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-      <header className="flex flex-col gap-4 border-b border-border px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+    <section id={id} className="w-full min-w-0 scroll-mt-24 overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+      <header className="flex min-w-0 flex-col gap-4 border-b border-border px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-5">
         <div className="flex min-w-0 items-start gap-3.5">
           <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-kt-soft text-kt">{icon}</span>
           <div className="min-w-0">
@@ -152,9 +152,9 @@ function SectionBlock({
             {description ? <p className="mt-1 max-w-3xl text-sm leading-relaxed text-muted-foreground">{description}</p> : null}
           </div>
         </div>
-        {action ? <div className="shrink-0">{action}</div> : null}
+        {action ? <div className="w-full min-w-0 sm:w-auto sm:shrink-0">{action}</div> : null}
       </header>
-      <div className="px-5 py-5 sm:px-6 sm:py-6">{children}</div>
+      <div className="min-w-0 px-4 py-4 sm:px-6 sm:py-6">{children}</div>
     </section>
   );
 }
@@ -170,13 +170,13 @@ function StatusPill({ children, success = false, warning = false }: { children: 
 
 function RecordRow({ title, meta, body, badge }: { title: string; meta: string; body?: string; badge?: ReactNode }) {
   return (
-    <div className="flex flex-col gap-2 border-b border-border py-3.5 last:border-b-0 sm:flex-row sm:items-start sm:justify-between">
+    <div className="flex w-full min-w-0 flex-col gap-2 border-b border-border py-3.5 last:border-b-0 sm:flex-row sm:items-start sm:justify-between">
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
           <p className="text-sm font-semibold text-foreground">{title}</p>
           {badge}
         </div>
-        {body ? <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{body}</p> : null}
+        {body ? <p className="mt-1 break-words text-sm leading-relaxed text-muted-foreground [overflow-wrap:anywhere]">{body}</p> : null}
       </div>
       <span className="shrink-0 text-xs text-muted-foreground">{meta}</span>
     </div>
@@ -506,7 +506,7 @@ export function EmployeeDashboardV3() {
   if (!session || session.tipo !== "colaborador") return null;
 
   return (
-    <div className="mx-auto grid w-full max-w-[1180px] gap-6">
+    <div className="mx-auto grid w-full min-w-0 max-w-[1180px] gap-4 sm:gap-6">
       <style>{`
         [data-employee-workspace] > #minha-jornada{display:none!important}
         #employee-checkin-clean .relative.pt-2 > .absolute{display:none!important}
@@ -565,7 +565,7 @@ export function EmployeeDashboardV3() {
             {surveys.map((survey) => {
               const done = surveyAnswered(survey);
               return (
-                <article key={survey.id} className="flex flex-col gap-4 rounded-xl border border-border bg-background p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+                <article key={survey.id} className="flex w-full min-w-0 flex-col gap-4 rounded-xl border border-border bg-background p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <h3 className="font-extrabold text-foreground">{survey.titulo}</h3>
@@ -575,16 +575,16 @@ export function EmployeeDashboardV3() {
                     {survey.descricao ? <p className="mt-1.5 max-w-3xl text-sm leading-relaxed text-muted-foreground">{survey.descricao}</p> : null}
                     {survey.prazo ? <p className="mt-2 text-xs font-medium text-muted-foreground">Prazo: {dateOnly(survey.prazo)}</p> : null}
                   </div>
-                  <div className="flex shrink-0 flex-wrap gap-2">
+                  <div className="flex w-full min-w-0 flex-col gap-2 sm:w-auto sm:shrink-0 sm:flex-row sm:flex-wrap">
                     {done ? (
-                      <span className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-success/10 px-4 text-sm font-bold text-success"><CheckCircle2 className="h-4 w-4" /> Participação registrada</span>
+                      <span className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-lg bg-success/10 px-4 text-center text-sm font-bold text-success sm:w-auto"><CheckCircle2 className="h-4 w-4" /> Participação registrada</span>
                     ) : survey.modo === "externa" && survey.link ? (
                       <>
-                        <a href={survey.link} target="_blank" rel="noreferrer" className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-[#4b1736] px-4 text-sm font-bold text-white hover:bg-[#351526]">Responder pesquisa <ExternalLink className="h-4 w-4" /></a>
-                        <Button variant="outline" onClick={() => void markExternalAnswered(survey)}>Já respondi</Button>
+                        <a href={survey.link} target="_blank" rel="noreferrer" className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-lg bg-[#4b1736] px-4 text-center text-sm font-bold text-white hover:bg-[#351526] sm:w-auto">Responder pesquisa <ExternalLink className="h-4 w-4" /></a>
+                        <Button className="w-full sm:w-auto" variant="outline" onClick={() => void markExternalAnswered(survey)}>Já respondi</Button>
                       </>
                     ) : (
-                      <Button className="bg-[#4b1736] text-white hover:bg-[#351526]" onClick={() => { setAnswers({}); setSurveyOpen(survey); }}>
+                      <Button className="w-full bg-[#4b1736] text-white hover:bg-[#351526] sm:w-auto" onClick={() => { setAnswers({}); setSurveyOpen(survey); }}>
                         Responder pesquisa
                       </Button>
                     )}
@@ -638,19 +638,19 @@ export function EmployeeDashboardV3() {
         {latestNews.length === 0 ? (
           <div className="rounded-xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">Nenhuma notícia publicada.</div>
         ) : (
-          <div className="grid gap-4 lg:grid-cols-3">
+          <div className="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-3">
             {latestNews.map((news) => {
               const embed = news.videoUrl ? youtubeEmbed(news.videoUrl) : null;
               return (
-                <article key={news.id} className="flex min-w-0 flex-col overflow-hidden rounded-xl border border-border bg-background">
+                <article key={news.id} className="flex w-full min-w-0 max-w-full flex-col overflow-hidden rounded-xl border border-border bg-background">
                   <div className="p-4 pb-3">
                     <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">{dateOnly(news.data)}</p>
-                    <h3 className="mt-1.5 font-extrabold leading-snug text-foreground">{news.titulo}</h3>
-                    <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{news.resumo}</p>
+                    <h3 className="mt-1.5 break-words font-extrabold leading-snug text-foreground [overflow-wrap:anywhere]">{news.titulo}</h3>
+                    <p className="mt-1.5 break-words text-sm leading-relaxed text-muted-foreground [overflow-wrap:anywhere]">{news.resumo}</p>
                   </div>
                   <div className="aspect-video bg-muted">
                     {embed ? (
-                      <iframe className="h-full w-full" src={embed} title={news.titulo} allowFullScreen />
+                      <iframe className="block h-full w-full max-w-full" src={embed} title={news.titulo} allowFullScreen />
                     ) : news.imagemUrl ? (
                       <img src={news.imagemUrl} alt="" className="h-full w-full object-cover" />
                     ) : (
@@ -674,19 +674,19 @@ export function EmployeeDashboardV3() {
         icon={<Star className="h-5 w-5" />}
         action={<StatusPill>{recognitions.length} registro(s)</StatusPill>}
       >
-        <div className="rounded-xl border border-border bg-background px-4 sm:px-5">
+        <div className="w-full min-w-0 rounded-xl border border-border bg-background px-4 sm:px-5">
           {recognitions.length === 0 ? (
             <p className="py-7 text-center text-sm text-muted-foreground">Nenhum reconhecimento registrado ainda.</p>
           ) : (
             recognitions.map((item) => (
-              <div key={item.id} className="flex gap-3 border-b border-border py-4 last:border-b-0">
+              <div key={item.id} className="flex w-full min-w-0 gap-3 border-b border-border py-4 last:border-b-0">
                 <Star className="mt-0.5 h-5 w-5 shrink-0 fill-current text-[#a96c19]" />
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="text-sm font-bold">{item.elogio_cliente ? "Elogio de cliente" : "Reconhecimento"}</p>
                     {item.status === "destaque" ? <StatusPill success>Destaque</StatusPill> : null}
                   </div>
-                  <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{item.motivo}</p>
+                  <p className="mt-1 break-words text-sm leading-relaxed text-muted-foreground [overflow-wrap:anywhere]">{item.motivo}</p>
                 </div>
                 <span className="hidden shrink-0 text-xs text-muted-foreground sm:block">{dateOnly(item.created_at)}</span>
               </div>
@@ -702,17 +702,17 @@ export function EmployeeDashboardV3() {
         description="Registre feedbacks, reconheça alguém, envie sugestões ou peça apoio ao RH; depois acompanhe tudo no histórico."
         icon={<MessagesSquare className="h-5 w-5" />}
         action={
-          <div className="flex flex-wrap gap-2">
-            <Button size="sm" onClick={() => setFeedbackOpen(true)}><MessagesSquare className="h-4 w-4" /> Novo feedback</Button>
-            <Button size="sm" variant="outline" onClick={() => setRecognitionOpen(true)}><MessageSquareHeart className="h-4 w-4" /> Reconhecer alguém</Button>
-            <Button size="sm" variant="outline" onClick={() => setSuggestionOpen(true)}><Lightbulb className="h-4 w-4" /> Sugestão</Button>
-            <Button size="sm" variant="outline" onClick={() => setSupportOpen(true)}><MessageCircle className="h-4 w-4" /> Apoio RH</Button>
+          <div className="grid w-full min-w-0 grid-cols-1 gap-2 sm:flex sm:w-auto sm:flex-wrap">
+            <Button className="w-full justify-center sm:w-auto" size="sm" onClick={() => setFeedbackOpen(true)}><MessagesSquare className="h-4 w-4" /> Novo feedback</Button>
+            <Button className="w-full justify-center sm:w-auto" size="sm" variant="outline" onClick={() => setRecognitionOpen(true)}><MessageSquareHeart className="h-4 w-4" /> Reconhecer alguém</Button>
+            <Button className="w-full justify-center sm:w-auto" size="sm" variant="outline" onClick={() => setSuggestionOpen(true)}><Lightbulb className="h-4 w-4" /> Sugestão</Button>
+            <Button className="w-full justify-center sm:w-auto" size="sm" variant="outline" onClick={() => setSupportOpen(true)}><MessageCircle className="h-4 w-4" /> Apoio RH</Button>
           </div>
         }
       >
         <div className="grid gap-6">
           <div>
-            <div className="flex items-center justify-between gap-3"><h3 className="font-bold">Seus feedbacks e ocorrências</h3><StatusPill>{employeeFeedbacks.length} registro(s)</StatusPill></div>
+            <div className="flex min-w-0 flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between"><h3 className="break-words font-bold [overflow-wrap:anywhere]">Seus feedbacks e ocorrências</h3><StatusPill>{employeeFeedbacks.length} registro(s)</StatusPill></div>
             <div className="mt-2 rounded-xl border border-border bg-background px-4 sm:px-5">
               {employeeFeedbacks.length === 0 ? <p className="py-7 text-center text-sm text-muted-foreground">Nenhum feedback registrado.</p> : employeeFeedbacks.slice(0, 8).map((item) => (
                 <RecordRow key={item.id} title={item.tipo} body={item.mensagem} meta={dateTime(item.ts)} badge={<StatusPill success={item.status === "concluido"}>{item.status?.replaceAll("-", " ") ?? "em andamento"}</StatusPill>} />
@@ -721,7 +721,7 @@ export function EmployeeDashboardV3() {
           </div>
 
           <div>
-            <div className="flex items-center justify-between gap-3"><h3 className="font-bold">Pedidos de apoio</h3><StatusPill>{employeeSupport.length} pedido(s)</StatusPill></div>
+            <div className="flex min-w-0 flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between"><h3 className="break-words font-bold [overflow-wrap:anywhere]">Pedidos de apoio</h3><StatusPill>{employeeSupport.length} pedido(s)</StatusPill></div>
             <div className="mt-2 rounded-xl border border-border bg-background px-4 sm:px-5">
               {employeeSupport.length === 0 ? <p className="py-7 text-center text-sm text-muted-foreground">Nenhum pedido de apoio registrado.</p> : employeeSupport.slice(0, 6).map((item) => {
                 const latest = employeeSupportNotes.find((note) => note.pedidoId === item.id);
@@ -731,7 +731,7 @@ export function EmployeeDashboardV3() {
           </div>
 
           <div>
-            <div className="flex items-center justify-between gap-3"><h3 className="font-bold">Caixinha de sugestões</h3><StatusPill>{sugestoes.length} protocolo(s)</StatusPill></div>
+            <div className="flex min-w-0 flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between"><h3 className="break-words font-bold [overflow-wrap:anywhere]">Caixinha de sugestões</h3><StatusPill>{sugestoes.length} protocolo(s)</StatusPill></div>
             <div className="mt-2 rounded-xl border border-border bg-background px-4 sm:px-5">
               {sugestoes.length === 0 ? <p className="py-7 text-center text-sm text-muted-foreground">Nenhuma sugestão enviada ainda.</p> : sugestoes.slice(0, 6).map((item) => (
                 <RecordRow key={item.id} title={item.categoria} body={item.mensagem} meta={dateTime(item.ts)} badge={<StatusPill>{item.status?.replaceAll("-", " ") ?? "enviado"}</StatusPill>} />
@@ -766,7 +766,7 @@ export function EmployeeDashboardV3() {
         </div>
       </SectionBlock>
 
-      <p className="flex items-center justify-center gap-2 pb-1 text-xs text-muted-foreground"><ShieldCheck className="h-3.5 w-3.5" /> Pesquisas anônimas registram participação separadamente das respostas.</p>
+      <p className="flex min-w-0 items-center justify-center gap-2 break-words pb-1 text-center text-xs text-muted-foreground [overflow-wrap:anywhere]"><ShieldCheck className="h-3.5 w-3.5" /> Pesquisas anônimas registram participação separadamente das respostas.</p>
 
       <Dialog open={!!surveyOpen} onOpenChange={(open) => { if (!open) { setSurveyOpen(null); setAnswers({}); } }}>
         <DialogContent className="max-h-[88vh] overflow-y-auto sm:max-w-2xl">
